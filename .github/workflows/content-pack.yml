@@ -1,0 +1,117 @@
+name: Content Pack
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'content/teachers.csv'
+      - 'content/teachers_photos/**'
+      - 'content/group_codes.csv'
+      - 'content/college_map.json'
+      - '.github/workflows/content-pack.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: content-pack
+  cancel-in-progress: false
+
+jobs:
+  build-pack:
+    name: Сборка контент-пакета
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Начальное наполнение content/ из assets
+        run: |
+          set -euo pipefail
+          if [ -f content/teachers.csv ]; then
+            echo "content/ уже наполнен"
+            exit 0
+          fi
+          echo "content/ пуст — копирую из app/src/main/assets"
+          mkdir -p content
+          for f in teachers.csv group_codes.csv college_map.json; do
+            if [ ! -f "app/src/main/assets/$f" ]; then
+              echo "::error::В assets нет $f — нечем наполнить content/"
+              exit 1
+            fi
+            cp "app/src/main/assets/$f" "content/$f"
+          done
+          if [ ! -d app/src/main/assets/teachers_photos ]; then
+            echo "::error::В assets нет teachers_photos/"
+            exit 1
+          fi
+          cp -r app/src/main/assets/teachers_photos content/teachers_photos
+
+      - name: Сборка zip и version.json
+        run: |
+          set -euo pipefail
+          cd content
+          rm -f /tmp/content-pack.zip
+          find teachers.csv group_codes.csv college_map.json teachers_photos -exec touch -h -d "@1700000000" {} +
+          zip -q -r -X /tmp/content-pack.zip teachers.csv group_codes.csv college_map.json teachers_photos
+          SHA="$(sha256sum /tmp/content-pack.zip | cut -d' ' -f1)"
+          SIZE="$(stat -c %s /tmp/content-pack.zip)"
+          PREV_SHA=""
+          if [ -f version.json ]; then
+            PREV_SHA="$(python3 -c "import json;print(json.load(open('version.json', encoding='utf-8')).get('sha256',''))" || echo '')"
+          fi
+          if [ "$SHA" = "$PREV_SHA" ]; then
+            echo "Содержимое content/ не изменилось — пакет не пересобирается"
+            echo "PACK_CHANGED=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          mv /tmp/content-pack.zip content-pack.zip
+          python3 - "$SHA" "$SIZE" <<'PY'
+          import datetime
+          import json
+          import os
+          import sys
+
+          sha, size = sys.argv[1], int(sys.argv[2])
+          prev = {}
+          if os.path.exists('version.json'):
+              try:
+                  with open('version.json', encoding='utf-8') as f:
+                      prev = json.load(f)
+              except Exception:
+                  prev = {}
+          manifest = {
+              'pack_version': int(prev.get('pack_version', 0)) + 1,
+              'generated_at': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+              'url': 'content-pack.zip',
+              'size_bytes': size,
+              'sha256': sha,
+              'min_app_version': int(prev.get('min_app_version', 0)),
+          }
+          with open('version.json', 'w', encoding='utf-8') as f:
+              json.dump(manifest, f, ensure_ascii=False, indent=2)
+              f.write('\n')
+          PY
+          echo "PACK_CHANGED=1" >> "$GITHUB_ENV"
+          echo "PACK_VERSION=$(python3 -c "import json;print(json.load(open('version.json', encoding='utf-8'))['pack_version'])")" >> "$GITHUB_ENV"
+
+      - name: Коммит пакета
+        run: |
+          set -euo pipefail
+          if [ "${PACK_CHANGED:-0}" != "1" ]; then
+            echo "Коммит не нужен"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content
+          if git diff --cached --quiet; then
+            echo "Изменений в индексе нет — коммит не нужен"
+            exit 0
+          fi
+          git commit -m "content: пакет v${PACK_VERSION} [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main

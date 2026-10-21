@@ -1,0 +1,159 @@
+﻿name: Release APK
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: '21'
+
+jobs:
+  build-release:
+    name: Тесты и релизный APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TZ: Europe/Minsk
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Версия из тега
+        id: version
+        run: |
+          set -euo pipefail
+          case "$GITHUB_REF" in
+            refs/tags/v*) TAG="$GITHUB_REF_NAME" ;;
+            *) TAG="$(git describe --tags --match 'v[0-9]*.[0-9]*.[0-9]*' --abbrev=0 || true)" ;;
+          esac
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-preview\.[0-9]+)?$ ]]; then
+            echo "::error::Тег '${TAG:-<нет>}' не в формате vM.m.p[-preview.N] — релиз отменён"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          MAJOR="${VERSION%%.*}"
+          REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"
+          REST="${REST#*.}"
+          PATCH="${REST%%-*}"
+          if [[ "$VERSION" == *-preview.* ]]; then
+            N="${VERSION##*-preview.}"
+            CHANNEL="preview"
+            PRERELEASE="true"
+            RELEASE_NAME="$TAG (превью)"
+          else
+            N=999
+            CHANNEL="stable"
+            PRERELEASE="false"
+            RELEASE_NAME="$TAG"
+          fi
+          if [ "$MAJOR" -gt 213 ] || [ "$MINOR" -gt 99 ] || [ "$PATCH" -gt 99 ] || [ "$N" -lt 1 ] || [ "$N" -gt 999 ]; then
+            echo "::error::Сегменты вне границ: major≤213, minor≤99, patch≤99, N=1..998 (превью) или 999 (релиз)"
+            exit 1
+          fi
+          if [ "$CHANNEL" = "preview" ] && [ "$N" -gt 998 ]; then
+            echo "::error::Номер превью должен быть 1..998"
+            exit 1
+          fi
+          VERSION_CODE=$(( 10#$MAJOR * 10000000 + 10#$MINOR * 100000 + 10#$PATCH * 1000 + 10#$N ))
+          if [ "$VERSION_CODE" -gt 2147483647 ]; then
+            echo "::error::versionCode $VERSION_CODE превышает Int.MAX (2147483647)"
+            exit 1
+          fi
+          APK_NAME="moy-polytech-$VERSION.apk"
+          {
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "channel=$CHANNEL"
+            echo "prerelease=$PRERELEASE"
+            echo "release_name=$RELEASE_NAME"
+            echo "apk=$APK_NAME"
+            echo "apk_url=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$APK_NAME"
+            echo "version_code=$VERSION_CODE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Лицензии Android SDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Ключ подписи из секретов
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::KEYSTORE_BASE64 не задан — релиз подпишется отладочным ключом"
+          fi
+
+      - name: Юнит-тесты
+        env:
+          STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew :app:testStandardDebugUnitTest --console=plain
+
+      - name: Релизный APK
+        env:
+          STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew :app:assembleStandardRelease --console=plain
+
+      - name: Переименование APK и sha256
+        id: artifact
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp app/build/outputs/apk/standard/release/app-standard-release.apk "dist/${{ steps.version.outputs.apk }}"
+          SHA256="$(sha256sum "dist/${{ steps.version.outputs.apk }}" | cut -d' ' -f1)"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+
+      - name: Публикация в Releases
+        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.release_name }}
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          files: dist/${{ steps.version.outputs.apk }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      - name: update-meta.json в main
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          cat > update-meta.json <<EOF
+          {
+            "channel": "${{ steps.version.outputs.channel }}",
+            "version": "${{ steps.version.outputs.version }}",
+            "version_code": ${{ steps.version.outputs.version_code }},
+            "apk": "${{ steps.version.outputs.apk_url }}",
+            "apk_name": "${{ steps.version.outputs.apk }}",
+            "sha256": "${{ steps.artifact.outputs.sha256 }}",
+            "published_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "min_version_code": ${{ steps.version.outputs.version_code }}
+          }
+          EOF
+          git add update-meta.json
+          git commit -m "chore: update-meta ${{ steps.version.outputs.tag }}"
+          git pull --rebase origin main
+          git push origin HEAD:main

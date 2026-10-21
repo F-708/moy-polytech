@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Правила резервного копирования (API 30 и ниже). F2: принцип минимальности —
+   с include-правилами резервируются ТОЛЬКО перечисленные данные: настройки
+   (prefs) и база с ДЗ/расписанием; всё прочее (кэш, служебные prefs) не входит.
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="mpk_widget_prefs.xml" />
+    <include domain="database" path="mpk_schedule.db" />
+</full-backup-content>

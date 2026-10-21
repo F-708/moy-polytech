@@ -1,0 +1,8 @@
+root = true
+
+[*.{kt,kts}]
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# SQL/regex-литералы атомарны; перенос = риск регресса без пользы
+ktlint_standard_max-line-length = disabled
+# Секционные KDoc-шапки над группами функций — осознанный стиль документации проекта
+ktlint_standard_no-consecutive-comments = disabled

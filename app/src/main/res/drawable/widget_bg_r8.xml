@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v2.0: фон виджета со скруглением 8dp. Белый solid + setColorFilter в провайдере
+     даёт любой цвет стиля (в т.ч. «как в приложении») без битмапов (RemoteViews-лимит). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FFFFFFFF" />
+    <corners android:radius="8dp" />
+</shape>

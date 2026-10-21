@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v2.0: корень — FrameLayout с фоновым ImageView (iv_bg), который несёт
+     скругление из настроек виджета (shape-drawable + setColorFilter в провайдере).
+     Контент — прежний вертикальный центрированный LinearLayout (прозрачный фон),
+     поэтому idle-стопка «колокольчик по центру + надпись ниже» не меняется (DD). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/iv_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_bg_r0" />
+
+    <LinearLayout
+        android:id="@+id/widget_countdown_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="10dp">
+
+        <ImageView
+            android:id="@+id/iv_idle"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="4dp"
+            android:visibility="gone" />
+
+        <!-- Основная надпись: «до звонка» / «до урока» / «Уроки закончились» -->
+        <TextView
+            android:id="@+id/tv_countdown_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="до звонка"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <!-- Крупное значение: «12 мин», «1 ч 20 мин» -->
+        <TextView
+            android:id="@+id/tv_countdown_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="12 мин"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+</FrameLayout>

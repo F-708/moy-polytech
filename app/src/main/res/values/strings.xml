@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Мой Политех</string>
+    <string name="bell_countdown_widget_description">Сколько осталось до звонка: обратный отсчёт и текущее время</string>
+    <string name="teacher_feedback_email">mpk.teacher.app@gmail.com</string>
+</resources>

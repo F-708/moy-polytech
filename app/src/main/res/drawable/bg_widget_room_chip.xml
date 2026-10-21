@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Б7: плашка кабинета в виджете «Сейчас и дальше» — вид кликабельной кнопки,
+     а не служебной подписи. Аффорданс: рамка + отступ, читается как «нажми». -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/widget_row_bg" />
+    <corners android:radius="3dp" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/widget_primary" />
+</shape>

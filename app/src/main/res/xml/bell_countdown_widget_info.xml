@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/bell_countdown_widget_description"
+    android:configure="com.politex.widget.WidgetConfigActivity"
+    android:initialLayout="@layout/widget_bell_countdown"
+    android:minWidth="180dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="40dp"
+    android:previewImage="@drawable/widget_preview_countdown"
+    android:previewLayout="@layout/widget_bell_countdown"
+    android:resizeMode="horizontal"
+    android:targetCellWidth="3"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

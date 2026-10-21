@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Купол / Ступенчатый аттик портика МГПК -->
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M48,22 C48,20 60,20 60,22 L60,24 L48,24 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M44,25 L64,25 L64,28 L44,28 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M39,29 L69,29 L69,32 L39,32 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M34,33 L74,33 L74,36 L34,36 Z" />
+        
+    <!-- Главный антаблемент и карниз -->
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M24,38 L84,38 L84,42 L24,42 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M26,43 L82,43 L82,45 L26,45 Z" />
+
+    <!-- 6 Классических колонн портика (капитель + ствол + база) -->
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M25,46 L31,46 L31,48 L25,48 Z M26,48 L30,48 L30,73 L26,73 Z M25,73 L31,73 L31,75 L25,75 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M35,46 L41,46 L41,48 L35,48 Z M36,48 L40,48 L40,73 L36,73 Z M35,73 L41,73 L41,75 L35,75 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M45,46 L51,46 L51,48 L45,48 Z M46,48 L50,48 L50,73 L46,73 Z M45,73 L51,73 L51,75 L45,75 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M57,46 L63,46 L63,48 L57,48 Z M58,48 L62,48 L62,73 L58,73 Z M57,73 L63,73 L63,75 L57,75 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M67,46 L73,46 L73,48 L67,48 Z M68,48 L72,48 L72,73 L68,73 Z M67,73 L73,73 L73,75 L67,75 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M77,46 L83,46 L83,48 L77,48 Z M78,48 L82,48 L82,73 L78,73 Z M77,73 L83,73 L83,75 L77,75 Z" />
+
+    <!-- Стилобат / Ступени подножия здания -->
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M23,76 L85,76 L85,79 L23,79 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M20,80 L88,80 L88,83 L20,83 Z" />
+    <path
+        android:fillColor="#0B1B3D"
+        android:pathData="M17,84 L91,84 L91,87 L17,87 Z" />
+</vector>
