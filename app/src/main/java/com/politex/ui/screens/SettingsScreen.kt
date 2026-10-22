@@ -870,6 +870,9 @@ private fun AboutCard() {
             icon = Icons.Default.Send,
             title = "Telegram",
             subtitle = "@Betterthannothing12",
+            onClick = { openLink(context, "https://t.me/Betterthannothing12") },
+            showChevron = true,
+            modifier = Modifier.testTag("settings_telegram_row"),
         )
         SettingsDivider()
         SettingsRow(
@@ -910,6 +913,8 @@ private fun UpdatesCard() {
         UpdateChannelStore.set(context, next)
         channel = next
         if (channelChangeRequiresCheck(previous, next)) {
+            ContentPackWorker.reschedule(context)
+            AppUpdateWorker.reschedule(context)
             AppUpdateWorker.checkOnce(context)
         }
     }

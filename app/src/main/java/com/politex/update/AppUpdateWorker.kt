@@ -22,6 +22,9 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.politex.BuildConfig
 import com.politex.R
+import com.politex.util.UpdateChannelStore
+import com.politex.util.periodicCheckNeedsReschedule
+import com.politex.util.updateCheckIntervalHours
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -75,22 +78,47 @@ class AppUpdateWorker(
         const val NOTIFICATION_REJECTED_ID = 2028
         private const val PREFS = "mpk_update_prefs"
         private const val KEY_NOTIFIED_VERSION = "notified_version_name"
+        private const val KEY_SCHEDULED_CHANNEL = "scheduled_channel"
 
         fun schedule(context: Context) {
             if (!AppUpdateChecker.UPDATE_ENABLED_FLAVORS.contains(BuildConfig.FLAVOR)) return
+            enqueuePeriodic(context, force = false)
+        }
+
+        fun reschedule(context: Context) {
+            if (!AppUpdateChecker.UPDATE_ENABLED_FLAVORS.contains(BuildConfig.FLAVOR)) return
+            enqueuePeriodic(context, force = true)
+        }
+
+        private fun enqueuePeriodic(
+            context: Context,
+            force: Boolean,
+        ) {
+            val channel = UpdateChannelStore.channel(context)
+            val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val policy =
+                if (force || periodicCheckNeedsReschedule(prefs.getString(KEY_SCHEDULED_CHANNEL, null), channel)) {
+                    ExistingPeriodicWorkPolicy.UPDATE
+                } else {
+                    ExistingPeriodicWorkPolicy.KEEP
+                }
             val request =
-                PeriodicWorkRequestBuilder<AppUpdateWorker>(12, TimeUnit.HOURS)
+                PeriodicWorkRequestBuilder<AppUpdateWorker>(updateCheckIntervalHours(channel), TimeUnit.HOURS)
                     .setConstraints(
                         Constraints
                             .Builder()
                             .setRequiredNetworkType(NetworkType.UNMETERED)
                             .build(),
                     ).build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
-                request,
-            )
+            runCatching {
+                WorkManager
+                    .getInstance(context)
+                    .enqueueUniquePeriodicWork(WORK_NAME, policy, request)
+                prefs
+                    .edit()
+                    .putString(KEY_SCHEDULED_CHANNEL, channel.wire)
+                    .apply()
+            }
         }
 
         fun checkOnce(context: Context) {

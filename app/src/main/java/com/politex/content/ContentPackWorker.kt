@@ -13,6 +13,9 @@ import androidx.work.WorkerParameters
 import com.politex.AppGraph
 import com.politex.BuildConfig
 import com.politex.ui.util.TeachersCache
+import com.politex.util.UpdateChannelStore
+import com.politex.util.periodicCheckNeedsReschedule
+import com.politex.util.updateCheckIntervalHours
 import java.io.File
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
@@ -142,9 +145,9 @@ class ContentPackWorker(
         const val ONCE_WORK_NAME = "content_pack_check_once"
         private const val PREFS = "content_pack_prefs"
         private const val KEY_ETAG = "version_etag"
+        private const val KEY_SCHEDULED_CHANNEL = "scheduled_channel"
         private const val VERSION_JSON = "version.json"
         private const val USER_AGENT = "MoyPolitech"
-        private const val CHECK_INTERVAL_HOURS = 12L
         private const val DOWNLOAD_BUFFER_SIZE = 8192
         private const val HTTP_OK = 200
         private const val HTTP_NOT_MODIFIED = 304
@@ -158,19 +161,42 @@ class ContentPackWorker(
         }
 
         fun schedule(context: Context) {
+            enqueuePeriodic(context, force = false)
+        }
+
+        fun reschedule(context: Context) {
+            enqueuePeriodic(context, force = true)
+        }
+
+        private fun enqueuePeriodic(
+            context: Context,
+            force: Boolean,
+        ) {
+            val channel = UpdateChannelStore.channel(context)
+            val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val policy =
+                if (force || periodicCheckNeedsReschedule(prefs.getString(KEY_SCHEDULED_CHANNEL, null), channel)) {
+                    ExistingPeriodicWorkPolicy.UPDATE
+                } else {
+                    ExistingPeriodicWorkPolicy.KEEP
+                }
             val request =
-                PeriodicWorkRequestBuilder<ContentPackWorker>(CHECK_INTERVAL_HOURS, TimeUnit.HOURS)
+                PeriodicWorkRequestBuilder<ContentPackWorker>(updateCheckIntervalHours(channel), TimeUnit.HOURS)
                     .setConstraints(
                         Constraints
                             .Builder()
                             .setRequiredNetworkType(NetworkType.CONNECTED)
                             .build(),
                     ).build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
-                request,
-            )
+            runCatching {
+                WorkManager
+                    .getInstance(context)
+                    .enqueueUniquePeriodicWork(WORK_NAME, policy, request)
+                prefs
+                    .edit()
+                    .putString(KEY_SCHEDULED_CHANNEL, channel.wire)
+                    .apply()
+            }
         }
 
         fun checkOnce(context: Context) {

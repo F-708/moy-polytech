@@ -122,6 +122,29 @@ enum class AppTheme(
             activeFill = Color(0xFF0369A1),
         ),
     ),
+    PLUM(
+        "plum",
+        "Сливовая",
+        "Тёплый фиолетово-сливовый акцент",
+        paletteWithAccents(
+            topBar = Color(0xFF2E1027),
+            brand = Color(0xFF6D2A57),
+            active = Color(0xFF8E3573),
+        ).copy(
+            mapRoomFill = Color(0x336D2A57),
+            mapRoomBorder = Color(0xFF6D2A57),
+        ),
+        darkPaletteWithAccents(
+            topBar = Color(0xFF4A2C44),
+            brand = Color(0xFFC993B8),
+            active = Color(0xFFE18ACB),
+            brandFill = Color(0xFF7C3A66),
+            activeFill = Color(0xFF94407C),
+        ).copy(
+            mapRoomFill = Color(0x3DC993B8),
+            mapRoomBorder = Color(0xFFC993B8),
+        ),
+    ),
     ;
 
     companion object {

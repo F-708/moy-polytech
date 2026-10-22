@@ -16,6 +16,17 @@ enum class UpdateChannel(
     }
 }
 
+fun updateCheckIntervalHours(channel: UpdateChannel): Long =
+    when (channel) {
+        UpdateChannel.STABLE -> 12L
+        UpdateChannel.PREVIEW -> 1L
+    }
+
+fun periodicCheckNeedsReschedule(
+    scheduledChannel: String?,
+    channel: UpdateChannel,
+): Boolean = scheduledChannel != channel.wire
+
 object UpdateChannelStore {
     private const val PREFS = "mpk_ui_prefs"
     private const val KEY_CHANNEL = "update_channel"
