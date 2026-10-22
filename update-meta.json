@@ -1,0 +1,10 @@
+{
+  "channel": "stable",
+  "version": "2.0.0",
+  "version_code": 20000999,
+  "apk": "https://github.com/F-708/moy-polytech/releases/download/v2.0.0/moy-polytech-2.0.0.apk",
+  "apk_name": "moy-polytech-2.0.0.apk",
+  "sha256": "c88f297707acf37f485acdca5619017a9ffff08975ffdcde949db931ee9b8fe4",
+  "published_at": "2026-10-22T00:06:11Z",
+  "min_version_code": 20000999
+}
