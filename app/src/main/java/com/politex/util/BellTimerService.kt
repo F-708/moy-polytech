@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import com.politex.widget.BellCountdownWidgetProvider
+import com.politex.widget.WidgetAlarm
 import com.politex.widget.WidgetUpdateHelper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +40,7 @@ class BellTimerService : Service() {
             return
         }
         isRunning = true
+        runCatching { WidgetAlarm.cancelSecond(this) }
         startTicking()
     }
 
@@ -104,6 +106,7 @@ class BellTimerService : Service() {
 
         scope.cancel()
         isRunning = false
+        runCatching { WidgetAlarm.scheduleNextSecond(this) }
         super.onDestroy()
     }
 

@@ -590,6 +590,9 @@ class ScheduleRepository(
         }
 
         val rows = teacherRows(parsedAll, date, requestedDow)
+        if (rows.isEmpty()) {
+            return@withContext Result.failure(IOException("Не удалось разобрать расписание преподавателей"))
+        }
 
         dao.replaceForDate(date, rows)
         Result.success(rows.size)

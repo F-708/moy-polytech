@@ -45,6 +45,8 @@ class TeacherDayViewModel(
 
     private var profile: TeacherProfile? = null
 
+    private var loadToken = 0
+
     fun setProfile(p: TeacherProfile?) {
         if (p == profile) return
         profile = p
@@ -85,6 +87,7 @@ class TeacherDayViewModel(
 
     private fun load() {
         val p = profile ?: return
+        val token = ++loadToken
         viewModelScope.launch {
             val (cal, dateKey) = resolveDate(_state.value)
             val dow = Dow.of(cal)
@@ -93,6 +96,7 @@ class TeacherDayViewModel(
             val repo = AppGraph.scheduleRepository
             val day = TeacherDayLoader.loadDay(ctx, repo, p, dateKey)
             val next = if (day.lessons.isEmpty()) TeacherDayLoader.findNextLesson(ctx, repo, p, dateKey) else null
+            if (token != loadToken) return@launch
             _state.update {
                 it.copy(
                     dateKey = dateKey,

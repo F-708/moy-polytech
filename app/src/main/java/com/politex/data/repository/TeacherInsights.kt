@@ -168,27 +168,33 @@ class TeacherInsights(
         ): TeacherRowMatch {
             val selectedKey = surnameOf(selected.name)
             if (selectedKey.isBlank()) return TeacherRowMatch.NO
-            val candidates = allTeachers.filter { surnameOf(it.name) == selectedKey }
             val parts = splitTeacherNames(rowTeacherName).filter { surnameOf(it) == selectedKey }
             if (parts.isEmpty()) return TeacherRowMatch.NO
-            if (candidates.size <= 1) return TeacherRowMatch.YES
-
+            val selIni = initialsOf(selected.name)
+            val others =
+                allTeachers
+                    .filter { surnameOf(it.name) == selectedKey && it.name != selected.name }
+                    .distinctBy { it.name }
             var ambiguous = false
             for (part in parts) {
                 val ini = initialsOf(part)
                 if (ini.isEmpty()) {
+                    if (others.isEmpty()) return TeacherRowMatch.YES
                     ambiguous = true
                     continue
                 }
-                val matches = candidates.filter { initialsOf(it.name).startsWith(ini) }
-                if (matches.size == 1) {
-                    if (matches[0].name == selected.name) return TeacherRowMatch.YES
-                } else if (matches.size > 1) {
-                    ambiguous = true
-                }
+                if (!initialsCompatible(ini, selIni)) continue
+                val rivals = others.filter { initialsCompatible(ini, initialsOf(it.name)) }
+                if (rivals.isEmpty()) return TeacherRowMatch.YES
+                ambiguous = true
             }
             return if (ambiguous) TeacherRowMatch.AMBIGUOUS else TeacherRowMatch.NO
         }
+
+        private fun initialsCompatible(
+            a: String,
+            b: String,
+        ): Boolean = a.isEmpty() || b.isEmpty() || a.startsWith(b) || b.startsWith(a)
 
         fun splitTeacherNames(raw: String): List<String> = raw
             .split('/')

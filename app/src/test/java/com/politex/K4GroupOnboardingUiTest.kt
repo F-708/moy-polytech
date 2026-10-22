@@ -28,29 +28,35 @@ class K4GroupOnboardingUiTest {
         assertFalse(dialogs.contains("OutlinedTextField"))
     }
 
+    private val teacherCard =
+        dialogs
+            .substringAfter("fun TeacherModeCard(")
+            .substringBefore("fun TeacherSearchStep(")
+
     @Test
     fun `KK5 - кнопка преподавателя это заметная полноширинная карточка`() {
-        val card =
-            dialogs
-                .substringBefore("first_run_teacher_button")
-                .substringAfterLast("Surface(")
-        assertTrue(card.contains("fillMaxWidth()"))
-        assertTrue(card.contains("heightIn(min = Tokens.ButtonHeight)"))
-        assertTrue(card.contains("ColorSurfaceHighlight"))
-        assertTrue(card.contains("BorderStroke(1.dp, ColorBorderLight)"))
+        assertTrue(teacherCard.contains("fillMaxWidth()"))
+        assertTrue(teacherCard.contains("heightIn(min = Tokens.ButtonHeight)"))
+        assertTrue(teacherCard.contains("ColorSurfaceHighlight"))
+        assertTrue(teacherCard.contains("BorderStroke(1.dp, ColorBorderLight)"))
     }
 
     @Test
     fun `KK5 - у карточки преподавателя есть иконка заголовок подпись и шеврон`() {
-        val content =
-            dialogs
-                .substringAfter("first_run_teacher_button")
-                .substringBefore("FirstRunStep.TEACHER")
-        assertTrue(content.contains("Icons.Default.Groups"))
-        assertTrue(content.contains("Я ПРЕПОДАВАТЕЛЬ"))
-        assertTrue(content.contains("Расписание преподавателя вместо группы"))
-        assertTrue(content.contains("Icons.Default.ChevronRight"))
-        assertTrue(content.contains("ColorTextTitle"))
+        assertTrue(teacherCard.contains("Icons.Default.Groups"))
+        assertTrue(teacherCard.contains("Я ПРЕПОДАВАТЕЛЬ"))
+        assertTrue(teacherCard.contains("Расписание преподавателя вместо группы"))
+        assertTrue(teacherCard.contains("Icons.Default.ChevronRight"))
+        assertTrue(teacherCard.contains("ColorTextTitle"))
+    }
+
+    @Test
+    fun `KK5 - общая карточка переиспользуется в онбординге и смене группы без дублей`() {
+        assertEquals(3, Regex("TeacherModeCard\\(").findAll(dialogs).count())
+        assertEquals(3, Regex("TeacherSearchStep\\(").findAll(dialogs).count())
+        assertTrue(dialogs.contains("tag = \"first_run_teacher_button\""))
+        assertTrue(dialogs.contains("tag = \"group_selection_teacher_button\""))
+        assertEquals(1, Regex("Я ПРЕПОДАВАТЕЛЬ").findAll(dialogs).count())
     }
 
     @Test

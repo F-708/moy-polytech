@@ -10,6 +10,7 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.ResponseBody
 
 enum class ApkRejection {
     NONE,
@@ -38,6 +39,8 @@ object UpdateDownloader {
         context: Context,
         asset: UpdateAsset,
         versionName: String,
+        onProgress: ((readBytes: Long, totalBytes: Long) -> Unit)? = null,
+        isCancelled: () -> Boolean = { false },
     ): File? {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
@@ -53,7 +56,10 @@ object UpdateDownloader {
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) return@use null
                     val body = response.body ?: return@use null
-                    target.outputStream().use { out -> body.byteStream().copyTo(out) }
+                    val totalBytes = if (body.contentLength() > 0L) body.contentLength() else asset.size
+                    if (!writeBody(body, target, totalBytes, onProgress, isCancelled)) {
+                        return@use null
+                    }
                     if (!downloadComplete(target.length(), asset.size)) {
                         return@use null
                     }
@@ -62,6 +68,31 @@ object UpdateDownloader {
             }.getOrNull()
         if (downloaded == null) target.delete()
         return downloaded
+    }
+
+    internal fun writeBody(
+        body: ResponseBody,
+        target: File,
+        totalBytes: Long,
+        onProgress: ((readBytes: Long, totalBytes: Long) -> Unit)?,
+        isCancelled: () -> Boolean,
+    ): Boolean {
+        onProgress?.invoke(0L, totalBytes)
+        var readBytes = 0L
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        body.byteStream().use { input ->
+            target.outputStream().use { out ->
+                while (true) {
+                    if (isCancelled()) return false
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    out.write(buffer, 0, count)
+                    readBytes += count
+                    onProgress?.invoke(readBytes, totalBytes)
+                }
+            }
+        }
+        return true
     }
 
     fun validate(

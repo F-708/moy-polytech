@@ -10,6 +10,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,6 +41,8 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileDownloadDone
 import androidx.compose.material.icons.filled.GroupRemove
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Info
@@ -53,6 +57,7 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewAgenda
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -63,6 +68,8 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,7 +78,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -118,9 +127,16 @@ import com.politex.ui.theme.isDarkThemeActive
 import com.politex.ui.util.bouncyClickable
 import com.politex.update.AppUpdateChecker
 import com.politex.update.AppUpdateWorker
+import com.politex.update.InstallButtonState
+import com.politex.update.ManualCheckResult
 import com.politex.update.UpdateCheckController
+import com.politex.update.UpdateInstallController
 import com.politex.update.channelChangeRequiresCheck
 import com.politex.update.defaultUpdateStatus
+import com.politex.update.downloadedStatusText
+import com.politex.update.downloadingStatusText
+import com.politex.update.installButtonDescription
+import com.politex.update.installErrorMessage
 import com.politex.update.manualResultIsError
 import com.politex.update.manualResultIsFound
 import com.politex.update.manualResultText
@@ -907,11 +923,15 @@ private fun UpdatesCard() {
     }
     var statusColor by remember(channel) { mutableStateOf(ColorTextMuted) }
     var checking by remember { mutableStateOf(false) }
+    var foundInfo by remember(channel) { mutableStateOf(UpdateInstallController.foundUpdate) }
+    val installState by UpdateInstallController.state.collectAsState()
 
     fun pickChannel(next: UpdateChannel) {
         val previous = channel
         UpdateChannelStore.set(context, next)
         channel = next
+        foundInfo = null
+        UpdateInstallController.cancelAndReset()
         if (channelChangeRequiresCheck(previous, next)) {
             ContentPackWorker.reschedule(context)
             AppUpdateWorker.reschedule(context)
@@ -922,6 +942,8 @@ private fun UpdatesCard() {
     fun runCheck() {
         if (checking) return
         checking = true
+        foundInfo = null
+        UpdateInstallController.cancelAndReset()
         scope.launch {
             val result = withContext(Dispatchers.IO) { UpdateCheckController.checkNow(context) }
             statusText = manualResultText(result, channel, BuildConfig.VERSION_NAME)
@@ -931,7 +953,33 @@ private fun UpdatesCard() {
                     manualResultIsFound(result) -> ColorSuccess
                     else -> ColorTextMuted
                 }
+            val info = (result as? ManualCheckResult.UpdateFound)?.info
+            foundInfo = info
+            UpdateInstallController.rememberFound(info)
             checking = false
+        }
+    }
+
+    LaunchedEffect(installState, foundInfo) {
+        when (val current = installState) {
+            is InstallButtonState.Downloading -> {
+                statusText = downloadingStatusText(current.progress)
+                statusColor = ColorTextMuted
+            }
+            is InstallButtonState.Downloaded -> {
+                statusText = downloadedStatusText(foundInfo?.versionName)
+                statusColor = ColorSuccess
+            }
+            is InstallButtonState.InstallLaunched -> {
+                statusText = "Установщик запущен"
+                statusColor = ColorSuccess
+            }
+            is InstallButtonState.Error -> {
+                statusText = installErrorMessage(current.cause)
+                statusColor = ColorError
+                UpdateInstallController.acknowledgeError()
+            }
+            InstallButtonState.IdleFound -> Unit
         }
     }
 
@@ -1000,19 +1048,98 @@ private fun UpdatesCard() {
             modifier = Modifier.testTag("update_check_btn"),
         )
         SettingsDivider()
-        Text(
-            text = statusText,
-            style =
-            TextStyle(
-                fontSize = 12.sp,
-                color = statusColor,
-            ),
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("update_status")
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            maxLines = 4,
-            overflow = TextOverflow.Ellipsis,
+                .padding(horizontal = 14.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = statusText,
+                style =
+                TextStyle(
+                    fontSize = 12.sp,
+                    color = statusColor,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("update_status")
+                    .padding(vertical = 8.dp),
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (foundInfo != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                UpdateInstallButton(
+                    state = installState,
+                    onClick = { UpdateInstallController.onButtonTap(context, foundInfo) },
+                    modifier = Modifier.testTag("update_install_btn"),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdateInstallButton(
+    state: InstallButtonState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val downloading = state is InstallButtonState.Downloading
+    val ready = state is InstallButtonState.Downloaded || state is InstallButtonState.InstallLaunched
+    val targetProgress = (state as? InstallButtonState.Downloading)?.progress ?: 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(durationMillis = 300),
+        label = "UpdateInstallProgress",
+    )
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .bouncyClickable(enabled = !downloading, onClick = onClick)
+            .semantics { contentDescription = installButtonDescription(state) },
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            downloading -> UpdateProgressIcon(progress = animatedProgress)
+            ready -> SettingsIcon(Icons.Default.FileDownloadDone)
+            else -> SettingsIcon(Icons.Default.FileDownload)
+        }
+    }
+}
+
+@Composable
+private fun UpdateProgressIcon(progress: Float) {
+    val clamped = progress.coerceIn(0f, 1f)
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .background(ColorBrandFill.copy(alpha = 0.12f), RoundedCornerShape(2.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .drawWithContent {
+                    clipRect(top = size.height * (1f - clamped)) {
+                        this@drawWithContent.drawContent()
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.FileDownload,
+                contentDescription = null,
+                tint = ColorBrandFill,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Icon(
+            imageVector = Icons.Outlined.FileDownload,
+            contentDescription = null,
+            tint = ColorBrandBlue,
+            modifier = Modifier.size(20.dp),
         )
     }
 }

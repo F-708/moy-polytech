@@ -71,6 +71,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -280,8 +282,8 @@ fun ScheduleScreen(
     val teacherClick: (String) -> Unit = { name -> markScheduleHintDone(); onTeacherClick(name) }
 
     val pulseLessonNumber =
-        remember(lessons) {
-            lessons.firstOrNull { it.roomFirst.isNotBlank() || it.teacherFirst.isNotBlank() }?.lessonNumber
+        remember(lessons, isTeacherMode) {
+            pulseTargetLesson(lessons, isTeacherMode)
         }
 
     val pendingTasks: List<com.politex.data.local.entity.StudentTaskEntity> =
@@ -1420,7 +1422,6 @@ private fun LessonTeacherRoomRow(
             if (lesson.groupName.isNotBlank()) {
                 GroupChipText(
                     name = lesson.groupName,
-                    pulse = pulse,
                 )
             }
         } else if (lesson.teacherFirst.isNotBlank()) {
@@ -1453,6 +1454,7 @@ private fun LessonTeacherRoomRow(
                 AppCard(
                     modifier = Modifier
                         .pulseHalo(pulse)
+                        .testTag("room_chip")
                         .wrapContentWidth(),
                     color = ColorSurfaceHighlight,
                 ) {
@@ -1521,7 +1523,9 @@ private fun TeacherChip(
             shape = RoundedCornerShape(2.dp),
             border = BorderStroke(1.dp, ColorBrandBlue.copy(alpha = 0.4f)),
             color = ColorSurfaceHighlight,
-            modifier = Modifier.pulseHalo(pulse),
+            modifier = Modifier
+                .pulseHalo(pulse)
+                .testTag("teacher_chip"),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1567,12 +1571,11 @@ private fun TeacherChip(
 private fun GroupChipText(
     name: String,
     fontSize: androidx.compose.ui.unit.TextUnit = 13.sp,
-    pulse: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.pulseHalo(pulse),
+        modifier = modifier.testTag("group_chip"),
     ) {
         Icon(
             imageVector = Icons.Default.Groups,
@@ -1779,7 +1782,6 @@ private fun SubgroupPane(
                 GroupChipText(
                     name = group,
                     fontSize = 12.sp,
-                    pulse = pulse,
                 )
             }
         } else if (teacher.isNotBlank()) {
@@ -2014,6 +2016,22 @@ internal fun showPulse(
     isTargetLesson: Boolean,
 ): Boolean = !flagDone && isTargetLesson
 
+internal fun pulseTargetLesson(
+    lessons: List<LessonEntity>,
+    teacherMode: Boolean,
+): Int? =
+    lessons
+        .firstOrNull {
+            if (teacherMode) {
+                it.roomFirst.isNotBlank() || it.roomSecond.isNotBlank()
+            } else {
+                it.roomFirst.isNotBlank() || it.teacherFirst.isNotBlank()
+            }
+        }
+        ?.lessonNumber
+
+internal val PulseActive = SemanticsPropertyKey<Boolean>("PulseActive")
+
 @Composable
 internal fun Modifier.pulseHalo(active: Boolean): Modifier {
     if (!active) return this
@@ -2024,20 +2042,22 @@ internal fun Modifier.pulseHalo(active: Boolean): Modifier {
             animationSpec = infiniteRepeatable(tween(durationMillis = 1000), RepeatMode.Reverse),
             label = "HintPulseT",
         )
-    return drawBehind {
+    return this
+        .semantics { this[PulseActive] = true }
+        .drawBehind {
 
-        val inflate = 3.dp.toPx()
-        val scale = 1f + 0.04f * t
-        val w = size.width * scale + inflate * 2
-        val h = size.height * scale + inflate * 2
-        drawRoundRect(
-            color = ColorActiveBlue.copy(alpha = 0.12f + 0.18f * t),
-            topLeft = Offset((size.width - w) / 2f, (size.height - h) / 2f),
-            size = Size(w, h),
-            cornerRadius = CornerRadius(2.dp.toPx() + inflate),
-            style = androidx.compose.ui.graphics.drawscope.Fill,
-        )
-    }
+            val inflate = 3.dp.toPx()
+            val scale = 1f + 0.04f * t
+            val w = size.width * scale + inflate * 2
+            val h = size.height * scale + inflate * 2
+            drawRoundRect(
+                color = ColorActiveBlue.copy(alpha = 0.12f + 0.18f * t),
+                topLeft = Offset((size.width - w) / 2f, (size.height - h) / 2f),
+                size = Size(w, h),
+                cornerRadius = CornerRadius(2.dp.toPx() + inflate),
+                style = androidx.compose.ui.graphics.drawscope.Fill,
+            )
+        }
 }
 
 fun taskTypeBadgeColor(type: TaskType): Color = when (type) {

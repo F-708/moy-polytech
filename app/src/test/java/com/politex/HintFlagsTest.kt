@@ -2,10 +2,14 @@ package com.politex
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.politex.data.local.entity.LessonEntity
 import com.politex.ui.screens.isDemoTask
+import com.politex.ui.screens.pulseTargetLesson
 import com.politex.ui.screens.showPulse
 import com.politex.util.HintFlags
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -52,5 +56,47 @@ class HintFlagsTest {
         assertFalse(showPulse(flagDone = true, isTargetLesson = true))
         assertFalse(showPulse(flagDone = false, isTargetLesson = false))
         assertFalse(showPulse(flagDone = true, isTargetLesson = false))
+    }
+
+    private fun lesson(
+        number: Int,
+        room: String,
+        teacher: String,
+        roomSecond: String = "",
+    ) = LessonEntity(
+        groupName = "41О",
+        dayOfWeek = 1,
+        lessonNumber = number,
+        timeStart = "08:15",
+        timeEnd = "09:55",
+        subjectRaw = "Математика",
+        roomFirst = room,
+        teacherFirst = teacher,
+        roomSecond = roomSecond,
+        dateString = "",
+    )
+
+    @Test
+    fun `цель пульса в teacher-режиме - первый урок с кабинетом`() {
+        val lessons = listOf(lesson(1, "", ""), lesson(2, "204", ""), lesson(3, "205", ""))
+        assertEquals(2, pulseTargetLesson(lessons, teacherMode = true))
+    }
+
+    @Test
+    fun `цель пульса в teacher-режиме - сплит считается и по второму кабинету`() {
+        assertEquals(1, pulseTargetLesson(listOf(lesson(1, "", "", roomSecond = "204")), teacherMode = true))
+    }
+
+    @Test
+    fun `цель пульса в teacher-режиме - без кабинетов цели нет`() {
+        assertNull(pulseTargetLesson(listOf(lesson(1, "", "Ковалев В.П.")), teacherMode = true))
+        assertNull(pulseTargetLesson(emptyList(), teacherMode = true))
+    }
+
+    @Test
+    fun `цель пульса в студенческом режиме - кабинет или преподаватель, как раньше`() {
+        assertEquals(1, pulseTargetLesson(listOf(lesson(1, "", "Ковалев В.П.")), teacherMode = false))
+        assertEquals(2, pulseTargetLesson(listOf(lesson(1, "", ""), lesson(2, "204", "")), teacherMode = false))
+        assertNull(pulseTargetLesson(listOf(lesson(1, "", "")), teacherMode = false))
     }
 }

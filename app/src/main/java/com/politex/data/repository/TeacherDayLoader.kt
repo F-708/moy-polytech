@@ -39,6 +39,7 @@ internal fun teacherSyncErrorMessage(
 internal data class TeacherDayLoad(
     val slots: List<TeacherSlot>,
     val error: String,
+    val dateKey: String,
 )
 
 internal suspend fun loadTeacherDay(
@@ -47,7 +48,7 @@ internal suspend fun loadTeacherDay(
     sync: suspend () -> Result<Int>,
 ): TeacherDayLoad {
     val cached = fromDatabase()
-    if (cached.isNotEmpty()) return TeacherDayLoad(cached, "")
+    if (cached.isNotEmpty()) return TeacherDayLoad(cached, "", dateKey)
 
     var slots = cached
     var error = ""
@@ -58,7 +59,7 @@ internal suspend fun loadTeacherDay(
             onSuccess = { slots = fromDatabase() },
             onFailure = { error = teacherSyncErrorMessage(it, dateKey) },
         )
-    return TeacherDayLoad(slots, error)
+    return TeacherDayLoad(slots, error, dateKey)
 }
 
 data class TeacherDayLesson(
@@ -78,7 +79,14 @@ data class TeacherDay(
     val error: String,
     val isSynced: Boolean,
     val lastSyncEpoch: Long,
+    val date: String = "",
 )
+
+internal fun freshTeacherLessons(
+    day: TeacherDay?,
+    date: String,
+): List<TeacherDayLesson> =
+    if (day != null && day.date == date) day.lessons else emptyList()
 
 data class NextLesson(
     val dateString: String,
@@ -231,6 +239,7 @@ object TeacherDayLoader {
                 error = result.error,
                 isSynced = repository.hasTeacherScheduleForDate(dateString),
                 lastSyncEpoch = readLastSyncEpoch(context),
+                date = result.dateKey,
             )
         }
 

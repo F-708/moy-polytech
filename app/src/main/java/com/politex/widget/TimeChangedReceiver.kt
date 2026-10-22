@@ -40,6 +40,7 @@ class TimeChangedReceiver : BroadcastReceiver() {
             WidgetUpdateHelper.updateAllWidgets(context)
 
             WidgetAlarm.scheduleNext(context)
+            WidgetAlarm.scheduleNextSecond(context)
 
             if (BellCountdownNotifier.isEnabled(context)) {
                 BellTimerService.start(context)

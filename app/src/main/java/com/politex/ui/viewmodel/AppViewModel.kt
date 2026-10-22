@@ -15,6 +15,7 @@ import com.politex.data.repository.TeacherDay
 import com.politex.data.repository.TeacherDayLesson
 import com.politex.data.repository.TeacherDayLoader
 import com.politex.data.repository.TeacherInsights
+import com.politex.data.repository.freshTeacherLessons
 import com.politex.data.repository.toastFor
 import com.politex.ui.teacher.TeacherProfile
 import com.politex.util.DateFormats
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -130,28 +132,32 @@ class AppViewModel(
     private val teacherIdentity: Flow<Pair<Boolean, String?>> =
         _uiState.map { it.isTeacherMode to it.teacherName }.distinctUntilChanged()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val teacherDay: StateFlow<TeacherDay?> =
         combine(teacherScheduleDateFlow, teacherIdentity, teacherRefreshTick) { date, identity, _ ->
             date to identity
-        }.map { (date, identity) ->
-            val (isTeacher, name) = identity
-            if (!isTeacher || name.isNullOrBlank()) {
-                null
-            } else {
-                TeacherDayLoader.loadDay(
-                    context = getApplication(),
-                    repository = scheduleRepository,
-                    profile = TeacherProfile(name = name, surnameKey = TeacherInsights.surnameOf(name)),
-                    dateString = date,
-                )
+        }.flatMapLatest { (date, identity) ->
+            flow {
+                val (isTeacher, name) = identity
+                if (!isTeacher || name.isNullOrBlank()) {
+                    emit(null)
+                } else {
+                    emit(
+                        TeacherDayLoader.loadDay(
+                            context = getApplication(),
+                            repository = scheduleRepository,
+                            profile = TeacherProfile(name = name, surnameKey = TeacherInsights.surnameOf(name)),
+                            dateString = date,
+                        ),
+                    )
+                }
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val teacherLessons: Flow<List<LessonEntity>> =
-        combine(teacherDay, teacherScheduleDateFlow) { day, date -> day to date }
-            .map { (day, date) ->
-                day?.lessons.orEmpty().map { it.toLessonEntity(date) }
-            }
+        combine(teacherDay, teacherScheduleDateFlow) { day, date ->
+            freshTeacherLessons(day, date).map { it.toLessonEntity(date) }
+        }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val groupLessons: StateFlow<List<LessonEntity>?> =

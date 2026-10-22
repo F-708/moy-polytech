@@ -112,6 +112,7 @@ object BellCountdownNotifier {
         } else {
             BellTimerService.stop(context)
             cancel(context)
+            com.politex.widget.WidgetAlarm.scheduleNextSecond(context)
         }
     }
 

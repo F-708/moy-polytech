@@ -351,6 +351,7 @@ class WidgetConfigActivity : ComponentActivity() {
                                         WidgetUpdateHelper.updateOne(this@WidgetConfigActivity, appWidgetId)
                                     }
                                     WidgetAlarm.scheduleNext(this@WidgetConfigActivity)
+                                    WidgetAlarm.scheduleNextSecond(this@WidgetConfigActivity)
 
                                     requestAlarmAccessOnce()
 

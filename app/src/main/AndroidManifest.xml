@@ -219,6 +219,7 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.politex.widget.ACTION_BELL_COUNTDOWN_TICK" />
+                <action android:name="com.politex.widget.ACTION_BELL_COUNTDOWN_SECOND_TICK" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <!-- SRED4: после обновления приложения системные будильники сброшены —
                      перепланировать тик и обновить виджеты, как после загрузки -->

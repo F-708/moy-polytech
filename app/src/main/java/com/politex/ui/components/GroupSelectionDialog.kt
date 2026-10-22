@@ -65,8 +65,11 @@ import com.politex.ui.util.rememberTeachers
 import com.politex.util.GroupCatalog
 import com.politex.util.GroupParser
 import com.politex.util.SubgroupPref
+import com.politex.util.TeacherModeStore
 
 internal enum class FirstRunStep { GROUP, SUBGROUP, TEACHER }
+
+internal enum class GroupChangeStep { GROUP, TEACHER }
 
 internal val firstRunSubgroupOptions: List<Pair<SubgroupPref, String>> =
     listOf(
@@ -173,191 +176,20 @@ fun FirstRunGroupDialog(
                                 },
                             )
                         }
-                        Surface(
-                            shape = RoundedCornerShape(2.dp),
-                            color = ColorSurfaceHighlight,
-                            border = BorderStroke(1.dp, ColorBorderLight),
-                            modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = Tokens.ButtonHeight)
-                                .bouncyClickable { step = FirstRunStep.TEACHER }
-                                .testTag("first_run_teacher_button"),
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                            ) {
-                                Box(
-                                    modifier =
-                                    Modifier
-                                        .size(34.dp)
-                                        .background(ColorBrandFill, RoundedCornerShape(2.dp)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Groups,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Я ПРЕПОДАВАТЕЛЬ",
-                                        style =
-                                        androidx.compose.ui.text.TextStyle(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            color = ColorTextTitle,
-                                        ),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = "Расписание преподавателя вместо группы",
-                                        style =
-                                        androidx.compose.ui.text.TextStyle(
-                                            fontSize = 11.sp,
-                                            color = ColorTextMuted,
-                                        ),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = null,
-                                    tint = ColorTextMuted,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        }
+                        TeacherModeCard(
+                            tag = "first_run_teacher_button",
+                            onClick = { step = FirstRunStep.TEACHER },
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 FirstRunStep.TEACHER ->
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        val teachers = rememberTeachers()
-                        var teacherQuery by rememberSaveable { mutableStateOf("") }
-                        val teacherResults =
-                            remember(teachers, teacherQuery) {
-                                TeacherOnboardingLogic.teacherSearch(teachers, teacherQuery)
-                            }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Начните вводить фамилию — покажем подходящих преподавателей.",
-                            style =
-                            androidx.compose.ui.text.TextStyle(
-                                fontSize = 13.sp,
-                                color = ColorTextMuted,
-                            ),
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        SearchBar(
-                            value = teacherQuery,
-                            onValueChange = { teacherQuery = it },
-                            placeholder = "Фамилия, имя или предмет",
-                            testTag = "first_run_teacher_search",
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Box(modifier = Modifier.weight(1f)) {
-                            when {
-                                teachers.isEmpty() -> CenteredLoader()
-                                teacherResults.isEmpty() ->
-                                    Text(
-                                        text = "Никого не нашли по «${teacherQuery.trim()}»",
-                                        style =
-                                        androidx.compose.ui.text.TextStyle(
-                                            fontSize = 12.sp,
-                                            color = ColorTextMuted,
-                                        ),
-                                        modifier = Modifier.padding(top = 8.dp),
-                                    )
-                                else ->
-                                    LazyColumn(
-                                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.fillMaxSize(),
-                                    ) {
-                                        items(teacherResults) { teacher ->
-                                            Surface(
-                                                shape = RoundedCornerShape(2.dp),
-                                                color = ColorBgMain,
-                                                border = BorderStroke(1.dp, ColorBorderLight),
-                                                modifier =
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .heightIn(min = Tokens.HitTarget)
-                                                    .bouncyClickable { onTeacherSelected(teacher.name) }
-                                                    .testTag("first_run_teacher_item"),
-                                            ) {
-                                                Column(
-                                                    modifier =
-                                                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                                ) {
-                                                    Text(
-                                                        text = teacher.name,
-                                                        style =
-                                                        androidx.compose.ui.text.TextStyle(
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 14.sp,
-                                                            color = ColorTextTitle,
-                                                        ),
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                    )
-                                                    val details =
-                                                        listOf(teacher.position, teacher.subjects)
-                                                            .filter { it.isNotBlank() }
-                                                            .joinToString(" • ")
-                                                    if (details.isNotBlank()) {
-                                                        Text(
-                                                            text = details,
-                                                            style =
-                                                            androidx.compose.ui.text.TextStyle(
-                                                                fontSize = 11.sp,
-                                                                color = ColorTextMuted,
-                                                            ),
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis,
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Surface(
-                            shape = RoundedCornerShape(2.dp),
-                            color = ColorBgMain,
-                            border = BorderStroke(1.dp, ColorBorderLight),
-                            modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = Tokens.ButtonHeight)
-                                .bouncyClickable { step = FirstRunStep.GROUP }
-                                .testTag("first_run_teacher_back"),
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.padding(vertical = 10.dp),
-                            ) {
-                                Text(
-                                    text = "НАЗАД",
-                                    style =
-                                    androidx.compose.ui.text.TextStyle(
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 11.sp,
-                                        color = ColorTextMuted,
-                                    ),
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
+                    TeacherSearchStep(
+                        searchTag = "first_run_teacher_search",
+                        itemTag = "first_run_teacher_item",
+                        backTag = "first_run_teacher_back",
+                        onTeacherSelected = onTeacherSelected,
+                        onBack = { step = FirstRunStep.GROUP },
+                    )
                 FirstRunStep.SUBGROUP ->
                     Column(modifier = Modifier.fillMaxSize()) {
                         Column(
@@ -446,6 +278,205 @@ fun FirstRunGroupDialog(
             }
         },
     )
+}
+
+@Composable
+internal fun TeacherModeCard(
+    tag: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(2.dp),
+        color = ColorSurfaceHighlight,
+        border = BorderStroke(1.dp, ColorBorderLight),
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = Tokens.ButtonHeight)
+            .bouncyClickable(onClick = onClick)
+            .testTag(tag),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Box(
+                modifier =
+                Modifier
+                    .size(34.dp)
+                    .background(ColorBrandFill, RoundedCornerShape(2.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Groups,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Я ПРЕПОДАВАТЕЛЬ",
+                    style =
+                    androidx.compose.ui.text.TextStyle(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = ColorTextTitle,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "Расписание преподавателя вместо группы",
+                    style =
+                    androidx.compose.ui.text.TextStyle(
+                        fontSize = 11.sp,
+                        color = ColorTextMuted,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = ColorTextMuted,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun TeacherSearchStep(
+    searchTag: String,
+    itemTag: String,
+    backTag: String,
+    onTeacherSelected: (String) -> Unit,
+    onBack: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        val teachers = rememberTeachers()
+        var teacherQuery by rememberSaveable { mutableStateOf("") }
+        val teacherResults =
+            remember(teachers, teacherQuery) {
+                TeacherOnboardingLogic.teacherSearch(teachers, teacherQuery)
+            }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Начните вводить фамилию — покажем подходящих преподавателей.",
+            style =
+            androidx.compose.ui.text.TextStyle(
+                fontSize = 13.sp,
+                color = ColorTextMuted,
+            ),
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        SearchBar(
+            value = teacherQuery,
+            onValueChange = { teacherQuery = it },
+            placeholder = "Фамилия, имя или предмет",
+            testTag = searchTag,
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Box(modifier = Modifier.weight(1f)) {
+            when {
+                teachers.isEmpty() -> CenteredLoader()
+                teacherResults.isEmpty() ->
+                    Text(
+                        text = "Никого не нашли по «${teacherQuery.trim()}»",
+                        style =
+                        androidx.compose.ui.text.TextStyle(
+                            fontSize = 12.sp,
+                            color = ColorTextMuted,
+                        ),
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                else ->
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(teacherResults) { teacher ->
+                            Surface(
+                                shape = RoundedCornerShape(2.dp),
+                                color = ColorBgMain,
+                                border = BorderStroke(1.dp, ColorBorderLight),
+                                modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = Tokens.HitTarget)
+                                    .bouncyClickable { onTeacherSelected(teacher.name) }
+                                    .testTag(itemTag),
+                            ) {
+                                Column(
+                                    modifier =
+                                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                ) {
+                                    Text(
+                                        text = teacher.name,
+                                        style =
+                                        androidx.compose.ui.text.TextStyle(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = ColorTextTitle,
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    val details =
+                                        listOf(teacher.position, teacher.subjects)
+                                            .filter { it.isNotBlank() }
+                                            .joinToString(" • ")
+                                    if (details.isNotBlank()) {
+                                        Text(
+                                            text = details,
+                                            style =
+                                            androidx.compose.ui.text.TextStyle(
+                                                fontSize = 11.sp,
+                                                color = ColorTextMuted,
+                                            ),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Surface(
+            shape = RoundedCornerShape(2.dp),
+            color = ColorBgMain,
+            border = BorderStroke(1.dp, ColorBorderLight),
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = Tokens.ButtonHeight)
+                .bouncyClickable(onClick = onBack)
+                .testTag(backTag),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(vertical = 10.dp),
+            ) {
+                Text(
+                    text = "НАЗАД",
+                    style =
+                    androidx.compose.ui.text.TextStyle(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 11.sp,
+                        color = ColorTextMuted,
+                    ),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+    }
 }
 
 @Composable
@@ -563,10 +594,16 @@ fun GroupSelectionDialog(
     onGroupSelected: (String) -> Unit,
 ) {
     val context = LocalContext.current
+    var step by rememberSaveable { mutableStateOf(GroupChangeStep.GROUP) }
     var selectedCourse by remember {
         mutableIntStateOf(GroupParser.parse(currentGroupName)?.course ?: 1)
     }
     val catalogCodes = remember { GroupCatalog.load(context).all() }
+    val teacherModeRevision = TeacherModeStore.revision.intValue
+    val isTeacherMode =
+        remember(context, teacherModeRevision) {
+            TeacherModeStore.isTeacher(context)
+        }
 
     GroupPickerDialogFrame(
         testTag = "group_selection_dialog",
@@ -598,7 +635,11 @@ fun GroupSelectionDialog(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Выбор группы",
+                            text =
+                            when (step) {
+                                GroupChangeStep.GROUP -> "Выбор группы"
+                                GroupChangeStep.TEACHER -> "Выбор преподавателя"
+                            },
                             style =
                             androidx.compose.ui.text.TextStyle(
                                 fontWeight = FontWeight.Bold,
@@ -608,17 +649,31 @@ fun GroupSelectionDialog(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        if (currentGroupName.isNotBlank()) {
-                            Text(
-                                text = "Сейчас: $currentGroupName",
-                                style =
-                                androidx.compose.ui.text.TextStyle(
-                                    fontSize = 11.sp,
-                                    color = ColorTextMuted,
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                        when (step) {
+                            GroupChangeStep.GROUP ->
+                                if (currentGroupName.isNotBlank()) {
+                                    Text(
+                                        text = "Сейчас: $currentGroupName",
+                                        style =
+                                        androidx.compose.ui.text.TextStyle(
+                                            fontSize = 11.sp,
+                                            color = ColorTextMuted,
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            GroupChangeStep.TEACHER ->
+                                Text(
+                                    text = "Режим преподавателя · без группы",
+                                    style =
+                                    androidx.compose.ui.text.TextStyle(
+                                        fontSize = 11.sp,
+                                        color = ColorTextMuted,
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                         }
                     }
                 }
@@ -637,14 +692,37 @@ fun GroupSelectionDialog(
             }
         },
         content = {
-            Box(modifier = Modifier.fillMaxSize()) {
-                com.politex.ui.screens.GroupSchedulePicker(
-                    selectedCourse = selectedCourse,
-                    onCourseSelected = { selectedCourse = it },
-                    catalogCodes = catalogCodes,
-                    confirmLabel = "ВЫБРАТЬ",
-                    onGroupSelected = onGroupSelected,
-                )
+            when (step) {
+                GroupChangeStep.GROUP ->
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            com.politex.ui.screens.GroupSchedulePicker(
+                                selectedCourse = selectedCourse,
+                                onCourseSelected = { selectedCourse = it },
+                                catalogCodes = catalogCodes,
+                                confirmLabel = "ВЫБРАТЬ",
+                                onGroupSelected = onGroupSelected,
+                            )
+                        }
+                        if (!isTeacherMode) {
+                            TeacherModeCard(
+                                tag = "group_selection_teacher_button",
+                                onClick = { step = GroupChangeStep.TEACHER },
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+                GroupChangeStep.TEACHER ->
+                    TeacherSearchStep(
+                        searchTag = "group_selection_teacher_search",
+                        itemTag = "group_selection_teacher_item",
+                        backTag = "group_selection_teacher_back",
+                        onTeacherSelected = { name ->
+                            TeacherModeStore.setTeacher(context, name)
+                            onDismissRequest()
+                        },
+                        onBack = { step = GroupChangeStep.GROUP },
+                    )
             }
         },
     )

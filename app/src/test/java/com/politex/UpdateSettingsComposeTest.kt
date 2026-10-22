@@ -19,6 +19,7 @@ import com.politex.update.ManualCheckResult
 import com.politex.update.UpdateAsset
 import com.politex.update.UpdateCheckController
 import com.politex.update.UpdateInfo
+import com.politex.update.UpdateInstallController
 import com.politex.util.GroupParser
 import com.politex.util.TeacherModeStore
 import com.politex.util.UpdateChannel
@@ -48,11 +49,13 @@ class UpdateSettingsComposeTest {
         TeacherModeStore.clear(context)
         UpdateChannelStore.set(context, UpdateChannel.STABLE)
         UpdateCheckController.checkOverride = null
+        UpdateInstallController.cancelAndReset()
     }
 
     @After
     fun tearDown() {
         UpdateCheckController.checkOverride = null
+        UpdateInstallController.cancelAndReset()
         UpdateChannelStore.set(context, UpdateChannel.STABLE)
     }
 

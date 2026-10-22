@@ -335,7 +335,7 @@ fun MainScreen(
                     }
                     ScheduleScreen(
                         groupInfo = currentGroupInfo,
-                        groupLessonsFromVm = groupLessons,
+                        groupLessonsFromVm = if (uiState.isTeacherMode) groupLessons.orEmpty() else groupLessons,
                         pendingTasksFromVm = pendingTasks,
                         scheduleRepository = viewModel.scheduleRepository,
                         onSyncRequest = { date -> viewModel.syncSchedule(targetDate = date) },
