@@ -77,7 +77,7 @@ class UpdateInstallButtonComposeTest {
         UpdateInstallController.downloadOverride = null
         UpdateInstallController.validateOverride = null
         UpdateInstallController.installLaunchOverride = null
-        UpdateInstallController.cancelAndReset()
+        UpdateInstallController.cancelAndReset(context)
     }
 
     private fun renderSettings() {

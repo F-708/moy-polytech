@@ -85,6 +85,7 @@ import com.politex.ui.viewmodel.ROUTE_TEACHERS
 import com.politex.ui.viewmodel.tabsForMode
 import com.politex.ui.screens.materials.ViewerMode
 import com.politex.ui.util.daySlots
+import com.politex.update.UpdateInstallController
 import com.politex.util.DateFormats
 import kotlinx.coroutines.flow.collectLatest
 import java.net.URLEncoder
@@ -169,6 +170,8 @@ fun MainScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val updatePending by UpdateInstallController.foundUpdate.collectAsState()
+    LaunchedEffect(Unit) { UpdateInstallController.restore(context) }
 
     LaunchedEffect(viewModel) {
         viewModel.toastEvent.collectLatest { message ->
@@ -244,6 +247,9 @@ fun MainScreen(
                             NavigationBarItem(
                                 selected = isSelected,
                                 onClick = { navController.navigateToTab(tab.route) },
+                                modifier = Modifier
+                                    .testTag("main_tab_${tab.name.lowercase()}")
+                                    .pulseHalo(tab == AppTab.COLLEGE && updatePending != null),
                                 icon = {
                                     Icon(
                                         imageVector = if (isSelected) filledIcon else outlinedIcon,

@@ -49,13 +49,13 @@ class UpdateSettingsComposeTest {
         TeacherModeStore.clear(context)
         UpdateChannelStore.set(context, UpdateChannel.STABLE)
         UpdateCheckController.checkOverride = null
-        UpdateInstallController.cancelAndReset()
+        UpdateInstallController.cancelAndReset(context)
     }
 
     @After
     fun tearDown() {
         UpdateCheckController.checkOverride = null
-        UpdateInstallController.cancelAndReset()
+        UpdateInstallController.cancelAndReset(context)
         UpdateChannelStore.set(context, UpdateChannel.STABLE)
     }
 

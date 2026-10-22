@@ -2,6 +2,8 @@ package com.politex.update
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.politex.BuildConfig
+import com.politex.util.UpdatePendingStore
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -28,7 +30,7 @@ class UpdateInstallControllerTest {
         UpdateInfo(
             tagName = "v2.0.1",
             versionName = "2.0.1",
-            versionCode = 20001999,
+            versionCode = BuildConfig.VERSION_CODE + 1000,
             notes = "",
             asset = UpdateAsset("a.apk", "https://example.com/a.apk", 100L),
         )
@@ -43,7 +45,8 @@ class UpdateInstallControllerTest {
         UpdateInstallController.downloadOverride = null
         UpdateInstallController.validateOverride = null
         UpdateInstallController.installLaunchOverride = null
-        UpdateInstallController.cancelAndReset()
+        AppUpdateWorker.downloadOverride = null
+        UpdateInstallController.cancelAndReset(context)
     }
 
     private fun awaitState(predicate: (InstallButtonState) -> Boolean): InstallButtonState {
@@ -153,7 +156,7 @@ class UpdateInstallControllerTest {
         UpdateInstallController.startDownload(context, info)
         assertTrue(entered.await(5, TimeUnit.SECONDS))
         assertTrue(UpdateInstallController.state.value is InstallButtonState.Downloading)
-        UpdateInstallController.cancelAndReset()
+        UpdateInstallController.cancelAndReset(context)
         assertEquals(InstallButtonState.IdleFound, UpdateInstallController.state.value)
         val deadline = System.currentTimeMillis() + 5000
         while (!sawCancel.get() && System.currentTimeMillis() < deadline) {
@@ -191,10 +194,72 @@ class UpdateInstallControllerTest {
     }
 
     @Test
-    fun `сброс очищает найденное обновление`() {
-        UpdateInstallController.rememberFound(info)
-        assertEquals(info, UpdateInstallController.foundUpdate)
-        UpdateInstallController.cancelAndReset()
-        assertNull(UpdateInstallController.foundUpdate)
+    fun `сброс очищает найденное обновление и prefs`() {
+        UpdateInstallController.rememberFound(context, info)
+        assertEquals(info, UpdateInstallController.foundUpdate.value)
+        assertEquals(info, UpdatePendingStore.load(context))
+        UpdateInstallController.cancelAndReset(context)
+        assertNull(UpdateInstallController.foundUpdate.value)
+        assertNull(UpdatePendingStore.load(context))
+    }
+
+    @Test
+    fun `restore восстанавливает найденное обновление из prefs без проверки`() {
+        UpdatePendingStore.save(context, info)
+        UpdateInstallController.restore(context)
+        assertEquals(info, UpdateInstallController.foundUpdate.value)
+        assertEquals(InstallButtonState.IdleFound, UpdateInstallController.state.value)
+    }
+
+    @Test
+    fun `restore игнорирует и чистит pending с кодом не новее установленного`() {
+        UpdatePendingStore.save(context, info.copy(versionCode = 1))
+        UpdateInstallController.restore(context)
+        assertNull(UpdateInstallController.foundUpdate.value)
+        assertNull(UpdatePendingStore.load(context))
+    }
+
+    @Test
+    fun `restore с валидным скачанным apk сразу даёт состояние готовности`() {
+        val file = UpdateDownloader.targetFile(context, info.versionName).apply {
+            parentFile?.mkdirs()
+            writeBytes(ByteArray(16))
+        }
+        UpdateInstallController.validateOverride = { _, _ -> ApkRejection.NONE }
+        UpdatePendingStore.save(context, info)
+        UpdateInstallController.restore(context)
+        val state = awaitState { it is InstallButtonState.Downloaded }
+        assertEquals(file.absolutePath, (state as InstallButtonState.Downloaded).apkPath)
+        file.delete()
+    }
+
+    @Test
+    fun `старт загрузки переиспользует валидный файл без сети`() {
+        val file = UpdateDownloader.targetFile(context, info.versionName).apply {
+            parentFile?.mkdirs()
+            writeBytes(ByteArray(16))
+        }
+        var networkCalled = false
+        UpdateInstallController.validateOverride = { _, _ -> ApkRejection.NONE }
+        UpdateInstallController.downloadOverride = { _, _, _, _ ->
+            networkCalled = true
+            null
+        }
+        UpdateInstallController.startDownload(context, info)
+        val state = awaitState { it is InstallButtonState.Downloaded }
+        assertEquals(file.absolutePath, (state as InstallButtonState.Downloaded).apkPath)
+        assertFalse(networkCalled)
+        file.delete()
+    }
+
+    @Test
+    fun `результат воркера перенимается контроллером`() {
+        val file = tempApk("ctl-adopt.apk")
+        UpdateInstallController.adoptWorkerResult(context, info, file)
+        assertEquals(info, UpdateInstallController.foundUpdate.value)
+        val state = awaitState { it is InstallButtonState.Downloaded }
+        assertEquals(file.absolutePath, (state as InstallButtonState.Downloaded).apkPath)
+        assertEquals(info, UpdatePendingStore.load(context))
+        file.delete()
     }
 }

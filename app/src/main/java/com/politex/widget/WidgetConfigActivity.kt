@@ -352,6 +352,7 @@ class WidgetConfigActivity : ComponentActivity() {
                                     }
                                     WidgetAlarm.scheduleNext(this@WidgetConfigActivity)
                                     WidgetAlarm.scheduleNextSecond(this@WidgetConfigActivity)
+                                    runCatching { com.politex.util.BellTimerService.sync(this@WidgetConfigActivity) }
 
                                     requestAlarmAccessOnce()
 

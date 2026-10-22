@@ -108,10 +108,9 @@ object BellCountdownNotifier {
             .putBoolean(PREF_ENABLED, enabled)
             .apply()
         if (enabled) {
-            if (!BellTimerService.start(context)) BellTimerService.scheduleFallbackAlarm(context)
+            BellTimerService.sync(context)
         } else {
-            BellTimerService.stop(context)
-            cancel(context)
+            if (!BellTimerService.sync(context)) cancel(context)
             com.politex.widget.WidgetAlarm.scheduleNextSecond(context)
         }
     }

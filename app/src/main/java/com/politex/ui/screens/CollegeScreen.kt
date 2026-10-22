@@ -70,6 +70,7 @@ import com.politex.ui.components.SearchBar
 import com.politex.ui.components.SectionCaption
 import com.politex.ui.components.SearchEmptyState
 import com.politex.ui.components.SubPageHeader
+import com.politex.ui.components.UpdateAvailableCard
 import com.politex.ui.theme.ColorAccentGold
 import com.politex.ui.theme.ColorAccentGoldBg
 import com.politex.ui.theme.ColorAccentGoldBright
@@ -338,7 +339,9 @@ private fun OtherMenu(
                     onClick = onOpenSettings,
                 )
             }
-
+            item {
+                UpdateAvailableCard()
+            }
         }
     }
 }

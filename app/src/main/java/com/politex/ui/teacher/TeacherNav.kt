@@ -25,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +47,8 @@ import com.politex.ui.screens.CollegeMapScreen
 import com.politex.ui.screens.GroupScheduleRoute
 import com.politex.ui.screens.TeacherCardRoute
 import com.politex.ui.screens.TeachersRoute
+import com.politex.ui.screens.pulseHalo
+import com.politex.update.UpdateInstallController
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorNavSelected
 import com.politex.ui.theme.ColorSurfaceHighlight
@@ -92,6 +95,8 @@ fun TeacherNav(
     var tab by rememberSaveable { mutableStateOf(TeacherTab.SCHEDULE) }
 
     var subPage by remember { mutableStateOf<TeacherSubPage?>(null) }
+    val updatePending by UpdateInstallController.foundUpdate.collectAsState()
+    LaunchedEffect(Unit) { UpdateInstallController.restore(context) }
 
     LaunchedEffect(Unit) {
         val intent = (context as? Activity)?.intent ?: return@LaunchedEffect
@@ -160,7 +165,9 @@ fun TeacherNav(
                                 unselectedIconColor = ColorTextMuted,
                                 unselectedTextColor = ColorTextMuted,
                             ),
-                        modifier = Modifier.testTag("teacher_tab_${spec.tab.name.lowercase()}"),
+                        modifier = Modifier
+                            .testTag("teacher_tab_${spec.tab.name.lowercase()}")
+                            .pulseHalo(spec.tab == TeacherTab.MORE && updatePending != null),
                     )
                 }
             }

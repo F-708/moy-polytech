@@ -43,6 +43,7 @@ import com.politex.BuildConfig
 import com.politex.data.model.CollegeBellSchedule
 import com.politex.ui.components.AppCard
 import com.politex.ui.components.BackButton
+import com.politex.ui.components.UpdateAvailableCard
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.ColorBrandFill
@@ -131,6 +132,9 @@ fun TeacherMoreScreen(
                     onClick = onOpenSettings,
                     testTag = "more_settings",
                 )
+            }
+            item {
+                UpdateAvailableCard()
             }
         }
     }

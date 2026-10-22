@@ -33,41 +33,13 @@ class AppUpdateWorker(
     params: WorkerParameters,
 ) : Worker(context, params) {
     override fun doWork(): Result {
-        val info = UpdateCheckController.checkForWorker(applicationContext) ?: return Result.success()
-        val prefs = applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (prefs.getString(KEY_NOTIFIED_VERSION, null) == info.versionName) return Result.success()
-
-        val file =
-            UpdateDownloader.download(applicationContext, info.asset, info.versionName)
-                ?: return Result.retry()
-
-        if (!UpdateDownloader.matchesChecksum(file, info.sha256)) {
-            file.delete()
-            return Result.retry()
+        val found = UpdateCheckController.checkNow(applicationContext)
+        if (found is ManualCheckResult.Latest) {
+            UpdateInstallController.clearPending(applicationContext)
+            return Result.success()
         }
-
-        return when (val rejection = UpdateDownloader.validate(applicationContext, file)) {
-            ApkRejection.NONE -> {
-                notifyReady(applicationContext, info, file)
-                remember(prefs, info)
-                Result.success()
-            }
-            ApkRejection.UNREADABLE -> {
-                file.delete()
-                Result.retry()
-            }
-            ApkRejection.VERSION -> {
-                file.delete()
-                remember(prefs, info)
-                Result.success()
-            }
-            ApkRejection.PACKAGE, ApkRejection.SIGNATURE -> {
-                file.delete()
-                notifyRejected(applicationContext, rejection)
-                remember(prefs, info)
-                Result.success()
-            }
-        }
+        if (found !is ManualCheckResult.UpdateFound) return Result.success()
+        return processFoundUpdate(applicationContext, found.info)
     }
 
     companion object {
@@ -78,7 +50,83 @@ class AppUpdateWorker(
         const val NOTIFICATION_REJECTED_ID = 2028
         private const val PREFS = "mpk_update_prefs"
         private const val KEY_NOTIFIED_VERSION = "notified_version_name"
+        private const val KEY_NOTIFIED_CODE = "notified_version_code"
         private const val KEY_SCHEDULED_CHANNEL = "scheduled_channel"
+
+        internal var downloadOverride: ((Context, UpdateInfo) -> File?)? = null
+
+        internal fun processFoundUpdate(
+            context: Context,
+            info: UpdateInfo,
+        ): Result {
+            val appContext = context.applicationContext
+            if (UpdateInstallController.state.value !is InstallButtonState.Downloading) {
+                UpdateInstallController.rememberFound(appContext, info)
+            }
+            val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            if (alreadyNotified(prefs, info)) return Result.success()
+            when (UpdateInstallController.state.value) {
+                is InstallButtonState.Downloading -> return Result.retry()
+                is InstallButtonState.Downloaded,
+                is InstallButtonState.InstallLaunched,
+                -> {
+                    remember(prefs, info)
+                    return Result.success()
+                }
+                else -> Unit
+            }
+            val file =
+                UpdateInstallController.cachedValidFile(appContext, info)
+                    ?: freshDownload(appContext, info)
+                    ?: return Result.retry()
+            return when (val rejection = UpdateInstallController.validateFile(appContext, file)) {
+                ApkRejection.NONE -> {
+                    UpdateInstallController.adoptWorkerResult(appContext, info, file)
+                    notifyReady(appContext, info, file)
+                    remember(prefs, info)
+                    Result.success()
+                }
+                ApkRejection.UNREADABLE -> {
+                    file.delete()
+                    Result.retry()
+                }
+                ApkRejection.VERSION -> {
+                    file.delete()
+                    UpdateInstallController.clearPending(appContext)
+                    remember(prefs, info)
+                    Result.success()
+                }
+                ApkRejection.PACKAGE, ApkRejection.SIGNATURE -> {
+                    file.delete()
+                    UpdateInstallController.clearPending(appContext)
+                    notifyRejected(appContext, rejection)
+                    remember(prefs, info)
+                    Result.success()
+                }
+            }
+        }
+
+        private fun freshDownload(
+            context: Context,
+            info: UpdateInfo,
+        ): File? {
+            val file =
+                downloadOverride?.invoke(context, info)
+                    ?: UpdateDownloader.download(context, info.asset, info.versionName)
+                    ?: return null
+            if (!UpdateDownloader.matchesChecksum(file, info.sha256)) {
+                file.delete()
+                return null
+            }
+            return file
+        }
+
+        internal fun alreadyNotified(
+            prefs: SharedPreferences,
+            info: UpdateInfo,
+        ): Boolean =
+            prefs.getInt(KEY_NOTIFIED_CODE, 0) == info.versionCode ||
+                prefs.getString(KEY_NOTIFIED_VERSION, null) == info.versionName
 
         fun schedule(context: Context) {
             if (!AppUpdateChecker.UPDATE_ENABLED_FLAVORS.contains(BuildConfig.FLAVOR)) return
@@ -140,14 +188,18 @@ class AppUpdateWorker(
             }
         }
 
-        private fun remember(
+        internal fun remember(
             prefs: SharedPreferences,
             info: UpdateInfo,
         ) {
-            prefs.edit().putString(KEY_NOTIFIED_VERSION, info.versionName).apply()
+            prefs
+                .edit()
+                .putString(KEY_NOTIFIED_VERSION, info.versionName)
+                .putInt(KEY_NOTIFIED_CODE, info.versionCode)
+                .apply()
         }
 
-        private fun notifyReady(
+        internal fun notifyReady(
             context: Context,
             info: UpdateInfo,
             file: File,
@@ -178,7 +230,7 @@ class AppUpdateWorker(
             post(context, NOTIFICATION_ID, notification)
         }
 
-        private fun notifyRejected(
+        internal fun notifyRejected(
             context: Context,
             rejection: ApkRejection,
         ) {

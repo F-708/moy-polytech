@@ -72,11 +72,6 @@ object UpdateCheckController {
         }
     }
 
-    fun checkForWorker(context: Context): UpdateInfo? {
-        if (!updatesEnabled()) return null
-        return (fetchBest(context) as? FetchOutcome.Update)?.info
-    }
-
     internal fun updatesEnabled(): Boolean =
         AppUpdateChecker.UPDATE_ENABLED_FLAVORS.contains(BuildConfig.FLAVOR) &&
             AppUpdateChecker.isConfigured(BuildConfig.GITHUB_OWNER, BuildConfig.GITHUB_REPO)

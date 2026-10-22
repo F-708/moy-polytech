@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import com.politex.R
 import com.politex.util.BellCountdownNotifier
+import com.politex.util.BellTimerService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -223,9 +224,11 @@ class WidgetSecondsTickTest {
     }
 
     @Test
-    fun `минутный тик без строки обновляет виджеты и перепланирует оба будильника`() = runBlocking {
+    fun `минутный тик без строки поднимает виджет-сервис, обновляет виджеты и перепланирует эстафету`() = runBlocking {
         BellCountdownNotifier.setEnabled(ctx, false)
         bindSecondsWidget(7)
+        val app = shadowOf(ctx.applicationContext as Application)
+        app.clearStartedServices()
 
         WidgetAlarmReceiver().onReceive(ctx, Intent(WidgetAlarmReceiver.ACTION_TICK))
         drainWidgetScope()
@@ -233,6 +236,10 @@ class WidgetSecondsTickTest {
         assertNotNull("виджет перерисован минутным тиком", countdownLabel(7))
         assertNotNull(alarmFor(WidgetAlarmReceiver.ACTION_TICK))
         assertNotNull(alarmFor(WidgetAlarmReceiver.ACTION_SECOND_TICK))
+        assertTrue(
+            "минутный тик обязан поднимать widget-only сервис как основной драйвер секунд",
+            bellServiceStartRequested(app),
+        )
 
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         assertTrue(
@@ -242,7 +249,7 @@ class WidgetSecondsTickTest {
     }
 
     @Test
-    fun `boot без строки планирует тики виджетов и не стартует сервис`() = runBlocking {
+    fun `boot без строки, но с seconds-виджетом - поднимает виджет-сервис и планирует тики`() = runBlocking {
         BellCountdownNotifier.setEnabled(ctx, false)
         bindSecondsWidget(7)
         val app = shadowOf(ctx.applicationContext as Application)
@@ -251,14 +258,36 @@ class WidgetSecondsTickTest {
         WidgetAlarmReceiver().onReceive(ctx, Intent(Intent.ACTION_BOOT_COMPLETED))
 
         assertNotNull("минутный тик после перезагрузки планируется без строки", alarmFor(WidgetAlarmReceiver.ACTION_TICK))
-        assertNotNull("секундный тик после перезагрузки планируется без строки", alarmFor(WidgetAlarmReceiver.ACTION_SECOND_TICK))
-        assertFalse(
-            "при выключенной строке boot не поднимает BellTimerService",
+        assertTrue(
+            "после перезагрузки widget-only сервис - основной драйвер секунд",
             bellServiceStartRequested(app),
+        )
+
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        assertTrue(
+            "boot без строки не постит уведомление «до звонка»",
+            shadowOf(nm).allNotifications.isEmpty(),
         )
 
         drainWidgetScope()
         assertNotNull("виджеты обновлены после boot без строки", countdownLabel(7))
+    }
+
+    @Test
+    fun `boot без строки и без seconds-виджетов - сервис не стартует, секундная эстафета не планируется`() = runBlocking {
+        BellCountdownNotifier.setEnabled(ctx, false)
+        val app = shadowOf(ctx.applicationContext as Application)
+        app.clearStartedServices()
+
+        WidgetAlarmReceiver().onReceive(ctx, Intent(Intent.ACTION_BOOT_COMPLETED))
+
+        assertFalse(
+            "без строки и без seconds-виджетов сервис не нужен",
+            bellServiceStartRequested(app),
+        )
+        assertNull(alarmFor(WidgetAlarmReceiver.ACTION_SECOND_TICK))
+
+        drainWidgetScope()
     }
 
     @Test
@@ -275,6 +304,121 @@ class WidgetSecondsTickTest {
         )
 
         drainWidgetScope()
+    }
+
+    @Test
+    fun `драйвер - строка включена - LINE_FGS независимо от виджетов`() {
+        assertEquals(
+            BellTimerService.TickDriver.LINE_FGS,
+            BellTimerService.tickDriverFor(
+                bellLineEnabled = true,
+                widgetTickNeeded = true,
+                serviceRunning = false,
+                fgsStartAllowed = true,
+            ),
+        )
+        assertEquals(
+            BellTimerService.TickDriver.LINE_FGS,
+            BellTimerService.tickDriverFor(
+                bellLineEnabled = true,
+                widgetTickNeeded = false,
+                serviceRunning = false,
+                fgsStartAllowed = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `драйвер - строка выключена, секундный виджет в окне - WIDGET_FGS`() {
+        assertEquals(
+            BellTimerService.TickDriver.WIDGET_FGS,
+            BellTimerService.tickDriverFor(
+                bellLineEnabled = false,
+                widgetTickNeeded = true,
+                serviceRunning = false,
+                fgsStartAllowed = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `драйвер - FGS из фона запрещён - фолбэк на алармы`() {
+        assertEquals(
+            BellTimerService.TickDriver.ALARM_RELAY,
+            BellTimerService.tickDriverFor(
+                bellLineEnabled = false,
+                widgetTickNeeded = true,
+                serviceRunning = false,
+                fgsStartAllowed = false,
+            ),
+        )
+        assertEquals(
+            BellTimerService.TickDriver.LINE_FALLBACK_ALARM,
+            BellTimerService.tickDriverFor(
+                bellLineEnabled = true,
+                widgetTickNeeded = false,
+                serviceRunning = false,
+                fgsStartAllowed = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `драйвер - сервис уже жив или ничего не нужно - NONE`() {
+        assertEquals(
+            BellTimerService.TickDriver.NONE,
+            BellTimerService.tickDriverFor(false, true, serviceRunning = true, fgsStartAllowed = true),
+        )
+        assertEquals(
+            BellTimerService.TickDriver.NONE,
+            BellTimerService.tickDriverFor(false, false, serviceRunning = false, fgsStartAllowed = true),
+        )
+    }
+
+    @Test
+    fun `shouldRunTickService и widgetTickNeededFor - строка, виджеты и окно`() {
+        assertTrue(BellTimerService.shouldRunTickService(bellLineEnabled = true, widgetTickNeeded = false))
+        assertTrue(BellTimerService.shouldRunTickService(bellLineEnabled = false, widgetTickNeeded = true))
+        assertFalse(BellTimerService.shouldRunTickService(bellLineEnabled = false, widgetTickNeeded = false))
+
+        assertTrue(BellTimerService.widgetTickNeededFor(true, 10 * 60))
+        assertFalse("вне окна секундному тику нечего обновлять", BellTimerService.widgetTickNeededFor(true, 21 * 60))
+        assertFalse(BellTimerService.widgetTickNeededFor(true, 6 * 60 + 59))
+        assertFalse(BellTimerService.widgetTickNeededFor(false, 10 * 60))
+    }
+
+    @Test
+    fun `sync - строка выключена, секундный виджет жив - запрашивает старт виджет-сервиса`() {
+        BellCountdownNotifier.setEnabled(ctx, false)
+        bindSecondsWidget(7)
+        val app = shadowOf(ctx.applicationContext as Application)
+        app.clearStartedServices()
+
+        assertTrue(BellTimerService.sync(ctx))
+        assertTrue(bellServiceStartRequested(app))
+    }
+
+    @Test
+    fun `sync - строка выключена и секундных виджетов нет - останавливает сервис`() {
+        BellCountdownNotifier.setEnabled(ctx, false)
+        val app = shadowOf(ctx.applicationContext as Application)
+        app.clearStartedServices()
+        while (app.nextStoppedService != null) {
+        }
+
+        assertFalse(BellTimerService.sync(ctx))
+        assertNotNull("ненужный сервис обязан останавливаться", app.nextStoppedService)
+        assertFalse(bellServiceStartRequested(app))
+    }
+
+    @Test
+    fun `sync - строка включена - стартует независимо от виджетов`() {
+        BellCountdownNotifier.setEnabled(ctx, true)
+        val app = shadowOf(ctx.applicationContext as Application)
+        app.clearStartedServices()
+
+        assertTrue(BellTimerService.sync(ctx))
+        assertTrue(bellServiceStartRequested(app))
     }
 
     private fun freezeAtTuesday1030(base: TimeZone) {

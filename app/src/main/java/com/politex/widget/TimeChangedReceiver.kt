@@ -3,7 +3,6 @@ package com.politex.widget
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.politex.util.BellCountdownNotifier
 import com.politex.util.BellTimerService
 import com.politex.worker.MpkWorkManagerHelper
 import kotlinx.coroutines.launch
@@ -42,9 +41,7 @@ class TimeChangedReceiver : BroadcastReceiver() {
             WidgetAlarm.scheduleNext(context)
             WidgetAlarm.scheduleNextSecond(context)
 
-            if (BellCountdownNotifier.isEnabled(context)) {
-                BellTimerService.start(context)
-            }
+            runCatching { BellTimerService.sync(context) }
 
             try {
                 MpkWorkManagerHelper.setupPeriodicScheduleCheck(context)

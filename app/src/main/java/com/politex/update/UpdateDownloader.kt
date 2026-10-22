@@ -35,6 +35,11 @@ object UpdateDownloader {
             .build()
     }
 
+    internal fun targetFile(
+        context: Context,
+        versionName: String,
+    ): File = File(File(context.cacheDir, "updates"), "update-${safeFileName(versionName)}.apk")
+
     fun download(
         context: Context,
         asset: UpdateAsset,
@@ -44,7 +49,7 @@ object UpdateDownloader {
     ): File? {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
-        val target = File(dir, "update-${safeFileName(versionName)}.apk")
+        val target = targetFile(context, versionName)
         val downloaded =
             runCatching {
                 val request =

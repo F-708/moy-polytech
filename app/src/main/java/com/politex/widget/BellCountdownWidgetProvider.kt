@@ -26,6 +26,7 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
                 updateWidgets(context, appWidgetManager, appWidgetIds)
                 WidgetAlarm.scheduleNext(context)
                 WidgetAlarm.scheduleNextSecond(context)
+                runCatching { com.politex.util.BellTimerService.sync(context) }
             } finally {
                 pending.finish()
             }
@@ -35,11 +36,13 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
     override fun onEnabled(context: Context) {
         WidgetAlarm.scheduleNext(context)
         WidgetAlarm.scheduleNextSecond(context)
+        runCatching { com.politex.util.BellTimerService.sync(context) }
     }
 
     override fun onDisabled(context: Context) {
 
         WidgetAlarm.cancelIfNoWork(context)
+        runCatching { com.politex.util.BellTimerService.sync(context) }
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
@@ -47,6 +50,7 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
         appWidgetIds.forEach { WidgetPrefs.clear(context, it) }
         WidgetUpdateHelper.invalidateSecondsCache()
         WidgetAlarm.scheduleNextSecond(context)
+        runCatching { com.politex.util.BellTimerService.sync(context) }
     }
 
     companion object {
@@ -540,11 +544,13 @@ object WidgetAlarm {
         WidgetUpdateHelper.setExactOrIdle(context, triggerAt, pendingIntent(context))
     }
 
+    internal fun inSchoolWindow(minutesOfDay: Int): Boolean = minutesOfDay in SCHOOL_START until SCHOOL_END
+
     internal fun shouldScheduleSecondTick(
         hasSecondsWidgets: Boolean,
         serviceRunning: Boolean,
         minutesOfDay: Int,
-    ): Boolean = hasSecondsWidgets && !serviceRunning && minutesOfDay in SCHOOL_START until SCHOOL_END
+    ): Boolean = hasSecondsWidgets && !serviceRunning && inSchoolWindow(minutesOfDay)
 
     internal fun nextSecondTrigger(nowMs: Long): Long = nowMs + (1000L - nowMs % 1000L)
 
@@ -603,10 +609,12 @@ class WidgetAlarmReceiver : android.content.BroadcastReceiver() {
 
                         runCatching { WidgetUpdateHelper.ensureTodaySchedule(context) }
 
-                        if (com.politex.util.BellCountdownNotifier.isEnabled(context) &&
-                            !com.politex.util.BellTimerService.isRunning
-                        ) {
-                            runCatching { com.politex.util.BellCountdownNotifier.show(context) }
+                        if (com.politex.util.BellCountdownNotifier.isEnabled(context)) {
+                            if (!com.politex.util.BellTimerService.isRunning) {
+                                runCatching { com.politex.util.BellCountdownNotifier.show(context) }
+                            }
+                        } else {
+                            runCatching { com.politex.util.BellTimerService.sync(context) }
                         }
 
                         if (WidgetUpdateHelper.isFullUpdateStale(context)) {
@@ -649,9 +657,7 @@ class WidgetAlarmReceiver : android.content.BroadcastReceiver() {
                 WidgetAlarm.scheduleNext(context)
                 WidgetAlarm.scheduleNextSecond(context)
 
-                if (com.politex.util.BellCountdownNotifier.isEnabled(context)) {
-                    com.politex.util.BellTimerService.start(context)
-                }
+                runCatching { com.politex.util.BellTimerService.sync(context) }
 
                 val pending = goAsync()
                 WidgetUpdateHelper.widgetScope.launch {

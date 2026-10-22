@@ -60,12 +60,8 @@ class MainActivity : ComponentActivity() {
         com.politex.util.BellCountdownNotifier
             .createChannel(this)
 
-        if (com.politex.util.BellCountdownNotifier
-                .isEnabled(this)
-        ) {
-            com.politex.util.BellTimerService
-                .start(this)
-        }
+        com.politex.util.BellTimerService
+            .sync(this)
         if (BuildConfig.FLAVOR == "teacher") {
             com.politex.ui.teacher.initUiScale(this)
             MpkWorkManagerHelper.setupTeacherSync(this)

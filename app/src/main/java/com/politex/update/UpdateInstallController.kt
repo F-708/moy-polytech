@@ -2,6 +2,8 @@ package com.politex.update
 
 import android.content.Context
 import android.content.Intent
+import com.politex.BuildConfig
+import com.politex.util.UpdatePendingStore
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
@@ -145,24 +147,110 @@ internal fun downloadedStatusText(versionName: String?): String =
         "Обновление $versionName загружено. Нажмите, чтобы установить"
     }
 
+internal fun moreUpdateSubtitle(
+    state: InstallButtonState,
+    versionName: String,
+): String =
+    when (state) {
+        is InstallButtonState.Downloading -> downloadingStatusText(state.progress)
+        is InstallButtonState.Downloaded,
+        is InstallButtonState.InstallLaunched,
+        -> downloadedStatusText(versionName)
+        else -> "Версия $versionName · нажмите, чтобы скачать"
+    }
+
 object UpdateInstallController {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mutableState = MutableStateFlow<InstallButtonState>(InstallButtonState.IdleFound)
     val state: StateFlow<InstallButtonState> = mutableState.asStateFlow()
 
+    private val mutableFound = MutableStateFlow<UpdateInfo?>(null)
+    val foundUpdate: StateFlow<UpdateInfo?> = mutableFound.asStateFlow()
+
     private var activeJob: Job? = null
     private var activeCancel: AtomicBoolean? = null
-
-    @Volatile
-    var foundUpdate: UpdateInfo? = null
-        private set
 
     internal var downloadOverride: ((Context, UpdateInfo, (Long, Long) -> Unit, () -> Boolean) -> File?)? = null
     internal var validateOverride: ((Context, File) -> ApkRejection)? = null
     internal var installLaunchOverride: ((Context, File) -> Unit)? = null
 
-    fun rememberFound(info: UpdateInfo?) {
-        foundUpdate = info
+    fun rememberFound(
+        context: Context,
+        info: UpdateInfo?,
+    ) {
+        mutableFound.value = info
+        if (info == null) {
+            UpdatePendingStore.clear(context.applicationContext)
+        } else {
+            UpdatePendingStore.save(context.applicationContext, info)
+        }
+    }
+
+    fun clearPending(context: Context) {
+        UpdatePendingStore.clear(context.applicationContext)
+        mutableFound.value = null
+        if (mutableState.value !is InstallButtonState.Downloading) publish(InstallEvent.Reset)
+    }
+
+    fun restore(context: Context) {
+        val appContext = context.applicationContext
+        if (mutableFound.value != null) return
+        val info = UpdatePendingStore.load(appContext) ?: return
+        if (info.versionCode <= BuildConfig.VERSION_CODE) {
+            UpdatePendingStore.clear(appContext)
+            return
+        }
+        mutableFound.value = info
+        if (mutableState.value !is InstallButtonState.IdleFound) return
+        scope.launch {
+            val file = cachedValidFile(appContext, info) ?: return@launch
+            mutableState.update { current ->
+                if (current is InstallButtonState.IdleFound) {
+                    installReduce(
+                        installReduce(current, InstallEvent.DownloadStarted),
+                        InstallEvent.Completed(file.absolutePath),
+                    )
+                } else {
+                    current
+                }
+            }
+        }
+    }
+
+    fun cachedValidFile(
+        context: Context,
+        info: UpdateInfo,
+    ): File? {
+        val file = UpdateDownloader.targetFile(context, info.versionName)
+        if (!file.exists() || file.length() <= 0L) return null
+        if (!UpdateDownloader.matchesChecksum(file, info.sha256)) return null
+        return if (validateFile(context, file) == ApkRejection.NONE) file else null
+    }
+
+    fun validateFile(
+        context: Context,
+        file: File,
+    ): ApkRejection = validateOverride?.invoke(context, file) ?: UpdateDownloader.validate(context, file)
+
+    fun adoptWorkerResult(
+        context: Context,
+        info: UpdateInfo,
+        file: File,
+    ) {
+        val current = mutableFound.value
+        if (current == null || current.versionCode < info.versionCode) rememberFound(context, info)
+        mutableState.update { state ->
+            when (state) {
+                InstallButtonState.IdleFound,
+                is InstallButtonState.Error,
+                ->
+                    installReduce(
+                        installReduce(state, InstallEvent.DownloadStarted),
+                        InstallEvent.Completed(file.absolutePath),
+                    )
+                else -> state
+            }
+        }
     }
 
     fun onButtonTap(
@@ -175,7 +263,7 @@ object UpdateInstallController {
             is InstallButtonState.InstallLaunched,
             -> launchInstall(context)
             else -> {
-                val target = info ?: foundUpdate ?: return
+                val target = info ?: mutableFound.value ?: return
                 startDownload(context, target)
             }
         }
@@ -195,6 +283,11 @@ object UpdateInstallController {
         val appContext = context.applicationContext
         activeJob =
             scope.launch {
+                val cached = cachedValidFile(appContext, info)
+                if (cached != null) {
+                    publish(InstallEvent.Completed(cached.absolutePath))
+                    return@launch
+                }
                 val onProgress: (Long, Long) -> Unit = { read, total -> publish(InstallEvent.Progress(read, total)) }
                 val file =
                     runCatching {
@@ -229,12 +322,13 @@ object UpdateInstallController {
         publish(if (launched) InstallEvent.InstallStarted else InstallEvent.Failed(InstallError.Launch))
     }
 
-    fun cancelAndReset() {
+    fun cancelAndReset(context: Context) {
         activeCancel?.set(true)
         activeCancel = null
         activeJob?.cancel()
         activeJob = null
-        foundUpdate = null
+        UpdatePendingStore.clear(context.applicationContext)
+        mutableFound.value = null
         publish(InstallEvent.Reset)
     }
 
@@ -252,7 +346,7 @@ object UpdateInstallController {
             file.delete()
             return InstallEvent.Failed(InstallError.Checksum)
         }
-        val rejection = validateOverride?.invoke(context, file) ?: UpdateDownloader.validate(context, file)
+        val rejection = validateFile(context, file)
         if (rejection != ApkRejection.NONE) {
             file.delete()
             return InstallEvent.Failed(InstallError.Rejected(rejection))

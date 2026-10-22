@@ -210,7 +210,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Постоянный обратный отсчёт до звонка в строке уведомлений" />
+                android:value="Постоянный обратный отсчёт до звонка в строке уведомлений и посекундное обновление виджетов" />
         </service>
 
         <!-- Минутный тик виджета + перезапуск будильника после перезагрузки/обновения -->
