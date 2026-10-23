@@ -1,0 +1,102 @@
+name: Photo Optimize
+
+# Автообработка фото преподавателей: владелец пушит исходные фото
+# (хоть 4000px с телефона) в content/teachers_photos/ — workflow сжимает их
+# до ≤512px q80 (тот же цикл, что в приложении) и запускает пересборку
+# контент-пакета через reusable content-pack-build.yml.
+#
+# Цепочка без циклов:
+#   push владельца → optimize (коммит фото ботом через GITHUB_TOKEN)
+#                  → repack (workflow_call, коммит пакета ботом)
+# Пуши через GITHUB_TOKEN НЕ порождают новые runs, поэтому ни коммит фото,
+# ни коммит пакета этот workflow повторно не запускают. Дополнительно
+# сжатие идемпотентно: файлы ≤512px и ≤200КБ не пересохраняются, так что
+# даже ручной повторный запуск не создаёт пустых коммитов.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'content/teachers_photos/**'
+      - '.github/workflows/photo-optimize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Два быстрых пуша фото подряд: не отменяем (иначе потеряется пересборка),
+# а ставим в очередь — каждый run отработает сжатие и пересборку.
+concurrency:
+  group: photo-optimize
+  cancel-in-progress: false
+
+jobs:
+  optimize:
+    name: Сжатие фото (≤512px, q80)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Run мог ждать в очереди concurrency — берём свежий HEAD ветки.
+          ref: ${{ github.ref_name }}
+
+      - name: Сжать фото, превышающие порог
+        run: |
+          set -euo pipefail
+          cd content/teachers_photos
+          MAX_DIM=512
+          MAX_BYTES=204800
+          PROCESSED=0
+          for f in *; do
+            [ -f "$f" ] || continue
+            INFO="$(identify -format '%w %h %B' "./$f" 2>/dev/null | head -n 1 || true)"
+            read -r W H B <<<"$INFO" || true
+            if ! [[ "${W:-}" =~ ^[0-9]+$ && "${H:-}" =~ ^[0-9]+$ && "${B:-}" =~ ^[0-9]+$ ]]; then
+              echo "::warning::Файл $f не распознан как изображение — пропускаю"
+              continue
+            fi
+            if [ "$W" -le "$MAX_DIM" ] && [ "$H" -le "$MAX_DIM" ] && [ "$B" -le "$MAX_BYTES" ]; then
+              continue
+            fi
+            case "${f,,}" in
+              *.jpg|*.jpeg)
+                ARGS=(-auto-orient -resize "${MAX_DIM}x${MAX_DIM}>" -strip
+                      -quality 80 -sampling-factor 4:2:0)
+                ;;
+              *.png|*.webp)
+                ARGS=(-auto-orient -resize "${MAX_DIM}x${MAX_DIM}>" -strip
+                      -quality 80)
+                ;;
+              *)
+                echo "::warning::Неподдерживаемый формат $f — пропускаю"
+                continue
+                ;;
+            esac
+            echo "Сжимаю $f (${W}x${H}, ${B} байт)"
+            mogrify "${ARGS[@]}" "./$f"
+            PROCESSED=$((PROCESSED + 1))
+          done
+          echo "Обработано файлов: $PROCESSED"
+
+      - name: Коммит сжатых фото
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content/teachers_photos
+          if git diff --cached --quiet; then
+            echo "Все фото уже оптимальны — коммит не нужен"
+            exit 0
+          fi
+          git commit -m "Сжатие загруженных фото"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+  repack:
+    name: Пересборка контент-пакета
+    needs: optimize
+    uses: ./.github/workflows/content-pack-build.yml
+    permissions:
+      contents: write
