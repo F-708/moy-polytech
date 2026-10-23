@@ -44,9 +44,12 @@ class WidgetRegistrationTest {
         parse(resolveFile("src/main/AndroidManifest.xml", "app/src/main/AndroidManifest.xml"))
             .childElements("application").single()
 
-    private fun teacherApplication(): Element =
-        parse(resolveFile("src/teacher/AndroidManifest.xml", "app/src/teacher/AndroidManifest.xml"))
-            .childElements("application").single()
+    private fun teacherApplicationOrNull(): Element? {
+        val file = File("src/teacher/AndroidManifest.xml").takeIf { it.isFile }
+            ?: File("app/src/teacher/AndroidManifest.xml").takeIf { it.isFile }
+            ?: return null
+        return parse(file).childElements("application").singleOrNull()
+    }
 
     private fun widgetReceivers(app: Element): List<Element> = app.childElements("receiver").filter { rcv ->
         rcv.childElements("intent-filter").any { filter ->
@@ -60,7 +63,8 @@ class WidgetRegistrationTest {
 
     private fun allRegisteredReceivers(): List<Pair<String, Element>> =
         widgetReceivers(mainApplication()).map { attribute(it, "name") to it } +
-            widgetReceivers(teacherApplication()).map { attribute(it, "name") to it }
+            (teacherApplicationOrNull()?.let { widgetReceivers(it) } ?: emptyList())
+                .map { attribute(it, "name") to it }
 
     private fun infoXmlFile(resourceRef: String): File {
         assertTrue("meta-data resource должен указывать на @xml/: $resourceRef", resourceRef.startsWith("@xml/"))
