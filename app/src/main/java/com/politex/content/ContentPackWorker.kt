@@ -1,6 +1,7 @@
 package com.politex.content
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -14,12 +15,13 @@ import com.politex.AppGraph
 import com.politex.BuildConfig
 import com.politex.ui.util.TeachersCache
 import com.politex.util.UpdateChannelStore
-import com.politex.util.periodicCheckNeedsReschedule
-import com.politex.util.updateCheckIntervalHours
-import java.io.File
-import java.util.concurrent.TimeUnit
+import com.politex.util.contentCheckIntervalHours
+import com.politex.util.contentScheduleNeedsReschedule
+import com.politex.util.startupCheckNeeded
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
+import java.util.concurrent.TimeUnit
 
 class ContentPackWorker(
     context: Context,
@@ -28,6 +30,7 @@ class ContentPackWorker(
     override fun doWork(): Result {
         val context = applicationContext
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        rememberStartupCheck(prefs, System.currentTimeMillis())
         val response = fetchVersionJson(prefs.getString(KEY_ETAG, null)) ?: return Result.retry()
         if (response.status == HTTP_NOT_MODIFIED) return Result.success()
         if (response.status != HTTP_OK) return Result.success()
@@ -77,23 +80,22 @@ class ContentPackWorker(
         return Result.success()
     }
 
-    private fun fetchVersionJson(etag: String?): VersionResponse? =
-        runCatching {
-            val request =
-                Request
-                    .Builder()
-                    .url(versionJsonUrl())
-                    .header("User-Agent", USER_AGENT)
-                    .apply { if (!etag.isNullOrBlank()) header("If-None-Match", etag) }
-                    .build()
-            client.newCall(request).execute().use { response ->
-                VersionResponse(
-                    status = response.code,
-                    body = response.body?.string(),
-                    etag = response.header("ETag"),
-                )
-            }
-        }.getOrNull()
+    private fun fetchVersionJson(etag: String?): VersionResponse? = runCatching {
+        val request =
+            Request
+                .Builder()
+                .url(versionJsonUrl())
+                .header("User-Agent", USER_AGENT)
+                .apply { if (!etag.isNullOrBlank()) header("If-None-Match", etag) }
+                .build()
+        client.newCall(request).execute().use { response ->
+            VersionResponse(
+                status = response.code,
+                body = response.body?.string(),
+                etag = response.header("ETag"),
+            )
+        }
+    }.getOrNull()
 
     private fun download(
         context: Context,
@@ -143,9 +145,11 @@ class ContentPackWorker(
     companion object {
         const val WORK_NAME = "content_pack_check"
         const val ONCE_WORK_NAME = "content_pack_check_once"
+        const val STARTUP_WORK_NAME = "content_pack_check_startup"
         private const val PREFS = "content_pack_prefs"
         private const val KEY_ETAG = "version_etag"
-        private const val KEY_SCHEDULED_CHANNEL = "scheduled_channel"
+        private const val KEY_SCHEDULED_INTERVAL_HOURS = "scheduled_interval_hours"
+        private const val KEY_LAST_STARTUP_CHECK_AT = "last_startup_check_at"
         private const val VERSION_JSON = "version.json"
         private const val USER_AGENT = "MoyPolitech"
         private const val DOWNLOAD_BUFFER_SIZE = 8192
@@ -172,16 +176,17 @@ class ContentPackWorker(
             context: Context,
             force: Boolean,
         ) {
-            val channel = UpdateChannelStore.channel(context)
+            val intervalHours = contentCheckIntervalHours(UpdateChannelStore.channel(context))
             val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val scheduled = prefs.getLong(KEY_SCHEDULED_INTERVAL_HOURS, -1L).takeIf { it > 0L }
             val policy =
-                if (force || periodicCheckNeedsReschedule(prefs.getString(KEY_SCHEDULED_CHANNEL, null), channel)) {
+                if (force || contentScheduleNeedsReschedule(scheduled, intervalHours)) {
                     ExistingPeriodicWorkPolicy.UPDATE
                 } else {
                     ExistingPeriodicWorkPolicy.KEEP
                 }
             val request =
-                PeriodicWorkRequestBuilder<ContentPackWorker>(updateCheckIntervalHours(channel), TimeUnit.HOURS)
+                PeriodicWorkRequestBuilder<ContentPackWorker>(intervalHours, TimeUnit.HOURS)
                     .setConstraints(
                         Constraints
                             .Builder()
@@ -194,7 +199,7 @@ class ContentPackWorker(
                     .enqueueUniquePeriodicWork(WORK_NAME, policy, request)
                 prefs
                     .edit()
-                    .putString(KEY_SCHEDULED_CHANNEL, channel.wire)
+                    .putLong(KEY_SCHEDULED_INTERVAL_HOURS, intervalHours)
                     .apply()
             }
         }
@@ -217,8 +222,39 @@ class ContentPackWorker(
             }
         }
 
-        fun contentBaseUrl(): String =
-            "https://raw.githubusercontent.com/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/main/content/"
+        fun checkOnStartup(context: Context) {
+            val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val now = System.currentTimeMillis()
+            if (!startupCheckNeeded(prefs.getLong(KEY_LAST_STARTUP_CHECK_AT, 0L), now)) return
+            rememberStartupCheck(prefs, now)
+            runCatching {
+                val request =
+                    OneTimeWorkRequestBuilder<ContentPackWorker>()
+                        .setConstraints(
+                            Constraints
+                                .Builder()
+                                .setRequiredNetworkType(NetworkType.CONNECTED)
+                                .build(),
+                        ).build()
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    STARTUP_WORK_NAME,
+                    ExistingWorkPolicy.KEEP,
+                    request,
+                )
+            }
+        }
+
+        internal fun rememberStartupCheck(
+            prefs: SharedPreferences,
+            now: Long,
+        ) {
+            prefs
+                .edit()
+                .putLong(KEY_LAST_STARTUP_CHECK_AT, now)
+                .apply()
+        }
+
+        fun contentBaseUrl(): String = "https://raw.githubusercontent.com/${BuildConfig.GITHUB_OWNER}/${BuildConfig.GITHUB_REPO}/main/content/"
 
         fun versionJsonUrl(): String = contentBaseUrl() + VERSION_JSON
 

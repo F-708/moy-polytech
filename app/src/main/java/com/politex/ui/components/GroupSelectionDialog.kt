@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.politex.ui.teacher.TeacherOnboardingLogic
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
@@ -59,7 +60,6 @@ import com.politex.ui.theme.ColorTextMuted
 import com.politex.ui.theme.ColorTextTitle
 import com.politex.ui.theme.ColorTopBar
 import com.politex.ui.theme.Tokens
-import com.politex.ui.teacher.TeacherOnboardingLogic
 import com.politex.ui.util.bouncyClickable
 import com.politex.ui.util.rememberTeachers
 import com.politex.util.GroupCatalog

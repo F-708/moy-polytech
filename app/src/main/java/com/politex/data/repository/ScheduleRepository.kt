@@ -116,13 +116,11 @@ internal fun emptyStateText(
     forDate: String,
     lastOutcomeDate: String = "",
     outcome: SyncOutcome? = null,
-): String =
-    if (outcome is SyncOutcome.Ok && outcome.count > 0 && lastOutcomeDate == forDate) {
-
-        "Расписание на $forDate загружено"
-    } else {
-        "Расписания на этот день нет"
-    }
+): String = if (outcome is SyncOutcome.Ok && outcome.count > 0 && lastOutcomeDate == forDate) {
+    "Расписание на $forDate загружено"
+} else {
+    "Расписания на этот день нет"
+}
 
 internal fun isStaleDate(
     date: String,
@@ -147,7 +145,8 @@ internal fun nextSchoolDay(
     do {
         cal.add(Calendar.DAY_OF_YEAR, 1)
     } while (cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY ||
-        (cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY && !saturdayIsSchoolDay))
+        (cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY && !saturdayIsSchoolDay)
+    )
     return cal
 }
 
@@ -167,7 +166,11 @@ internal fun nextSchoolDayWithFallback(
     val tomorrowDow = Dow.of(tomorrow)
     if (tomorrowDow in 1..5 || (tomorrowDow == 6 && saturdayIsSchoolDay)) return NextDayTarget(tomorrow, "Завтра")
     if (tomorrowDow == 6 && hasSchedule(tomorrow)) return NextDayTarget(tomorrow, "Завтра")
-    val monday = (today.clone() as Calendar).apply { do { add(Calendar.DAY_OF_YEAR, 1) } while (Dow.of(this) != 1) }
+    val monday = (today.clone() as Calendar).apply {
+        do {
+            add(Calendar.DAY_OF_YEAR, 1)
+        } while (Dow.of(this) != 1)
+    }
     return if (hasSchedule(monday)) NextDayTarget(monday, "Понедельник") else NextDayTarget(null, "Понедельник")
 }
 
@@ -176,7 +179,11 @@ internal fun nextDayCandidates(
     saturdayIsSchoolDay: Boolean,
 ): List<Calendar> {
     val tomorrow = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
-    val monday = (today.clone() as Calendar).apply { do { add(Calendar.DAY_OF_YEAR, 1) } while (Dow.of(this) != 1) }
+    val monday = (today.clone() as Calendar).apply {
+        do {
+            add(Calendar.DAY_OF_YEAR, 1)
+        } while (Dow.of(this) != 1)
+    }
     val dow = Dow.of(tomorrow)
     return when {
         dow in 1..5 || (dow == 6 && saturdayIsSchoolDay) -> listOf(tomorrow)
@@ -196,32 +203,30 @@ internal fun teacherRows(
     parsedAll: Map<String, List<TeacherSlot>>,
     date: String,
     requestedDow: Int,
-): List<TeacherLessonEntity> =
-    parsedAll
-        .flatMap { (rawName, slots) ->
+): List<TeacherLessonEntity> = parsedAll
+    .flatMap { (rawName, slots) ->
 
-            TeacherInsights.splitTeacherNames(rawName).flatMap { name ->
-                val surname = TeacherInsights.surnameOf(name)
-                if (surname.isBlank()) {
-                    emptyList()
-                } else {
-                    slots.map { slot ->
-                        TeacherLessonEntity(
-                            teacherName = name,
-                            surnameKey = surname,
-                            dateString = date,
-                            dayOfWeek = if (slot.dayOfWeek != 0) slot.dayOfWeek else requestedDow,
-                            lessonNumber = slot.lessonNumber,
-                            groups = slot.groups.joinToString(", "),
-                            subject = slot.subject,
-                            room = slot.room,
-                        )
-                    }
+        TeacherInsights.splitTeacherNames(rawName).flatMap { name ->
+            val surname = TeacherInsights.surnameOf(name)
+            if (surname.isBlank()) {
+                emptyList()
+            } else {
+                slots.map { slot ->
+                    TeacherLessonEntity(
+                        teacherName = name,
+                        surnameKey = surname,
+                        dateString = date,
+                        dayOfWeek = if (slot.dayOfWeek != 0) slot.dayOfWeek else requestedDow,
+                        lessonNumber = slot.lessonNumber,
+                        groups = slot.groups.joinToString(", "),
+                        subject = slot.subject,
+                        room = slot.room,
+                    )
                 }
             }
         }
-
-        .distinctBy { "${it.surnameKey}_${it.dayOfWeek}_${it.lessonNumber}_${it.room}_${it.subject}_${it.groups}" }
+    }
+    .distinctBy { "${it.surnameKey}_${it.dayOfWeek}_${it.lessonNumber}_${it.room}_${it.subject}_${it.groups}" }
 
 class ScheduleRepository(
     private val lessonDao: LessonDao,
@@ -315,7 +320,6 @@ class ScheduleRepository(
     suspend fun syncScheduleDetailed(
         groupName: String,
         force: Boolean = false,
-
         targetDate: String? = null,
     ): Result<SyncOutcome> = withContext(Dispatchers.IO) {
         val today = Calendar.getInstance()
@@ -407,14 +411,12 @@ class ScheduleRepository(
         } else {
             if (needTomorrow) {
                 networkClient
-
                     .fetchScheduleForGroup(groupName, tomorrow, preferredUrl = probeFoundUrl[tomorrowStr])
                     .onSuccess { fetched += it }
                     .onFailure { fetchFailed = true }
             }
             if (needToday && todayStr != tomorrowStr) {
                 networkClient
-
                     .fetchScheduleForGroup(groupName, today, preferredUrl = probeFoundUrl[todayStr])
                     .onSuccess { fetched += it }
                     .onFailure { fetchFailed = true }
@@ -445,7 +447,6 @@ class ScheduleRepository(
                 .distinctBy { "${it.groupName}_${it.dayOfWeek}_${it.lessonNumber}_${it.dateString}" }
 
         if (finalLessons.isNotEmpty()) {
-
             writeByGroup(finalLessons, days.map { formatDate(it.first) }.toSet())
 
             days.forEach { (calendar, _) ->
@@ -465,7 +466,6 @@ class ScheduleRepository(
 
         val offlineDead = probeNetworkError && !documentFound && fetched.isEmpty()
         return@withContext if (outcome is SyncOutcome.NotFound && (fetchFailed || offlineDead)) {
-
             networkClient.publishStatus(statusMessage = "Не удалось получить расписание на $tomorrowStr", isSyncing = false)
             Result.failure(IOException("Не удалось получить расписание"))
         } else {
@@ -491,7 +491,6 @@ class ScheduleRepository(
         groupName: String,
         targetCalendar: Calendar,
     ): Result<List<LessonEntity>> = withContext(Dispatchers.IO) {
-
         val allGroups = (catalog() + groupName).distinct()
         if (allGroups.isEmpty()) return@withContext networkClient.fetchScheduleForGroup(groupName, targetCalendar)
 
@@ -504,7 +503,6 @@ class ScheduleRepository(
         if (forGroup.isFailure) return@withContext Result.failure(forGroup.exceptionOrNull()!!)
         val all = forGroup.getOrDefault(emptyList())
         if (all.isNotEmpty()) {
-
             writeByGroup(all, setOf(date))
             pruneOldLessons()
         }
@@ -528,14 +526,12 @@ class ScheduleRepository(
         preferredUrl: String? = null,
         documentFound: (Boolean) -> Unit = {},
     ): List<LessonEntity> {
-
         var found: List<LessonEntity> = emptyList()
         networkClient.forEachDocumentUrl(calendar, preferredUrl = preferredUrl) { url ->
             val bytes = networkClient.downloadFileBytes(url)
             if (bytes == null || bytes.isEmpty()) return@forEachDocumentUrl false
 
             if (looksLikeDocument(bytes)) {
-
                 if (!MpkScheduleParser.documentMatchesDate(bytes, date)) return@forEachDocumentUrl false
                 documentFound(true)
             }
@@ -673,10 +669,8 @@ class ScheduleRepository(
         groupName: String,
         lessons: List<LessonEntity>,
     ) = withContext(Dispatchers.IO) {
-
         lessons.groupBy { it.dateString }.forEach { (dateString, dayLessons) ->
             if (dateString.isBlank()) {
-
                 lessonDao.insertLessons(dayLessons)
             } else {
                 lessonDao.replaceForDate(groupName, dateString, dayLessons)

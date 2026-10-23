@@ -7,8 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class X1DocumentDateTest {
-    private fun liveDocBytes(): ByteArray =
-        javaClass.getResourceAsStream("/fixtures/05-10-2026-raspisanie-uchashhihsya.doc")!!.readBytes()
+    private fun liveDocBytes(): ByteArray = javaClass.getResourceAsStream("/fixtures/05-10-2026-raspisanie-uchashhihsya.doc")!!.readBytes()
 
     @Test
     fun `документ 05_10 принят для своей даты 05_10`() {

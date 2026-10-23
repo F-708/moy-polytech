@@ -389,7 +389,6 @@ fun MaterialPdfViewer(
                 onColor = { drawColor = it },
                 onWidth = { drawWidth = it },
                 onUndo = {
-
                     val action = undoSession.pop()
                     if (action != null) {
                         val updated = applyUndo(action, pageStrokes.toMap())
@@ -402,7 +401,6 @@ fun MaterialPdfViewer(
                     }
                 },
                 onClear = {
-
                     val snapshot = pageStrokes.toMap().filterValues { it.isNotEmpty() }
                     if (snapshot.isNotEmpty()) {
                         undoSession.record(AnnotationAction.ClearAll(snapshot))
@@ -475,7 +473,6 @@ fun MaterialPdfViewer(
                 Modifier
                     .fillMaxSize()
                     .onSizeChanged { viewportSize = it }
-
                     .pointerInput(zoomState, panState) {
                         val c = Offset(size.width / 2f, size.height / 2f)
                         awaitEachGesture {
@@ -508,7 +505,6 @@ fun MaterialPdfViewer(
                             } while (event.changes.any { it.pressed })
                         }
                     }
-
                     .pointerInput(zoomState, panState) {
                         detectTapGestures(
                             onDoubleTap = { tap ->
@@ -520,9 +516,7 @@ fun MaterialPdfViewer(
                             },
                         )
                     }
-
                     .graphicsLayer {
-
                         transformOrigin = if (zoomState.floatValue < 1f) TransformOrigin(0.5f, 0f) else TransformOrigin.Center
                         scaleX = zoomState.floatValue
                         scaleY = zoomState.floatValue
@@ -530,7 +524,6 @@ fun MaterialPdfViewer(
                         translationY = panState.value.y
                     },
             ) {
-
                 val zoomOutFactor = zoomOutHeightFactor(DocZoom.MIN)
                 LazyColumn(
                     state = listState,
@@ -688,53 +681,52 @@ internal fun Modifier.docLiveZoom(
     onGestureStart: () -> Unit = {},
     onCommit: (centroid: Offset) -> Unit,
     onReset: () -> Unit = { docZoomState.floatValue = DocZoom.DEFAULT },
-): Modifier =
-    this
-        .pointerInput(docZoomState, liveZoomState, livePanState, enabled) {
-            if (!enabled) return@pointerInput
-            val center = Offset(size.width / 2f, size.height / 2f)
-            try {
-                awaitEachGesture {
-                    var active = false
-                    var lastCentroid = Offset.Zero
-                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                    do {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        if (event.changes.count { it.pressed } >= 2) {
-                            if (!active) onGestureStart()
-                            active = true
-                            val zoomChange = event.calculateZoom()
-                            val panChange = event.calculatePan()
-                            val centroid = event.calculateCentroid()
-                            if (zoomChange != 1f || panChange != Offset.Zero) {
-                                lastCentroid = centroid
-                                val docZ = docZoomState.floatValue
-                                val next =
-                                    applyLive(
-                                        LiveTransform(liveZoomState.floatValue, livePanState.value),
-                                        zoomChange,
-                                        panChange,
-                                        centroid,
-                                        center,
-                                        DocZoom.MIN / docZ,
-                                        DocZoom.MAX / docZ,
-                                    )
-                                liveZoomState.floatValue = next.zoom
-                                livePanState.value = next.pan
-                            }
-                            event.changes.forEach { if (it.positionChanged()) it.consume() }
+): Modifier = this
+    .pointerInput(docZoomState, liveZoomState, livePanState, enabled) {
+        if (!enabled) return@pointerInput
+        val center = Offset(size.width / 2f, size.height / 2f)
+        try {
+            awaitEachGesture {
+                var active = false
+                var lastCentroid = Offset.Zero
+                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                do {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    if (event.changes.count { it.pressed } >= 2) {
+                        if (!active) onGestureStart()
+                        active = true
+                        val zoomChange = event.calculateZoom()
+                        val panChange = event.calculatePan()
+                        val centroid = event.calculateCentroid()
+                        if (zoomChange != 1f || panChange != Offset.Zero) {
+                            lastCentroid = centroid
+                            val docZ = docZoomState.floatValue
+                            val next =
+                                applyLive(
+                                    LiveTransform(liveZoomState.floatValue, livePanState.value),
+                                    zoomChange,
+                                    panChange,
+                                    centroid,
+                                    center,
+                                    DocZoom.MIN / docZ,
+                                    DocZoom.MAX / docZ,
+                                )
+                            liveZoomState.floatValue = next.zoom
+                            livePanState.value = next.pan
                         }
-                    } while (event.changes.any { it.pressed })
-                    if (active) onCommit(lastCentroid)
-                }
-            } finally {
-                liveZoomState.floatValue = 1f
-                livePanState.value = Offset.Zero
+                        event.changes.forEach { if (it.positionChanged()) it.consume() }
+                    }
+                } while (event.changes.any { it.pressed })
+                if (active) onCommit(lastCentroid)
             }
+        } finally {
+            liveZoomState.floatValue = 1f
+            livePanState.value = Offset.Zero
         }
-        .pointerInput(docZoomState) {
-            detectTapGestures(onDoubleTap = { onReset() })
-        }
+    }
+    .pointerInput(docZoomState) {
+        detectTapGestures(onDoubleTap = { onReset() })
+    }
 
 @Composable
 private fun PdfReaderBar(
@@ -750,7 +742,6 @@ private fun PdfReaderBar(
     onBookmarks: () -> Unit,
     onDrawToggle: () -> Unit,
 ) {
-
     val statusBars = WindowInsets.statusBars
     Surface(
 
@@ -760,7 +751,6 @@ private fun PdfReaderBar(
         Modifier
             .fillMaxWidth()
             .testTag("pdf_top_bar")
-
             .drawBehind {
                 val top = statusBars.getTop(this).toFloat()
                 if (top > 0f) drawRect(color = ColorTopBar, topLeft = Offset(0f, -top), size = Size(size.width, top))
@@ -874,7 +864,6 @@ private fun PdfPageRow(
     cache: LruCache<Long, Bitmap>,
     renderLock: Mutex,
     renderWidthPx: Int,
-
     zoomState: FloatState,
     bookmarked: Boolean,
     onBookmarkClick: (bookmarked: Boolean) -> Unit,
@@ -1013,7 +1002,6 @@ private fun PdfPageRow(
             Modifier
                 .align(Alignment.TopEnd)
                 .padding(4.dp)
-
                 .graphicsLayer {
                     val s = 1f / zoomState.floatValue.coerceAtLeast(0.01f)
                     scaleX = s

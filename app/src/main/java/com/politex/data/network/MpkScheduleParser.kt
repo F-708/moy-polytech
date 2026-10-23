@@ -80,6 +80,41 @@ object MpkScheduleParser {
         "([0-3]?[0-9])[.\\-/]([0-1]?[0-9])[.\\-/](20[0-9]{2})",
     )
 
+    private val WS_REGEX = Regex("\\s+")
+    private val TAG_STRIP_REGEX = Regex("<[^>]+>")
+    private val DOC_LINK_ATTR_REGEX =
+        Regex("(?i)(?:href|src|data-src|data-href)=[\"']([^\"']+\\.(?:docx|doc)(?:\\?[^\"']*)?)[\"']")
+    private val DOC_JSON_LINK_REGEX =
+        Regex("(?i)\"(?:source_url|guid|url)\"\\s*:\\s*\"([^\"]+\\.(?:docx|doc)[^\"]*)\"")
+    private val WP_UPLOADS_REGEX =
+        Regex("(?i)https?://[a-zA-Z0-9.-]+/wp-content/uploads/[a-zA-Z0-9/_.-]+\\.(?:doc|docx)")
+    private val HEADER_ZIP_REGEX = Regex("РАСПИСАНИЕ[^<]*", RegexOption.IGNORE_CASE)
+    private val HEADER_LINE_REGEX = Regex("РАСПИСАНИЕ[^\\n]*", RegexOption.IGNORE_CASE)
+    private val LEADING_LESSON_REGEX = Regex("^(10|[1-9])(\\s|$)")
+    private val CELL_LESSON_HEAD_REGEX = Regex("^(10|[1-9])\\s*(.*)$")
+    private val DOUBLE_ROOMS_TAIL_REGEX =
+        Regex("(?:каб\\.?|ауд\\.?)?\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?|СТД|-{1,7})\\s*/\\s*(?:каб\\.?|ауд\\.?)?\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?|СТД|-{1,7})?\\s*$")
+    private val ROOM_TAIL_REGEX = Regex("(?:каб\\.?|ауд\\.?)?\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?|СТД)$")
+    private val KAB_PAIR_REGEX =
+        Regex("(?:каб\\.?|ауд\\.?)\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?)\\s*[/,-]\\s*(?:каб\\.?|ауд\\.?)\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?)", RegexOption.IGNORE_CASE)
+    private val SLASH_ROOMS_REGEX = Regex("([0-9]{2,3}[Ѐ-ӿa-zA-Z]?)\\s*/\\s*([0-9]{2,3}[Ѐ-ӿa-zA-Z]?)")
+    private val ROOM_ANY_REGEX =
+        Regex("(?:каб\\.?|ауд\\.?)\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?)|([0-9]{2,3}[Ѐ-ӿa-zA-Z]?)\\s*(?:каб|ауд)", RegexOption.IGNORE_CASE)
+    private val ROOM_END_DIGITS_REGEX = Regex("([1-9][0-9]{1,2}[Ѐ-ӿa-zA-Z]?)$")
+    private val TEACHER_IN_SUBJECT_REGEX =
+        Regex("([\\u0410-\\u042F\\u0401][\\u0430-\\u044F\\u0451]+)\\s+([\\u0410-\\u042F\\u0401]\\.\\s*[\\u0410-\\u042F\\u0401]\\.)")
+    private val LESSON_PREFIX_STRIP_REGEX =
+        Regex("(?:^(?:10|[1-9])\\s*урок|^(?:10|[1-9])\\s*пара|^(?:10|[1-9])\\s*\\.|^№\\s*(?:10|[1-9]))", RegexOption.IGNORE_CASE)
+    private val SUBGROUP_STRIP_REGEX = Regex("(?:1|2)\\s*п/?г|(?:1|2)\\s*подгруппа", RegexOption.IGNORE_CASE)
+    private val TEACHER_FIO_REGEX =
+        Regex("([\\u0410-\\u042F\\u0401][\\u0430-\\u044F\\u0451]+)\\s+([\\u0410-\\u042F\\u0401])\\.?\\s*([\\u0410-\\u042F\\u0401])?\\.?")
+    private val DIGITS_REGEX = Regex("[0-9]")
+    private val GROUP_LINE_REGEX =
+        Regex("(?:группа\\s+)([1-4][1-9]\\s*[\\u0410-\\u042FA-Z])|(?<![0-9A-Za-z_\\u0400-\\u04FF])([1-4][1-9]\\s*[\\u0410-\\u042FA-Z])(?![0-9A-Za-z_\\u0400-\\u04FF])", RegexOption.IGNORE_CASE)
+    private val PURE_HEADER_REGEX =
+        Regex("^(?:группа\\s*)?[1-4][1-9]\\s*[\\u0410-\\u042FA-Z](?:\\s+(?:понедельник|вторник|среда|четверг|пятница|суббота))?$", RegexOption.IGNORE_CASE)
+    private val P2_SPLIT_REGEX = Regex("(?:/\\s*|\\s+)(?:2\\s*п/?г|2\\s*подгруппа)", RegexOption.IGNORE_CASE)
+
     fun parseDotDate(date: String): java.util.Calendar? {
         val iso = Regex("\\s*(20[0-9]{2})-([0-1]?[0-9])-([0-3]?[0-9])\\s*").find(date)
         if (iso != null) {
@@ -101,12 +136,11 @@ object MpkScheduleParser {
         lessons: List<LessonEntity>,
         anchorCal: java.util.Calendar,
         anchorDow: Int,
-    ): List<LessonEntity> =
-        lessons.map { lesson ->
-            val cal = (anchorCal.clone() as java.util.Calendar)
-            cal.add(java.util.Calendar.DAY_OF_YEAR, (lesson.dayOfWeek - anchorDow).coerceIn(-6, 6))
-            lesson.copy(dateString = DateFormats.dotDate(cal))
-        }
+    ): List<LessonEntity> = lessons.map { lesson ->
+        val cal = (anchorCal.clone() as java.util.Calendar)
+        cal.add(java.util.Calendar.DAY_OF_YEAR, (lesson.dayOfWeek - anchorDow).coerceIn(-6, 6))
+        lesson.copy(dateString = DateFormats.dotDate(cal))
+    }
 
     fun findSchedulePostLinks(html: String, baseUrl: String = "https://guo-mpk.by/"): List<SchedulePostLink> {
         val result = mutableListOf<SchedulePostLink>()
@@ -114,7 +148,7 @@ object MpkScheduleParser {
 
         POST_LINK_REGEX.findAll(html).forEach { match ->
             val rawUrl = match.groupValues[1].trim()
-            val rawTitle = match.groupValues[2].replace(Regex("<[^>]+>"), " ").trim()
+            val rawTitle = match.groupValues[2].replace(TAG_STRIP_REGEX, " ").trim()
             val absoluteUrl = resolveAbsoluteUrl(baseUrl, rawUrl)
 
             if (!seenUrls.contains(absoluteUrl) && !absoluteUrl.endsWith("/raspisanie/") && !absoluteUrl.endsWith("/raspisanie")) {
@@ -184,19 +218,19 @@ object MpkScheduleParser {
             }
         }
 
-        Regex("(?i)(?:href|src|data-src|data-href)=[\"']([^\"']+\\.(?:docx|doc)(?:\\?[^\"']*)?)[\"']").findAll(html).forEach { match ->
+        DOC_LINK_ATTR_REGEX.findAll(html).forEach { match ->
             val link = match.groupValues[1]
             if (!link.contains("officeapps.live.com") && !link.contains("docs.google.com")) {
                 urls.add(resolveAbsoluteUrl(baseUrl, link))
             }
         }
 
-        Regex("(?i)\"(?:source_url|guid|url)\"\\s*:\\s*\"([^\"]+\\.(?:docx|doc)[^\"]*)\"").findAll(html).forEach { match ->
+        DOC_JSON_LINK_REGEX.findAll(html).forEach { match ->
             val link = match.groupValues[1].replace("\\/", "/")
             urls.add(resolveAbsoluteUrl(baseUrl, link))
         }
 
-        Regex("(?i)https?://[a-zA-Z0-9.-]+/wp-content/uploads/[a-zA-Z0-9/_.-]+\\.(?:doc|docx)").findAll(html).forEach { match ->
+        WP_UPLOADS_REGEX.findAll(html).forEach { match ->
             urls.add(match.value)
         }
 
@@ -266,7 +300,7 @@ object MpkScheduleParser {
         if (lesson.officialSubjectName.equals(CURATOR_HOUR, ignoreCase = true)) return true
         val raw = lesson.subjectRaw
             .trim()
-            .replace(Regex("\\s+"), " ")
+            .replace(WS_REGEX, " ")
             .uppercase(Locale.ROOT)
         return raw in CURATOR_HOUR_RAW_VARIANTS
     }
@@ -510,7 +544,7 @@ object MpkScheduleParser {
     private fun extractHeaderText(bytes: ByteArray): String {
         val fromZip = if (Docx.isZip(bytes)) {
             runCatching {
-                Docx.readDocumentXml(bytes)?.let { Regex("РАСПИСАНИЕ[^<]*", RegexOption.IGNORE_CASE).find(it)?.value }
+                Docx.readDocumentXml(bytes)?.let { HEADER_ZIP_REGEX.find(it)?.value }
             }.getOrNull()
         } else {
             null
@@ -518,11 +552,11 @@ object MpkScheduleParser {
         if (!fromZip.isNullOrBlank()) return fromZip
 
         val utf16Text = runCatching { extractUtf16LeRuns(bytes).joinToString("\n") }.getOrDefault("")
-        val firstU16 = Regex("РАСПИСАНИЕ[^\\n]*", RegexOption.IGNORE_CASE).find(utf16Text)?.value
+        val firstU16 = HEADER_LINE_REGEX.find(utf16Text)?.value
         if (firstU16 != null) return firstU16
 
         val cp1251Text = runCatching { String(bytes, CP1251) }.getOrDefault("")
-        return Regex("РАСПИСАНИЕ[^\\n]*", RegexOption.IGNORE_CASE).find(cp1251Text)?.value ?: ""
+        return HEADER_LINE_REGEX.find(cp1251Text)?.value ?: ""
     }
 
     private fun extractHeaderDate(headerText: String): String? {
@@ -589,13 +623,11 @@ object MpkScheduleParser {
         return emptyList()
     }
 
-    private fun extractCp1251Runs(bytes: ByteArray): List<String> =
-        BinaryTextExtract.cp1251Runs(bytes, bellAsTab = true, minRunBytes = 4) { BinaryTextExtract.hasText(it) }
+    private fun extractCp1251Runs(bytes: ByteArray): List<String> = BinaryTextExtract.cp1251Runs(bytes, bellAsTab = true, minRunBytes = 4) { BinaryTextExtract.hasText(it) }
 
-    fun extractUtf16LeRuns(bytes: ByteArray): List<String> =
-        BinaryTextExtract.utf16LeRuns(bytes, bellAsTab = true) { decoded ->
-            BinaryTextExtract.hasText(decoded) || (decoded.length >= 6 && decoded.all { it.isWhitespace() })
-        }
+    fun extractUtf16LeRuns(bytes: ByteArray): List<String> = BinaryTextExtract.utf16LeRuns(bytes, bellAsTab = true) { decoded ->
+        BinaryTextExtract.hasText(decoded) || (decoded.length >= 6 && decoded.all { it.isWhitespace() })
+    }
 
     fun parseDocx(
         inputStream: InputStream,
@@ -681,7 +713,7 @@ object MpkScheduleParser {
                 eventType = parser.next()
             }
         } catch (e: Exception) {
-            return parsePlainTextSchedule(xmlContent.replace(Regex("<[^>]+>"), " "), cleanTargetGroup, targetDate)
+            return parsePlainTextSchedule(xmlContent.replace(TAG_STRIP_REGEX, " "), cleanTargetGroup, targetDate)
         }
 
         return lessons
@@ -804,7 +836,7 @@ object MpkScheduleParser {
         }
 
         mutateStats {
-            it.copy(textPreview = text.replace(Regex("\\s+"), " ").take(120))
+            it.copy(textPreview = text.replace(WS_REGEX, " ").take(120))
         }
         val strategyErrors = mutableListOf<String>()
 
@@ -970,7 +1002,7 @@ object MpkScheduleParser {
     private fun leadingLessonNumberOf(line: String): Int? {
         val trimmed = line.trimStart()
         if (trimmed.isEmpty()) return null
-        val match = Regex("^(10|[1-9])(\\s|\$)").find(trimmed) ?: return null
+        val match = LEADING_LESSON_REGEX.find(trimmed) ?: return null
         return match.groupValues[1].toIntOrNull()
     }
 
@@ -1119,7 +1151,7 @@ object MpkScheduleParser {
         val cleanSubj = cellSubject.trim()
         if (cleanSubj.isBlank() || cleanSubj == "-" || cleanSubj == "—") return null
 
-        val lessonNumMatch = Regex("^(10|[1-9])\\s*(.*)$").find(cleanSubj) ?: return null
+        val lessonNumMatch = CELL_LESSON_HEAD_REGEX.find(cleanSubj) ?: return null
         val lessonNumber = lessonNumMatch.groupValues[1].toInt()
         val rawRest = lessonNumMatch.groupValues[2].trim()
 
@@ -1129,8 +1161,7 @@ object MpkScheduleParser {
 
         val (timeStart, timeEnd) = CollegeBellSchedule.getTimeForLessonNumber(lessonNumber, dayOfWeek)
 
-        val doubleRoomsPattern = Regex("(?:каб\\.?|ауд\\.?)?\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?|СТД|-{1,7})\\s*/\\s*(?:каб\\.?|ауд\\.?)?\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?|СТД|-{1,7})?\\s*$")
-        val doubleRoomsMatch = doubleRoomsPattern.find(rawRest)
+        val doubleRoomsMatch = DOUBLE_ROOMS_TAIL_REGEX.find(rawRest)
 
         val isExplicitSplit = doubleRoomsMatch != null ||
             rawRest.contains("/") ||
@@ -1161,12 +1192,12 @@ object MpkScheduleParser {
                 subjPart1 = parts[0].trim()
                 subjPart2 = parts.getOrElse(1) { "" }.trim()
 
-                val r1Match = Regex("(?:каб\\.?|ауд\\.?)?\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?|СТД)$").find(subjPart1)
+                val r1Match = ROOM_TAIL_REGEX.find(subjPart1)
                 if (r1Match != null) {
                     room1 = r1Match.groupValues[1]
                     subjPart1 = subjPart1.substring(0, r1Match.range.first).trim()
                 }
-                val r2Match = Regex("(?:каб\\.?|ауд\\.?)?\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?|СТД)$").find(subjPart2)
+                val r2Match = ROOM_TAIL_REGEX.find(subjPart2)
                 if (r2Match != null) {
                     room2 = r2Match.groupValues[1]
                     subjPart2 = subjPart2.substring(0, r2Match.range.first).trim()
@@ -1218,7 +1249,7 @@ object MpkScheduleParser {
         } else {
             var room = ""
             var subject = rawRest
-            val singleRoomMatch = Regex("(?:каб\\.?|ауд\\.?)?\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?|СТД)$").find(rawRest)
+            val singleRoomMatch = ROOM_TAIL_REGEX.find(rawRest)
             if (singleRoomMatch != null) {
                 room = singleRoomMatch.groupValues[1]
                 subject = rawRest.substring(0, singleRoomMatch.range.first).trim()
@@ -1249,12 +1280,12 @@ object MpkScheduleParser {
     }
 
     fun cleanTeacherName(raw: String): String {
-        var t = raw.replace(Regex("[0-9]"), "").trim()
-        t = t.replace(Regex("\\s+"), " ")
+        var t = raw.replace(DIGITS_REGEX, "").trim()
+        t = t.replace(WS_REGEX, " ")
         t = t.trim(',', '-', '/', '\\', ' ')
         if (t.isBlank()) return ""
 
-        val match = Regex("([\\u0410-\\u042F\\u0401][\\u0430-\\u044F\\u0451]+)\\s+([\\u0410-\\u042F\\u0401])\\.?\\s*([\\u0410-\\u042F\\u0401])?\\.?").find(t)
+        val match = TEACHER_FIO_REGEX.find(t)
         if (match != null) {
             val surname = match.groupValues[1]
             val init1 = match.groupValues[2]
@@ -1288,8 +1319,7 @@ object MpkScheduleParser {
                 }
             }
 
-            val groupPattern = Regex("(?:группа\\s+)([1-4][1-9]\\s*[\\u0410-\\u042FA-Z])|(?<![0-9A-Za-z_\\u0400-\\u04FF])([1-4][1-9]\\s*[\\u0410-\\u042FA-Z])(?![0-9A-Za-z_\\u0400-\\u04FF])", RegexOption.IGNORE_CASE)
-            val groupHeaderMatch = groupPattern.find(line)
+            val groupHeaderMatch = GROUP_LINE_REGEX.find(line)
             if (groupHeaderMatch != null) {
                 val matchedGroup = groupHeaderMatch.value
                 if (GroupParser.isValid(matchedGroup.replace("группа", "", ignoreCase = true).trim())) {
@@ -1297,11 +1327,10 @@ object MpkScheduleParser {
                 }
             }
 
-            val isPureHeader = line.matches(Regex("^(?:группа\\s*)?[1-4][1-9]\\s*[\\u0410-\\u042FA-Z](?:\\s+(?:понедельник|вторник|среда|четверг|пятница|суббота))?$", RegexOption.IGNORE_CASE))
+            val isPureHeader = line.matches(PURE_HEADER_REGEX)
             val isLineForGroup = !isPureHeader && (GroupParser.matchesGroup(line, targetGroup) || isCurrentGroupActive)
 
             if (isLineForGroup) {
-
                 val numMatch = LESSON_NUMBER_IN_TEXT.find(line)
                 val lessonNum = numMatch?.groupValues?.get(1)?.ifEmpty {
                     numMatch.groupValues.getOrNull(2)?.ifEmpty { numMatch.groupValues.getOrNull(3) }
@@ -1413,14 +1442,12 @@ object MpkScheduleParser {
     }
 
     private fun extractDoubleRooms(text: String): Pair<String, String>? {
-        val pattern = Regex("(?:каб\\.?|ауд\\.?)\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?)\\s*[/,-]\\s*(?:каб\\.?|ауд\\.?)\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?)", RegexOption.IGNORE_CASE)
-        val match = pattern.find(text)
+        val match = KAB_PAIR_REGEX.find(text)
         if (match != null) {
             return Pair(match.groupValues[1], match.groupValues[2])
         }
 
-        val slashDigitsPattern = Regex("([0-9]{2,3}[Ѐ-ӿa-zA-Z]?)\\s*/\\s*([0-9]{2,3}[Ѐ-ӿa-zA-Z]?)")
-        val slashMatch = slashDigitsPattern.find(text)
+        val slashMatch = SLASH_ROOMS_REGEX.find(text)
         if (slashMatch != null) {
             return Pair(slashMatch.groupValues[1], slashMatch.groupValues[2])
         }
@@ -1433,35 +1460,35 @@ object MpkScheduleParser {
         var teacher = ""
         var subject = text
 
-        val roomMatch = Regex("(?:каб\\.?|ауд\\.?)\\s*([0-9]{1,3}[Ѐ-ӿa-zA-Z]?)|([0-9]{2,3}[Ѐ-ӿa-zA-Z]?)\\s*(?:каб|ауд)", RegexOption.IGNORE_CASE).find(text)
+        val roomMatch = ROOM_ANY_REGEX.find(text)
         if (roomMatch != null) {
             room = roomMatch.groupValues[1].ifEmpty { roomMatch.groupValues[2] }
             subject = subject.replace(roomMatch.value, " ")
         } else {
-            val endDigits = Regex("([1-9][0-9]{1,2}[Ѐ-ӿa-zA-Z]?)$").find(text.trim())
+            val endDigits = ROOM_END_DIGITS_REGEX.find(text.trim())
             if (endDigits != null) {
                 room = endDigits.groupValues[1]
                 subject = subject.substring(0, endDigits.range.first).trim()
             }
         }
 
-        val teacherMatch = Regex("([\\u0410-\\u042F\\u0401][\\u0430-\\u044F\\u0451]+)\\s+([\\u0410-\\u042F\\u0401]\\.\\s*[\\u0410-\\u042F\\u0401]\\.)").find(subject)
+        val teacherMatch = TEACHER_IN_SUBJECT_REGEX.find(subject)
         if (teacherMatch != null) {
             teacher = "${teacherMatch.groupValues[1]} ${teacherMatch.groupValues[2].replace(" ", "")}"
             subject = subject.replace(teacherMatch.value, " ")
         }
 
         subject = subject
-            .replace(Regex("(?:^(?:10|[1-9])\\s*урок|^(?:10|[1-9])\\s*пара|^(?:10|[1-9])\\s*\\.|^№\\s*(?:10|[1-9]))", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("(?:1|2)\\s*п/?г|(?:1|2)\\s*подгруппа", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("\\s+"), " ")
+            .replace(LESSON_PREFIX_STRIP_REGEX, "")
+            .replace(SUBGROUP_STRIP_REGEX, "")
+            .replace(WS_REGEX, " ")
             .trim(',', '.', '-', ' ', '/', '\\', ':')
 
         return Triple(room, teacher, subject)
     }
 
     private fun splitSubgroupContent(raw: String): Pair<String, String> {
-        val p2Match = Regex("(?:/\\s*|\\s+)(?:2\\s*п/?г|2\\s*подгруппа)", RegexOption.IGNORE_CASE).find(raw)
+        val p2Match = P2_SPLIT_REGEX.find(raw)
         if (p2Match != null) {
             val part1 = raw.substring(0, p2Match.range.first).trim()
             val part2 = raw.substring(p2Match.range.first).trim()

@@ -1,12 +1,12 @@
 package com.politex
 
-import com.politex.util.GroupCatalog
-import com.politex.util.GroupParser
-import com.politex.util.MpkCurriculum
 import com.politex.ui.screens.buildGroupCode
 import com.politex.ui.screens.groupPickerLetters
 import com.politex.ui.screens.groupPickerMaxNumber
 import com.politex.ui.screens.validateAgainstCatalog
+import com.politex.util.GroupCatalog
+import com.politex.util.GroupParser
+import com.politex.util.MpkCurriculum
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

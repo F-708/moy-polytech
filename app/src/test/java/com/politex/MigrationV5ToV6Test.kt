@@ -173,7 +173,6 @@ class MigrationV5ToV6Test {
             field.isAccessible = true
             field.set(null, null)
         } catch (_: Exception) {
-
         }
     }
 }

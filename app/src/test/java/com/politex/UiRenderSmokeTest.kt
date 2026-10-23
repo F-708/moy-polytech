@@ -63,7 +63,6 @@ class UiRenderSmokeTest {
 
     @Test
     fun `экран другого рендерится`() {
-
         composeRule.setContent {
             MyApplicationTheme {
                 CollegeScreen(groupInfo = group)

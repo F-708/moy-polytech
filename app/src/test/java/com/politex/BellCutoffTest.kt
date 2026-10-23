@@ -42,7 +42,6 @@ class BellCutoffTest {
 
     @Test
     fun groupLessons_stillVisibleInsideLastLesson() {
-
         val info =
             BellCountdownWidgetProvider.countdownForMinute(
                 13 * 60 + 30,
@@ -59,7 +58,6 @@ class BellCutoffTest {
 
     @Test
     fun groupLessons_lastMinuteOfLastLessonStillCounts() {
-
         val info =
             BellCountdownWidgetProvider.countdownForMinute(
                 14 * 60 + 5,
@@ -75,7 +73,6 @@ class BellCutoffTest {
 
     @Test
     fun groupLessons_hiddenOneMinuteAfterGroupEnd() {
-
         assertNull(
             BellCountdownWidgetProvider.countdownForMinute(
                 14 * 60 + 6,
@@ -89,7 +86,6 @@ class BellCutoffTest {
 
     @Test
     fun groupLessons_breakAfterLastGroupLesson_hiddenNotNextBell() {
-
         assertNull(
             BellCountdownWidgetProvider.countdownForMinute(
                 14 * 60 + 10,
@@ -103,7 +99,6 @@ class BellCutoffTest {
 
     @Test
     fun groupLessons_afternoonAfterGroupEnd_hidden() {
-
         assertNull(
             BellCountdownWidgetProvider.countdownForMinute(
                 16 * 60,
@@ -117,7 +112,6 @@ class BellCutoffTest {
 
     @Test
     fun groupLessons_breakBetweenGroupLessons_countsToNextGroupLesson() {
-
         val info =
             BellCountdownWidgetProvider.countdownForMinute(
                 12 * 60 + 10,
@@ -133,7 +127,6 @@ class BellCutoffTest {
 
     @Test
     fun groupLessons_smallBreakBeforeLastLesson() {
-
         val info =
             BellCountdownWidgetProvider.countdownForMinute(
                 13 * 60 + 12,
@@ -149,7 +142,6 @@ class BellCutoffTest {
 
     @Test
     fun groupLessons_noLessonsToday_hiddenAllDay() {
-
         for (minute in intArrayOf(7 * 60, 10 * 60, 15 * 60, 20 * 60)) {
             assertNull(
                 BellCountdownWidgetProvider.countdownForMinute(
@@ -165,7 +157,6 @@ class BellCutoffTest {
 
     @Test
     fun saturday_visibleDuringLastLesson() {
-
         val info =
             BellCountdownWidgetProvider.countdownForMinute(
                 15 * 60,
@@ -194,7 +185,6 @@ class BellCutoffTest {
 
     @Test
     fun saturday_groupWith6Lessons_hiddenAfter13_35() {
-
         assertNull(
             BellCountdownWidgetProvider.countdownForMinute(
                 13 * 60 + 36,
@@ -208,7 +198,6 @@ class BellCutoffTest {
 
     @Test
     fun allBells_visibleDuringLateLesson() {
-
         val info =
             BellCountdownWidgetProvider.countdownForMinute(
                 18 * 60,
@@ -224,7 +213,6 @@ class BellCutoffTest {
 
     @Test
     fun allBells_hiddenAfterCollegeLastBell() {
-
         assertNull(
             BellCountdownWidgetProvider.countdownForMinute(
                 19 * 60 + 36,

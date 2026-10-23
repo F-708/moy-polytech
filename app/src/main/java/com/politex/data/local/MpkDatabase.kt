@@ -31,7 +31,9 @@ import com.politex.data.local.entity.TeacherOverrideEntity
         StudentTaskEntity::class,
         TeacherLessonEntity::class,
         TaskReminderEntity::class,
-        @Suppress("DEPRECATION") MaterialFolderEntity::class,
+        @Suppress("DEPRECATION")
+        MaterialFolderEntity::
+        class,
         MaterialItemEntity::class,
         MaterialBookmarkEntity::class,
         MaterialAnnotationEntity::class,
@@ -273,7 +275,6 @@ abstract class MpkDatabase : RoomDatabase() {
             }
 
         fun getInstance(context: Context): MpkDatabase = instance ?: synchronized(this) {
-
             instance ?: run {
                 val built =
                     Room
@@ -282,7 +283,6 @@ abstract class MpkDatabase : RoomDatabase() {
                             MpkDatabase::class.java,
                             DATABASE_NAME,
                         ).addMigrations(migration1To2, migration2To3, migration3To4, migration4To5, migration5To6, migration6To7, migration7To8, migration8To9, migration9To10, migration10To11)
-
                         .fallbackToDestructiveMigration()
                         .build()
                 instance = built

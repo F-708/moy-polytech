@@ -20,14 +20,12 @@ class FuzzySearchTest {
 
     @Test
     fun `перестановка соседних символов стоит единицу`() {
-
         assertEquals(1, FuzzySearch.damerauLevenshtein("физика", "фиизка"))
         assertEquals(1, FuzzySearch.damerauLevenshtein("ab", "ba"))
     }
 
     @Test
     fun `лимит даёт ранний выход и возвращает лимит плюс один`() {
-
         assertEquals(3, FuzzySearch.damerauLevenshtein("ранета", "дерево", limit = 2))
         assertEquals(3, FuzzySearch.damerauLevenshtein("abcdef", "uvwxyz", limit = 2))
 

@@ -52,7 +52,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -107,7 +106,6 @@ import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.ColorBrandFill
 import com.politex.ui.theme.ColorDangerFill
-import com.politex.ui.theme.ColorDividerLight
 import com.politex.ui.theme.ColorSurfaceHighlight
 import com.politex.ui.theme.ColorSurfaceVariantLight
 import com.politex.ui.theme.ColorTextBody
@@ -129,7 +127,6 @@ fun TasksScreen(
     groupInfo: GroupInfo,
     taskRepository: TaskRepository,
     modifier: Modifier = Modifier,
-
     snackbarHostState: SnackbarHostState? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -186,14 +183,12 @@ fun TasksScreen(
         }
 
     fun deleteWithUndo(task: StudentTaskEntity) {
-
         if (!swipeHintDone) {
             HintFlags.markDone(context, HintFlags.KEY_SWIPE_TASKS)
             swipeHintDone = true
         }
         if (isDemoTask(task.id)) return
         coroutineScope.launch {
-
             val remindersSnapshot = reminderDao.getForTask(task.id)
             taskRepository.deleteTask(task)
             if (snackbarHostState == null) return@launch
@@ -217,7 +212,6 @@ fun TasksScreen(
             .background(ColorBgMain),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-
             Row(
                 modifier =
                 Modifier
@@ -239,7 +233,6 @@ fun TasksScreen(
                 LaunchedEffect(selectedFilter) {
                     val index = if (selectedFilter == null) 0 else availableTypes.indexOf(selectedFilter) + 1
                     if (index == 0) {
-
                         chipScroll.animateScrollTo(0)
                     } else {
                         chipOffsets[index]?.let { (start, width) ->
@@ -281,7 +274,6 @@ fun TasksScreen(
             AppDivider(modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
 
             if (visibleTasks.isEmpty()) {
-
                 val filterActive = selectedFilter != null
 
                 Box(
@@ -323,19 +315,16 @@ fun TasksScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         if (filterActive) {
-
                             Surface(
                                 shape = RoundedCornerShape(2.dp),
                                 color = ColorBrandFill,
                                 contentColor = Color.White,
                                 modifier =
                                 Modifier
-
                                     .heightIn(min = Tokens.ButtonHeight)
                                     .bouncyClickable { selectedFilter = null }
                                     .testTag("reset_filter_btn"),
                             ) {
-
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
                                         text = "СБРОСИТЬ ФИЛЬТР",
@@ -530,7 +519,6 @@ fun TaskItemCard(
     task: StudentTaskEntity,
     onToggleCompleted: () -> Unit,
     onEdit: () -> Unit,
-
     onLongPressDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -552,7 +540,6 @@ fun TaskItemCard(
         modifier =
         modifier
             .fillMaxWidth()
-
             .combinedClickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -568,7 +555,6 @@ fun TaskItemCard(
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-
             Box(
                 modifier =
                 Modifier
@@ -587,7 +573,6 @@ fun TaskItemCard(
             Spacer(modifier = Modifier.width(6.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (task.subjectName.isNotBlank()) {
                         Text(
@@ -677,20 +662,18 @@ fun TaskItemCard(
                     }
                 }
             }
-
         }
     }
 }
 
-private fun TaskType.shortFilterLabel(): String =
-    when (this) {
-        TaskType.HOMEWORK -> "ДЗ"
-        TaskType.LAB_WORK -> "Лаб"
-        TaskType.PRACTICAL_WORK -> "Практ"
-        TaskType.CONTROL_WORK -> "КР"
-        TaskType.COURSE_WORK -> "Курс"
-        TaskType.DIPLOMA -> "Дипл"
-    }
+private fun TaskType.shortFilterLabel(): String = when (this) {
+    TaskType.HOMEWORK -> "ДЗ"
+    TaskType.LAB_WORK -> "Лаб"
+    TaskType.PRACTICAL_WORK -> "Практ"
+    TaskType.CONTROL_WORK -> "КР"
+    TaskType.COURSE_WORK -> "Курс"
+    TaskType.DIPLOMA -> "Дипл"
+}
 
 @Composable
 private fun TaskFilterChip(
@@ -707,7 +690,6 @@ private fun TaskFilterChip(
         color = if (isSelected) ColorTopBar else ColorBgMain,
         modifier =
         Modifier
-
             .height(Tokens.ButtonHeight)
             .onGloballyPositioned { offsets[index] = it.positionInParent().x.toInt() to it.size.width }
             .bouncyClickable(onClick = onClick)
@@ -750,15 +732,13 @@ internal fun shouldDelete(
     widthPx: Float,
     lastFrameDeltaPx: Float,
     flingThresholdPx: Float,
-): Boolean =
-    widthPx > 0f &&
-        (-offsetX >= widthPx * 0.35f || lastFrameDeltaPx <= -flingThresholdPx)
+): Boolean = widthPx > 0f &&
+    (-offsetX >= widthPx * 0.35f || lastFrameDeltaPx <= -flingThresholdPx)
 
 @Composable
 private fun SwipeToDeleteBox(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
-
     demoFraction: () -> Float = { 0f },
     content: @Composable () -> Unit,
 ) {
@@ -816,7 +796,6 @@ private fun SwipeToDeleteBox(
             modifier =
             Modifier
                 .matchParentSize()
-
                 .clip(RoundedCornerShape(2.dp))
                 .background(ColorDangerFill),
             contentAlignment = Alignment.CenterEnd,
@@ -867,7 +846,6 @@ private fun DemoSwipeHintItem(
         onDelete = onDelete,
         demoFraction = { demoOffset.value },
     ) {
-
         TaskItemCard(
             task = task,
             onToggleCompleted = {},
@@ -927,7 +905,6 @@ fun TaskEditDialog(
         shape = RoundedCornerShape(2.dp),
         containerColor = ColorBgMain,
         title = {
-
             DialogTitleBar(
                 text = if (isEdit) "Редактировать задание" else "Новое задание",
                 onClose = onDismissRequest,
@@ -938,7 +915,6 @@ fun TaskEditDialog(
                 modifier =
                 Modifier
                     .fillMaxWidth()
-
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -1004,7 +980,6 @@ fun TaskEditDialog(
                             .testTag("custom_subject_field"),
                     )
                 } else {
-
                     Surface(
                         shape = RoundedCornerShape(2.dp),
                         border = BorderStroke(1.dp, ColorBorderLight),
@@ -1099,7 +1074,6 @@ fun TaskEditDialog(
             }
         },
         confirmButton = {
-
             val canSave = title.isNotBlank() && effectiveSubject.isNotBlank()
             Surface(
                 shape = RoundedCornerShape(2.dp),
@@ -1109,32 +1083,31 @@ fun TaskEditDialog(
                     .testTag("task_edit_confirm")
                     .alpha(if (canSave) 1f else 0.4f)
                     .bouncyClickable(enabled = canSave) {
+                        val dueIso = task?.deadlineDate ?: ""
 
-                    val dueIso = task?.deadlineDate ?: ""
-
-                    val entity =
-                        if (task == null) {
-                            StudentTaskEntity(
-                                groupName = groupInfo.canonicalName,
-                                course = groupInfo.course,
-                                subjectName = effectiveSubject,
-                                taskType = selectedType.displayName,
-                                title = title.trim(),
-                                description = description.trim(),
-                                deadlineDate = dueIso,
-                                createdAt = System.currentTimeMillis(),
-                            )
-                        } else {
-                            task.copy(
-                                subjectName = effectiveSubject,
-                                taskType = selectedType.displayName,
-                                title = title.trim(),
-                                description = description.trim(),
-                                deadlineDate = dueIso,
-                            )
-                        }
-                    onTaskSaved(entity, reminders)
-                },
+                        val entity =
+                            if (task == null) {
+                                StudentTaskEntity(
+                                    groupName = groupInfo.canonicalName,
+                                    course = groupInfo.course,
+                                    subjectName = effectiveSubject,
+                                    taskType = selectedType.displayName,
+                                    title = title.trim(),
+                                    description = description.trim(),
+                                    deadlineDate = dueIso,
+                                    createdAt = System.currentTimeMillis(),
+                                )
+                            } else {
+                                task.copy(
+                                    subjectName = effectiveSubject,
+                                    taskType = selectedType.displayName,
+                                    title = title.trim(),
+                                    description = description.trim(),
+                                    deadlineDate = dueIso,
+                                )
+                            }
+                        onTaskSaved(entity, reminders)
+                    },
             ) {
                 Text(
                     text = if (isEdit) "СОХРАНИТЬ" else "ДОБАВИТЬ",
@@ -1496,11 +1469,10 @@ private fun ReminderComposer(
 internal fun subjectListFor(
     groupInfo: GroupInfo,
     used: List<String>,
-): List<String> =
-    (MpkCurriculum.getSubjects(groupInfo.specialtyCode, groupInfo.course) + used)
-        .filter { it.isNotBlank() }
-        .distinct()
-        .sorted()
+): List<String> = (MpkCurriculum.getSubjects(groupInfo.specialtyCode, groupInfo.course) + used)
+    .filter { it.isNotBlank() }
+    .distinct()
+    .sorted()
 
 @Composable
 private fun SubjectPickerDialog(

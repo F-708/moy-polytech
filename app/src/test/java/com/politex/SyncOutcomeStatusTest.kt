@@ -18,8 +18,7 @@ class SyncOutcomeStatusTest {
     private val date = "06.10.2026"
     private val group = "41О"
 
-    private fun liveDocBytes(): ByteArray =
-        javaClass.getResourceAsStream("/fixtures/05-10-2026-raspisanie-uchashhihsya.doc")!!.readBytes()
+    private fun liveDocBytes(): ByteArray = javaClass.getResourceAsStream("/fixtures/05-10-2026-raspisanie-uchashhihsya.doc")!!.readBytes()
 
     @Test
     fun `probe 404 - ни документа ни уроков - NotFound с датой`() {
@@ -31,7 +30,6 @@ class SyncOutcomeStatusTest {
 
     @Test
     fun `чужой документ date-mismatch - не принимается - NotFound`() {
-
         assertFalse(MpkScheduleParser.documentMatchesDate(liveDocBytes(), date))
         assertEquals(
             SyncOutcome.NotFound(date),

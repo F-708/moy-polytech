@@ -51,7 +51,6 @@ class TaskUpsertTest {
 
     @Test
     fun `add then edit title keeps a single row with new title`() = runBlocking {
-
         val newId = repo.saveTask(task(title = "Лаба 1"))
         assertTrue("новая запись должна получить id > 0", newId > 0)
 

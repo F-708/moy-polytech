@@ -39,7 +39,6 @@ class BellSecondsTest {
 
     @Test
     fun `минуты досчитываются от секунды календаря`() {
-
         assertEquals("34:15", BellCountdownNotifier.formatMinutesSeconds(35, 45))
 
         assertEquals("35:00", BellCountdownNotifier.formatMinutesSeconds(35, 0))

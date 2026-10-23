@@ -65,7 +65,6 @@ class Step6WidgetsAndWorkerTest {
 
     @Test
     fun testBellTimesForDayOfWeek() {
-
         val (monStart, monEnd) = CollegeBellSchedule.getTimeForLessonNumber(1, 1)
         assertEquals("08:15", monStart)
         assertEquals("09:00", monEnd)

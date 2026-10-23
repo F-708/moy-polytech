@@ -121,8 +121,7 @@ private class FakeLessonDao(
         dayOfWeek: Int,
     ) = Unit
 
-    override fun getDistinctDatesForGroup(groupName: String): Flow<List<String>> =
-        flowOf(rows.filter { it.groupName == groupName && it.dateString != "" }.map { it.dateString }.distinct())
+    override fun getDistinctDatesForGroup(groupName: String): Flow<List<String>> = flowOf(rows.filter { it.groupName == groupName && it.dateString != "" }.map { it.dateString }.distinct())
 
     override suspend fun getLessonCountForGroup(groupName: String): Int = rows.count { it.groupName == groupName }
 
@@ -147,14 +146,13 @@ class SyncCacheFirstTest {
     private val group = "41О"
     private val catalog = listOf(group, "11Э", "31П", "21С")
 
-    private fun fmt(cal: Calendar): String =
-        String.format(
-            Locale.ROOT,
-            "%02d.%02d.%04d",
-            cal.get(Calendar.DAY_OF_MONTH),
-            cal.get(Calendar.MONTH) + 1,
-            cal.get(Calendar.YEAR),
-        )
+    private fun fmt(cal: Calendar): String = String.format(
+        Locale.ROOT,
+        "%02d.%02d.%04d",
+        cal.get(Calendar.DAY_OF_MONTH),
+        cal.get(Calendar.MONTH) + 1,
+        cal.get(Calendar.YEAR),
+    )
 
     private fun lesson(
         groupName: String,

@@ -16,11 +16,11 @@ fun SectionCaption(
     Text(
         text = text,
         style =
-            TextStyle(
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = ColorBrandBlue,
-            ),
+        TextStyle(
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+            color = ColorBrandBlue,
+        ),
         modifier = modifier,
     )
 }

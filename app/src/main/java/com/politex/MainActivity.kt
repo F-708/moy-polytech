@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,20 +28,18 @@ import com.politex.util.PendingMaterial
 import com.politex.util.TeacherModeStore
 import com.politex.worker.MpkWorkManagerHelper
 
-internal fun shouldNavigateToLessons(currentRoute: String?): Boolean =
-    currentRoute?.substringBefore("?") != ROUTE_LESSONS
+internal fun shouldNavigateToLessons(currentRoute: String?): Boolean = currentRoute?.substringBefore("?") != ROUTE_LESSONS
 
 internal fun acceptIntake(
     flavor: String,
     teacherMode: Boolean,
 ): Boolean = flavor != "teacher" && !teacherMode
 
-internal fun intakeFingerprint(material: PendingMaterial): String =
-    when (material) {
-        is PendingMaterial.SingleFile -> "f:" + material.uri
-        is PendingMaterial.Images -> "i:" + material.uris.joinToString("|")
-        is PendingMaterial.Text -> "t:" + material.text
-    }
+internal fun intakeFingerprint(material: PendingMaterial): String = when (material) {
+    is PendingMaterial.SingleFile -> "f:" + material.uri
+    is PendingMaterial.Images -> "i:" + material.uris.joinToString("|")
+    is PendingMaterial.Text -> "t:" + material.text
+}
 
 class MainActivity : ComponentActivity() {
 
@@ -77,8 +76,10 @@ class MainActivity : ComponentActivity() {
                 MpkWorkManagerHelper.setupTeacherSync(this)
             }
             com.politex.update.AppUpdateWorker.schedule(this)
+            com.politex.update.AppUpdateWorker.checkOnStartup(this)
         }
         com.politex.content.ContentPackWorker.schedule(this)
+        com.politex.content.ContentPackWorker.checkOnStartup(this)
 
         setContent {
             val appViewModel: AppViewModel = viewModel()
@@ -95,11 +96,19 @@ class MainActivity : ComponentActivity() {
                 com.politex.ui.teacher.TeacherRoot(modifier = Modifier.fillMaxSize())
             } else {
                 MyApplicationTheme {
-                    MainScreen(
-                        viewModel = appViewModel,
-                        navController = navController,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    val mainContent: @Composable () -> Unit = {
+                        MainScreen(
+                            viewModel = appViewModel,
+                            navController = navController,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    val rootOverlay = com.politex.ui.FlavorOverlay.root
+                    if (rootOverlay != null) {
+                        rootOverlay(mainContent)
+                    } else {
+                        mainContent()
+                    }
                 }
             }
         }
@@ -120,7 +129,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-
     }
 
     private fun handleIntent(

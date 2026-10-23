@@ -11,21 +11,41 @@ enum class UpdateChannel(
     ;
 
     companion object {
-        fun fromWire(raw: String?): UpdateChannel =
-            entries.firstOrNull { it.wire.equals(raw?.trim(), ignoreCase = true) } ?: STABLE
+        fun fromWire(raw: String?): UpdateChannel = entries.firstOrNull { it.wire.equals(raw?.trim(), ignoreCase = true) } ?: STABLE
     }
 }
 
-fun updateCheckIntervalHours(channel: UpdateChannel): Long =
-    when (channel) {
-        UpdateChannel.STABLE -> 12L
-        UpdateChannel.PREVIEW -> 1L
-    }
+fun updateCheckIntervalHours(channel: UpdateChannel): Long = when (channel) {
+    UpdateChannel.STABLE -> 12L
+    UpdateChannel.PREVIEW -> 1L
+}
+
+const val STARTUP_CHECK_DEBOUNCE_MINUTES = 5L
+
+private const val MILLIS_IN_MINUTE = 60_000L
+
+@Suppress("UNUSED_PARAMETER")
+fun contentCheckIntervalHours(channel: UpdateChannel): Long = 1L
 
 fun periodicCheckNeedsReschedule(
     scheduledChannel: String?,
     channel: UpdateChannel,
 ): Boolean = scheduledChannel != channel.wire
+
+fun contentScheduleNeedsReschedule(
+    scheduledIntervalHours: Long?,
+    intervalHours: Long,
+): Boolean = scheduledIntervalHours != intervalHours
+
+fun startupCheckNeeded(
+    lastCheckAt: Long,
+    now: Long,
+    debounceMinutes: Long = STARTUP_CHECK_DEBOUNCE_MINUTES,
+): Boolean {
+    if (lastCheckAt <= 0L) return true
+    val elapsed = now - lastCheckAt
+    return elapsed < 0L || elapsed >= debounceMinutes * MILLIS_IN_MINUTE
+}
 
 object UpdateChannelStore {
     private const val PREFS = "mpk_ui_prefs"
@@ -33,8 +53,7 @@ object UpdateChannelStore {
 
     val revision = mutableIntStateOf(0)
 
-    fun channel(context: Context): UpdateChannel =
-        UpdateChannel.fromWire(prefs(context).getString(KEY_CHANNEL, null))
+    fun channel(context: Context): UpdateChannel = UpdateChannel.fromWire(prefs(context).getString(KEY_CHANNEL, null))
 
     fun set(
         context: Context,

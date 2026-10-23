@@ -9,11 +9,11 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -64,7 +65,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun MaterialImageViewer(
@@ -81,7 +81,6 @@ fun MaterialImageViewer(
         Column(modifier = modifier.fillMaxSize().background(ColorSurfaceHighlight)) {
             MaterialViewerTopBar(title = item.title, testTag = "image_top_bar", onBack = onBack)
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(24.dp),
@@ -190,7 +189,6 @@ fun MaterialImageViewer(
             testTag = "image_top_bar",
             onBack = flushAndBack,
         ) {
-
             ViewerAction(
                 icon = Icons.Default.Edit,
                 description = "Рисование",
@@ -241,7 +239,6 @@ fun MaterialImageViewer(
                 onColor = { drawColor = it },
                 onWidth = { drawWidth = it },
                 onUndo = {
-
                     val action = undoSession.pop()
                     if (action != null) {
                         val updated = applyUndo(action, pageStrokes.toMap())
@@ -254,7 +251,6 @@ fun MaterialImageViewer(
                     }
                 },
                 onClear = {
-
                     val snapshot = pageStrokes.toMap().filterValues { it.isNotEmpty() }
                     if (snapshot.isNotEmpty()) {
                         undoSession.record(AnnotationAction.ClearAll(snapshot))
@@ -299,7 +295,6 @@ fun MaterialImageViewer(
                     Modifier
                         .fillMaxSize()
                         .pointerInput(page) {
-
                             awaitEachGesture {
                                 awaitFirstDown(requireUnconsumed = false)
 

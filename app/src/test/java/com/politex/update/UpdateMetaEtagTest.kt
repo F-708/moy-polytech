@@ -1,7 +1,6 @@
 package com.politex.update
 
 import com.politex.util.UpdateChannel
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -10,6 +9,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class UpdateMetaEtagTest {
@@ -43,8 +43,7 @@ class UpdateMetaEtagTest {
         cached: String? = null,
         channel: UpdateChannel = UpdateChannel.STABLE,
         current: Int = 20000999,
-    ): MetaEvaluation =
-        UpdateCheckController.evaluateMeta(status, body, etag, cached, channel, current)
+    ): MetaEvaluation = UpdateCheckController.evaluateMeta(status, body, etag, cached, channel, current)
 
     @Test
     fun `304 с кэшем и свежей версией предлагает обновление без сети`() {

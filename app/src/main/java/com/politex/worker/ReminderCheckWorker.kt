@@ -39,7 +39,6 @@ internal suspend fun deliverDueReminders(
     for (reminder in due) {
         val task = taskDao.getTaskById(reminder.taskId)
         when {
-
             task == null || task.isCompleted -> reminderDao.deleteById(reminder.id)
 
             canPostNotifications(context) -> {
@@ -52,6 +51,5 @@ internal suspend fun deliverDueReminders(
     }
 }
 
-internal fun canPostNotifications(context: Context): Boolean =
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+internal fun canPostNotifications(context: Context): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED

@@ -20,9 +20,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.politex.BuildConfig
@@ -54,16 +55,13 @@ import com.politex.ui.theme.TextStylePageTitle
 import com.politex.ui.util.bouncyClickable
 import com.politex.util.Dow
 import java.util.Calendar
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun TeacherMoreScreen(
     profile: TeacherProfile?,
     onPickProfile: () -> Unit = {},
-
     onOpenBells: () -> Unit = {},
     onOpenMap: () -> Unit = {},
-
     onOpenGroupSchedule: () -> Unit = {},
     onOpenTeachers: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
@@ -258,16 +256,15 @@ fun TeacherBellsPage(
     }
 }
 
-private fun dowTitle(dow: Int): String =
-    when (dow) {
-        1 -> "понедельник"
-        2 -> "вторник"
-        3 -> "среда"
-        4 -> "четверг"
-        5 -> "пятница"
-        6 -> "суббота"
-        else -> "воскресенье"
-    }
+private fun dowTitle(dow: Int): String = when (dow) {
+    1 -> "понедельник"
+    2 -> "вторник"
+    3 -> "среда"
+    4 -> "четверг"
+    5 -> "пятница"
+    6 -> "суббота"
+    else -> "воскресенье"
+}
 
 internal const val TEACHER_ABOUT_DISCLAIMER =
     "Неофициальное приложение. Данные из открытых источников guo-mpk.by. Может отставать от приказов о заменах."

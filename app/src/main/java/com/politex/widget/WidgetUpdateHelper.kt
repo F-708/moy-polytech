@@ -148,7 +148,7 @@ object WidgetUpdateHelper {
                 (
                     it.startsWith("today_synced_") || it.startsWith("today_sync_attempt_") ||
                         it.startsWith("teacher_today_synced_") || it.startsWith("teacher_today_sync_attempt_")
-                ) && !it.endsWith(today)
+                    ) && !it.endsWith(today)
             }.forEach { ed.remove(it) }
         ed.apply()
     }
@@ -298,14 +298,13 @@ object WidgetUpdateHelper {
         views.setInt(bgId, "setColorFilter", color)
     }
 
-    internal fun radiusDrawable(radiusDp: Int): Int =
-        when (radiusDp) {
-            8 -> R.drawable.widget_bg_r8
-            16 -> R.drawable.widget_bg_r16
-            24 -> R.drawable.widget_bg_r24
-            28 -> R.drawable.widget_bg_r28
-            else -> R.drawable.widget_bg_r0
-        }
+    internal fun radiusDrawable(radiusDp: Int): Int = when (radiusDp) {
+        8 -> R.drawable.widget_bg_r8
+        16 -> R.drawable.widget_bg_r16
+        24 -> R.drawable.widget_bg_r24
+        28 -> R.drawable.widget_bg_r28
+        else -> R.drawable.widget_bg_r0
+    }
 }
 
 object WidgetPrefs {

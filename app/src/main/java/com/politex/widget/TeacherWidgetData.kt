@@ -90,11 +90,10 @@ object TeacherWidgetData {
         cache = null
     }
 
-    fun resolveProfile(context: Context): TeacherProfile? =
-        TeacherProfileStore.get(context)
-            ?: TeacherModeStore.teacherName(context)?.let {
-                TeacherProfile(name = it, surnameKey = TeacherInsights.surnameOf(it))
-            }
+    fun resolveProfile(context: Context): TeacherProfile? = TeacherProfileStore.get(context)
+        ?: TeacherModeStore.teacherName(context)?.let {
+            TeacherProfile(name = it, surnameKey = TeacherInsights.surnameOf(it))
+        }
 
     fun teacherModeSnapshot(context: Context): TeacherWidgetSnapshot? {
         if (!TeacherModeStore.isTeacher(context)) return null
@@ -167,13 +166,12 @@ object TeacherWidgetData {
         teachers: List<Teacher>,
         dateString: String,
         dow: Int,
-    ): List<TeacherLessonEntity> =
-        matchRowsForTeacher(
-            db.teacherLessonDao().getForSurnameOnDate(surnameKey, dateString),
-            selected,
-            teachers,
-            dow,
-        ).first
+    ): List<TeacherLessonEntity> = matchRowsForTeacher(
+        db.teacherLessonDao().getForSurnameOnDate(surnameKey, dateString),
+        selected,
+        teachers,
+        dow,
+    ).first
 
     internal fun toLesson(
         row: TeacherLessonEntity,

@@ -10,13 +10,11 @@ import java.util.Calendar
 import java.util.GregorianCalendar
 
 class TeacherScheduleLiveDocTest {
-    private fun liveBytes(): ByteArray =
-        javaClass.getResourceAsStream("/fixtures/05.10.2026-raspisanie-prepodavatelej.doc")!!.readBytes()
+    private fun liveBytes(): ByteArray = javaClass.getResourceAsStream("/fixtures/05.10.2026-raspisanie-prepodavatelej.doc")!!.readBytes()
 
     private fun parsed() = TeacherScheduleParser.parse(liveBytes())
 
-    private fun slotsOf(prefix: String) =
-        parsed().entries.firstOrNull { it.key.startsWith(prefix) }?.value
+    private fun slotsOf(prefix: String) = parsed().entries.firstOrNull { it.key.startsWith(prefix) }?.value
 
     @Test
     fun `документ разбирается и много преподавателей`() {

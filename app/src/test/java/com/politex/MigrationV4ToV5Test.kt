@@ -170,7 +170,6 @@ class MigrationV4ToV5Test {
             field.isAccessible = true
             field.set(null, null)
         } catch (_: Exception) {
-
         }
     }
 }

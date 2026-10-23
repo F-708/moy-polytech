@@ -24,7 +24,6 @@ class ScheduleCacheGateTest {
 
     @Test
     fun `пара групп из каталога — это ещё не разобранный день`() {
-
         assertTrue(shouldFetchDay(alreadyParsedGroups = 2, catalogSize = catalog, force = false))
         assertTrue(shouldFetchDay(alreadyParsedGroups = 31, catalogSize = catalog, force = false))
     }
@@ -53,7 +52,6 @@ class ScheduleCacheGateTest {
 
     @Test
     fun `частичный документ не принимается — он затёр бы полные данные`() {
-
         assertFalse(isFullDayDocument(groupCount = 1, catalogSize = catalog))
         assertFalse(isFullDayDocument(groupCount = 2, catalogSize = catalog))
         assertFalse(isFullDayDocument(groupCount = 31, catalogSize = catalog))
@@ -86,7 +84,6 @@ class ScheduleCacheGateTest {
 
     @Test
     fun `N — только уроки своей группы, а не всего документа`() {
-
         val doc = listOf(lesson("41О", 1), lesson("41О", 2), lesson("11Э", 1), lesson("31П", 1), lesson("31П", 2))
         assertEquals(2, syncedCountForGroup(doc, "41О", "01.10.2026"))
         assertEquals(1, syncedCountForGroup(doc, "11Э", "01.10.2026"))
@@ -130,7 +127,6 @@ class ScheduleCacheGateTest {
 
     @Test
     fun `комбинация кэшей — исход целевой (первой) даты при полном кэше, null тянет в сеть`() {
-
         assertEquals(
             SyncOutcome.Ok(5, "05.10.2026"),
             combineCachedOutcomes(listOf(SyncOutcome.Ok(5, "05.10.2026"), SyncOutcome.Ok(3, "04.10.2026"))),

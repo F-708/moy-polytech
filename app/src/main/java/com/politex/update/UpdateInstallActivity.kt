@@ -79,8 +79,7 @@ class UpdateInstallActivity : Activity() {
         return candidates.firstOrNull { it.isSystemApp() }
     }
 
-    private fun ResolveInfo.isSystemApp(): Boolean =
-        ((activityInfo.applicationInfo?.flags ?: 0) and ApplicationInfo.FLAG_SYSTEM) != 0
+    private fun ResolveInfo.isSystemApp(): Boolean = ((activityInfo.applicationInfo?.flags ?: 0) and ApplicationInfo.FLAG_SYSTEM) != 0
 
     companion object {
         const val EXTRA_APK_PATH = "extra_apk_path"

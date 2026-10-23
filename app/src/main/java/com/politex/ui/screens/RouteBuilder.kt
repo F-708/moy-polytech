@@ -29,6 +29,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.politex.data.model.CollegeMap
@@ -46,7 +47,6 @@ import com.politex.ui.theme.ColorTextMuted
 import com.politex.ui.theme.ColorTextTitle
 import com.politex.ui.util.bouncyClickable
 import kotlin.math.hypot
-import androidx.compose.ui.text.style.TextOverflow
 
 data class Waypoint(
     val key: String,
@@ -67,11 +67,10 @@ object RouteBuilderMode {
     var active by mutableStateOf(false)
 }
 
-fun nearestRoomNumber(floor: FloorMap, x: Float, y: Float): String? =
-    floor.rooms
-        .filter { it.number.isNotBlank() && it.status != "nonexistent" }
-        .minByOrNull { (it.x - x) * (it.x - x) + (it.y - y) * (it.y - y) }
-        ?.number
+fun nearestRoomNumber(floor: FloorMap, x: Float, y: Float): String? = floor.rooms
+    .filter { it.number.isNotBlank() && it.status != "nonexistent" }
+    .minByOrNull { (it.x - x) * (it.x - x) + (it.y - y) * (it.y - y) }
+    ?.number
 
 fun resolveWaypointRoom(wp: Waypoint, mapData: CollegeMapData): MapRoom? {
     if (!wp.isEntrance) return findRoomEverywhere(mapData, wp.key)
@@ -121,21 +120,20 @@ fun buildLegs(
     if (pts.size == 1) pts.add(0, Waypoint(MAIN_ENTRANCE_KEY, "Главный вход", isEntrance = true))
     if (pts.size < 2) return emptyList()
 
-    fun route(a: Waypoint, b: Waypoint): CollegeRouteFinder.MultiFloorRoute? =
-        if (cache != null) cachedRoute(a.key, b.key, mapData, floors, cache)
-        else {
-            val ra = resolveWaypointRoom(a, mapData)
-            val rb = resolveWaypointRoom(b, mapData)
-            if (ra != null && rb != null && a.key != b.key) CollegeRouteFinder.findMultiFloorRoute(ra, rb, floors) else null
-        }
+    fun route(a: Waypoint, b: Waypoint): CollegeRouteFinder.MultiFloorRoute? = if (cache != null) {
+        cachedRoute(a.key, b.key, mapData, floors, cache)
+    } else {
+        val ra = resolveWaypointRoom(a, mapData)
+        val rb = resolveWaypointRoom(b, mapData)
+        if (ra != null && rb != null && a.key != b.key) CollegeRouteFinder.findMultiFloorRoute(ra, rb, floors) else null
+    }
 
     val legs = ArrayList<RouteLeg>()
     for (i in 1 until pts.size) legs.add(RouteLeg(pts[i - 1], pts[i], route(pts[i - 1], pts[i])))
     return legs
 }
 
-internal fun laneOffsetDp(i: Int): Float =
-    if (i == 0) 0f else ((i + 1) / 2) * 6f * if (i % 2 == 1) 1f else -1f
+internal fun laneOffsetDp(i: Int): Float = if (i == 0) 0f else ((i + 1) / 2) * 6f * if (i % 2 == 1) 1f else -1f
 
 data class BuilderFields(
     val active: Boolean,
@@ -170,7 +168,6 @@ fun resolveRouteSource(
     val a = builderFields.a.trim()
     val b = builderFields.b.trim()
     return if (a.isEmpty()) {
-
         RouteSourceResult(
             source = RouteSource.BUILDER,
             target = tapRoom,
@@ -179,7 +176,6 @@ fun resolveRouteSource(
             build = b.isNotEmpty() && tapRoom != b,
         )
     } else if (tapRoom == a || tapRoom == b) {
-
         RouteSourceResult(
             source = RouteSource.BUILDER,
             target = tapRoom,
@@ -188,7 +184,6 @@ fun resolveRouteSource(
             build = false,
         )
     } else {
-
         RouteSourceResult(
             source = RouteSource.BUILDER,
             target = tapRoom,
@@ -247,7 +242,6 @@ private fun PairField(
     modifier: Modifier = Modifier,
     highlightTick: Int = 0,
 ) {
-
     val pulse = remember { Animatable(0f) }
     LaunchedEffect(highlightTick) {
         if (highlightTick > 0) {
@@ -262,7 +256,6 @@ private fun PairField(
         border = androidx.compose.foundation.BorderStroke(1.dp, lerp(ColorBorderLight, ColorActiveBlue, pulse.value)),
         modifier = modifier.height(com.politex.ui.theme.Tokens.SearchHeight),
     ) {
-
         Box(
             modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
             contentAlignment = Alignment.CenterStart,

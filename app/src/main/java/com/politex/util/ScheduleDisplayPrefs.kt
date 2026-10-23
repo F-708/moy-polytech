@@ -9,11 +9,10 @@ object ScheduleDisplayPrefs {
 
     val revision = mutableIntStateOf(0)
 
-    fun isCompact(context: Context): Boolean =
-        context
-            .applicationContext
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_COMPACT, false)
+    fun isCompact(context: Context): Boolean = context
+        .applicationContext
+        .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        .getBoolean(KEY_COMPACT, false)
 
     fun setCompact(
         context: Context,

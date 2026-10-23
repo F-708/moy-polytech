@@ -1,7 +1,6 @@
 package com.politex.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +30,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -39,13 +39,11 @@ import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.ColorBrandFill
-import com.politex.ui.theme.ColorDividerLight
 import com.politex.ui.theme.ColorTextMuted
 import com.politex.ui.theme.ColorTextTitle
 import com.politex.ui.theme.Tokens
 import com.politex.ui.util.bouncyClickable
 import java.util.Calendar
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun SimpleDatePickerDialog(
@@ -55,7 +53,6 @@ fun SimpleDatePickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
-
     val today =
         com.politex.ui.util
             .rememberToday()
@@ -177,7 +174,6 @@ private fun ArrowButton(
     Box(
         modifier =
         Modifier
-
             .size(Tokens.HitTarget)
             .bouncyClickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -203,9 +199,9 @@ private fun ActionButton(
         color = if (filled) ColorBrandFill else ColorBgMain,
         border = BorderStroke(1.dp, if (filled) ColorBrandFill else ColorBorderLight),
         modifier =
-            Modifier
-                .alpha(if (enabled) 1f else 0.4f)
-                .bouncyClickable(enabled = enabled, onClick = onClick),
+        Modifier
+            .alpha(if (enabled) 1f else 0.4f)
+            .bouncyClickable(enabled = enabled, onClick = onClick),
     ) {
         Text(
             text = text,

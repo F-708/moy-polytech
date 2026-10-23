@@ -1,5 +1,6 @@
 package com.politex.ui.teacher
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,9 +31,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.BorderStroke
 import com.politex.ui.components.AppCard
 import com.politex.ui.theme.AppTheme
 import com.politex.ui.theme.ColorBgMain
@@ -43,7 +44,6 @@ import com.politex.ui.theme.ColorTopBar
 import com.politex.ui.util.bouncyClickable
 import com.politex.util.AppThemeStore
 import com.politex.util.UiScale
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun ScaleCard(modifier: Modifier = Modifier) {

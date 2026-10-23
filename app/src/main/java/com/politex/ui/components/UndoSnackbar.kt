@@ -42,7 +42,6 @@ fun UndoSnackbar(
 ) {
     val progress = remember { Animatable(1f) }
     LaunchedEffect(data) {
-
         progress.snapTo(1f)
         progress.animateTo(0f, tween(durationMillis = UNDO_WINDOW_MS, easing = LinearEasing))
         onExpire()

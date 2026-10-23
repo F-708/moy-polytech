@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -39,7 +38,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EventNote
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -95,7 +93,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.politex.content.ContentPackStore
-
 import com.politex.data.local.entity.LessonEntity
 import com.politex.data.model.CollegeBellSchedule
 import com.politex.data.model.CollegeMap
@@ -104,7 +101,6 @@ import com.politex.data.model.CollegeRouteFinder
 import com.politex.data.model.FloorMap
 import com.politex.data.model.MapPoint
 import com.politex.data.model.MapRoom
-import com.politex.data.repository.ScheduleRepository
 import com.politex.ui.components.AppCard
 import com.politex.ui.components.RoomScheduleDialog
 import com.politex.ui.components.currentRoomLessonNumber
@@ -143,13 +139,9 @@ private val HIGHLIGHT_COLOR: Color get() = ColorActiveBlue
 fun CollegeMapScreen(
     initialRoom: String?,
     onBack: () -> Unit,
-
     onOpenTeacher: (String) -> Unit = { },
-
     fromRoom: String? = null,
-
     showRoute: Boolean = false,
-
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -215,7 +207,6 @@ fun CollegeMapScreen(
     val dialogDow = if (roomDialogTomorrow) tomorrowDow else todayDow
 
     LaunchedEffect(roomScheduleFor, roomDialogTomorrow, syncedToday, syncedTomorrow) {
-
         if (roomScheduleFor == null || scheduleRepository.catalog().isEmpty()) {
             return@LaunchedEffect
         }
@@ -301,7 +292,6 @@ fun CollegeMapScreen(
     var manualB by rememberSaveable { mutableStateOf<String?>(null) }
 
     DisposableEffect(builderActive) {
-
         if (builderActive) RouteBuilderMode.active = true
         onDispose { if (builderActive) RouteBuilderMode.active = false }
     }
@@ -373,7 +363,6 @@ fun CollegeMapScreen(
             .fillMaxSize()
             .background(ColorBgMain),
     ) {
-
         val statusBars = WindowInsets.statusBars
         Surface(
             shape = RectangleShape,
@@ -448,7 +437,6 @@ fun CollegeMapScreen(
                     .bouncyClickable {
                         val found = query.trim()
                         if (found.isNotBlank()) {
-
                             target = found
                             searchFailed = findRoomEverywhere(mapData, found) == null
                         }
@@ -900,7 +888,6 @@ private fun SearchField(
                 )
             }
             if (value.isNotBlank()) {
-
                 Box(
                     modifier =
                     Modifier
@@ -968,9 +955,7 @@ private fun MapCanvas(
     floorId: String,
     floor: FloorMap,
     targetRoom: MapRoom?,
-
     onRoomTap: (MapRoom) -> Unit = {},
-
     routePoints: List<List<MapPoint>>? = null,
     routeFinishHere: Boolean = false,
     routeStartHere: Boolean = false,
@@ -978,7 +963,6 @@ private fun MapCanvas(
     selectedStage: Int = -1,
     onSelectStage: (Int) -> Unit = {},
     stageFocus: Int = 0,
-
     routeOffsetsDp: List<Float> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
@@ -1023,7 +1007,6 @@ private fun MapCanvas(
     BoxWithConstraints(
         modifier =
         modifier
-
             .clipToBounds()
             .background(ColorBgMain),
     ) {
@@ -1127,7 +1110,6 @@ private fun MapCanvas(
             modifier =
             Modifier
                 .fillMaxSize()
-
                 .pointerInput(floorId) {
                     detectTapGestures { pos ->
 
@@ -1340,7 +1322,7 @@ private fun DrawScope.drawMap(
                     median = medianFit,
                     minReadable = minNumberPx / layout.size.height.toFloat(),
                 ) ?: return@forEach
-            ) * r.numScale
+                ) * r.numScale
 
         val cx = r.x * imgW
         val cy = r.y * imgH
@@ -1436,7 +1418,6 @@ private fun DrawScope.drawRoutePath(
     var totalImg = 0f
     for ((pi, raw) in polylines.withIndex()) {
         if (raw.size < 2) {
-
             val p = raw.lastOrNull() ?: continue
             finish = p
             if (drawStart && start == null) start = p

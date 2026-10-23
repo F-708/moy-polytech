@@ -73,11 +73,10 @@ object BellCountdownNotifier {
 
         companion object {
 
-            fun from(id: String?): Style =
-                entries
-                    .firstOrNull { it.id == id }
-                    ?.let { if (it == WITH_APP_NAME) COMPACT else it }
-                    ?: COMPACT
+            fun from(id: String?): Style = entries
+                .firstOrNull { it.id == id }
+                ?.let { if (it == WITH_APP_NAME) COMPACT else it }
+                ?: COMPACT
         }
     }
 
@@ -85,12 +84,11 @@ object BellCountdownNotifier {
 
     enum class ServiceAction { NONE, START, STOP }
 
-    internal fun serviceActionFor(enabled: Boolean, running: Boolean): ServiceAction =
-        when {
-            !enabled -> ServiceAction.STOP
-            !running -> ServiceAction.START
-            else -> ServiceAction.NONE
-        }
+    internal fun serviceActionFor(enabled: Boolean, running: Boolean): ServiceAction = when {
+        !enabled -> ServiceAction.STOP
+        !running -> ServiceAction.START
+        else -> ServiceAction.NONE
+    }
 
     internal fun ensureServiceAlive(context: Context) {
         if (serviceActionFor(isEnabled(context), BellTimerService.isRunning) == ServiceAction.START) {
@@ -249,7 +247,6 @@ object BellCountdownNotifier {
         val info = BellCountdownWidgetProvider.countdownInfo(context, mode)
 
         if (info == null || info.first < 0) {
-
             morningInfo(context)?.let { return buildVisibleNotification(context, it) }
 
             eveningOrNightInfo(context, mode)?.let { return buildVisibleNotification(context, it) }
@@ -322,7 +319,6 @@ object BellCountdownNotifier {
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setCategory(NotificationCompat.CATEGORY_STATUS)
                 .setShowWhen(false)
-
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
 
         if (accent != 0) {
@@ -426,8 +422,10 @@ object BellCountdownNotifier {
         val (minutesLeft, label, _) = info
 
         val progress =
-            ((PROGRESS_LESSON_MINUTES - minutesLeft).coerceIn(0, PROGRESS_LESSON_MINUTES) * 100 /
-                PROGRESS_LESSON_MINUTES).toInt()
+            (
+                (PROGRESS_LESSON_MINUTES - minutesLeft).coerceIn(0, PROGRESS_LESSON_MINUTES) * 100 /
+                    PROGRESS_LESSON_MINUTES
+                ).toInt()
 
         return Content(
             title = label.replaceFirstChar { it.uppercase() } + ": $valueText",

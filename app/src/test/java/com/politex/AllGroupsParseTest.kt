@@ -37,7 +37,6 @@ class AllGroupsParseTest {
 
     @Test
     fun `одиночный разбор не сломан перебором`() {
-
         val bytes = runCatching { fixture("raspisanie-16.09.2026.doc") }.getOrNull() ?: return
         val before = MpkScheduleParser.parseFile(bytes, "41О", "16.09.2026")
         MpkScheduleParser.parseFileAllGroups(bytes, "16.09.2026", groups)

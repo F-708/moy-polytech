@@ -98,7 +98,6 @@ class MigrationV1ToV2Test {
             field.isAccessible = true
             field.set(null, null)
         } catch (_: Exception) {
-
         }
     }
 }

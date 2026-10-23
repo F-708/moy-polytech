@@ -7,8 +7,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
 
+private class OfflineResolverClient : MpkNetworkClient() {
+    override suspend fun downloadFileBytes(url: String): ByteArray? = null
+
+    override fun downloadUncached(url: String): ByteArray? = null
+}
+
 class ScheduleUrlResolverTest {
-    private val client = MpkNetworkClient()
+    private val client = OfflineResolverClient()
 
     private fun cal(
         y: Int,
@@ -55,7 +61,6 @@ class ScheduleUrlResolverTest {
 
     @Test
     fun `extractDocumentUrls достаёт и декодирует doc из officeapps-iframe`() {
-
         val eventHtml =
             """
             <div class="entry-content">
@@ -92,7 +97,6 @@ class ScheduleUrlResolverTest {
 
     @Test
     fun `W1a резолвер пробует URL от probe ПЕРВЫМ, без перебора кандидатов`() {
-
         val probeUrl = "https://guo-mpk.by/wp-content/uploads/2026/10/05.10.2026-raspisanie-uchashhihsya.doc"
         val visited = mutableListOf<String>()
         kotlinx.coroutines.runBlocking {
@@ -106,7 +110,6 @@ class ScheduleUrlResolverTest {
 
     @Test
     fun `W1a URL от probe отвергнут - резолвер идёт по обычным кандидатам`() {
-
         val probeUrl = "https://guo-mpk.by/wp-content/uploads/2026/10/05.10.2026-raspisanie-uchashhihsya.doc"
         val visited = mutableListOf<String>()
         kotlinx.coroutines.runBlocking {

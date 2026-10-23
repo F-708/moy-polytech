@@ -1,8 +1,8 @@
 package com.politex.update
 
-import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 
 data class UpdateAsset(
     val name: String,

@@ -1,9 +1,9 @@
 package com.politex.update
 
 import com.politex.util.UpdateChannel
-import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 
 internal data class UpdateMeta(
     val channel: String,
@@ -60,11 +60,11 @@ internal object UpdateMetaSource {
             versionCode = meta.versionCode,
             notes = "",
             asset =
-                UpdateAsset(
-                    name = meta.apk.substringAfterLast('/').ifBlank { "update.apk" },
-                    url = meta.apk,
-                    size = 0L,
-                ),
+            UpdateAsset(
+                name = meta.apk.substringAfterLast('/').ifBlank { "update.apk" },
+                url = meta.apk,
+                size = 0L,
+            ),
             sha256 = meta.sha256.takeIf { it.isNotBlank() },
         )
     }

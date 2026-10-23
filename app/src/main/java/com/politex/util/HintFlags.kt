@@ -12,10 +12,9 @@ object HintFlags {
     fun isDone(
         context: Context,
         key: String,
-    ): Boolean =
-        context
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(key, false)
+    ): Boolean = context
+        .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        .getBoolean(key, false)
 
     fun markDone(
         context: Context,

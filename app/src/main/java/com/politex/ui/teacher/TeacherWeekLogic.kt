@@ -56,10 +56,9 @@ object TeacherWeekLogic {
         )
     }
 
-    private fun sortDesc(m: Map<String, Int>): List<Pair<String, Int>> =
-        m.entries
-            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-            .map { it.key to it.value }
+    private fun sortDesc(m: Map<String, Int>): List<Pair<String, Int>> = m.entries
+        .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+        .map { it.key to it.value }
 
     fun formatMinutes(min: Int): String {
         val h = min / 60

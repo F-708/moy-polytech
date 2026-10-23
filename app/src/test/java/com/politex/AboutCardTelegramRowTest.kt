@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import com.politex.ui.screens.SettingsScreen
 import com.politex.ui.theme.MyApplicationTheme
+import com.politex.update.UpdateInstallController
 import com.politex.util.GroupParser
 import com.politex.util.TeacherModeStore
 import org.junit.Assert.assertEquals
@@ -39,6 +40,7 @@ class AboutCardTelegramRowTest {
     @Before
     fun setUp() {
         TeacherModeStore.clear(context)
+        UpdateInstallController.resetForTests()
     }
 
     private fun renderSettings() {

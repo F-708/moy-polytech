@@ -129,7 +129,10 @@ class TeacherDayLogicTest {
 
     @Test
     fun `subtitle слота — только dd_MM без дня недели`() {
-        val base = java.util.Calendar.getInstance().apply { clear(); set(2026, java.util.Calendar.OCTOBER, 13) }
+        val base = java.util.Calendar.getInstance().apply {
+            clear()
+            set(2026, java.util.Calendar.OCTOBER, 13)
+        }
         assertEquals("13.10", com.politex.ui.teacher.slotSubtitle(0, base))
         assertEquals("14.10", com.politex.ui.teacher.slotSubtitle(1, base))
 

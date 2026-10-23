@@ -4,9 +4,9 @@ import com.politex.data.local.entity.LessonEntity
 import com.politex.data.repository.Teacher
 import com.politex.data.repository.TeacherInsights
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 

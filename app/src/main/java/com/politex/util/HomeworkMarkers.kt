@@ -80,12 +80,21 @@ object HomeworkMarkers {
                 val normLesson = FuzzySearch.normalize(SubjectFormatter.normalize(rawLesson), caseSensitive = true)
                 val foldedRawLesson = FuzzySearch.normalize(rawLesson, caseSensitive = true)
                 normLesson.equals(normTask, ignoreCase = true) ||
-                    (normLesson.length >= 6 && normTask.length >= 6 &&
-                        (normLesson.contains(normTask, ignoreCase = true) || normTask.contains(normLesson, ignoreCase = true))) ||
-                    (normLesson.length >= 6 && normTask.length >= 6 &&
-                        SubjectFormatter.levenshteinSimilarity(normLesson, normTask) >= FUZZY_MATCH_THRESHOLD) ||
-                    (foldedRawLesson.length >= 6 && rawTask.length >= 6 &&
-                        SubjectFormatter.levenshteinSimilarity(foldedRawLesson, rawTask) >= FUZZY_MATCH_THRESHOLD)
+                    (
+                        normLesson.length >= 6 &&
+                            normTask.length >= 6 &&
+                            (normLesson.contains(normTask, ignoreCase = true) || normTask.contains(normLesson, ignoreCase = true))
+                        ) ||
+                    (
+                        normLesson.length >= 6 &&
+                            normTask.length >= 6 &&
+                            SubjectFormatter.levenshteinSimilarity(normLesson, normTask) >= FUZZY_MATCH_THRESHOLD
+                        ) ||
+                    (
+                        foldedRawLesson.length >= 6 &&
+                            rawTask.length >= 6 &&
+                            SubjectFormatter.levenshteinSimilarity(foldedRawLesson, rawTask) >= FUZZY_MATCH_THRESHOLD
+                        )
             }
     }
 

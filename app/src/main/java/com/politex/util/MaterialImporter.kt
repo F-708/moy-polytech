@@ -105,32 +105,30 @@ object MaterialImporter {
     fun querySizeHint(
         context: Context,
         uri: Uri,
-    ): Long? =
-        runCatching {
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
-                val idx = c.getColumnIndex(OpenableColumns.SIZE)
-                if (idx >= 0 && c.moveToFirst() && !c.isNull(idx)) c.getLong(idx) else null
-            }
-        }.getOrNull()
+    ): Long? = runCatching {
+        context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+            val idx = c.getColumnIndex(OpenableColumns.SIZE)
+            if (idx >= 0 && c.moveToFirst() && !c.isNull(idx)) c.getLong(idx) else null
+        }
+    }.getOrNull()
 
     suspend fun exceedsSizeLimit(
         context: Context,
         pending: PendingMaterial,
-    ): Boolean =
-        withContext(Dispatchers.IO) {
-            when (pending) {
-                is PendingMaterial.Text -> false
-                is PendingMaterial.SingleFile -> {
-                    val hint = querySizeHint(context, pending.uri)
+    ): Boolean = withContext(Dispatchers.IO) {
+        when (pending) {
+            is PendingMaterial.Text -> false
+            is PendingMaterial.SingleFile -> {
+                val hint = querySizeHint(context, pending.uri)
+                hint != null && hint > MAX_IMPORT_BYTES
+            }
+            is PendingMaterial.Images ->
+                pending.uris.any { uri ->
+                    val hint = querySizeHint(context, uri)
                     hint != null && hint > MAX_IMPORT_BYTES
                 }
-                is PendingMaterial.Images ->
-                    pending.uris.any { uri ->
-                        val hint = querySizeHint(context, uri)
-                        hint != null && hint > MAX_IMPORT_BYTES
-                    }
-            }
         }
+    }
 
     fun extOf(fileName: String): String = fileName.substringAfterLast('.', "").lowercase().take(6)
 
@@ -221,28 +219,27 @@ object MaterialImporter {
     suspend fun contentHashFor(
         context: Context,
         pending: PendingMaterial,
-    ): String? =
-        when (pending) {
-            is PendingMaterial.SingleFile -> contentUriSha256(context, pending.uri)
-            is PendingMaterial.Images -> {
-                if (pending.uris.isEmpty()) {
-                    null
-                } else {
-                    val digest = newSha256()
-                    var complete = true
-                    for (uri in pending.uris) {
-                        val hex = contentUriSha256(context, uri)
-                        if (hex == null) {
-                            complete = false
-                            break
-                        }
-                        digest.update(hex.toByteArray(Charsets.US_ASCII))
+    ): String? = when (pending) {
+        is PendingMaterial.SingleFile -> contentUriSha256(context, pending.uri)
+        is PendingMaterial.Images -> {
+            if (pending.uris.isEmpty()) {
+                null
+            } else {
+                val digest = newSha256()
+                var complete = true
+                for (uri in pending.uris) {
+                    val hex = contentUriSha256(context, uri)
+                    if (hex == null) {
+                        complete = false
+                        break
                     }
-                    if (complete) digest.digest().toHexString() else null
+                    digest.update(hex.toByteArray(Charsets.US_ASCII))
                 }
+                if (complete) digest.digest().toHexString() else null
             }
-            is PendingMaterial.Text -> null
         }
+        is PendingMaterial.Text -> null
+    }
 
     suspend fun findExistingByContent(
         context: Context,

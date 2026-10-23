@@ -41,13 +41,11 @@ class TeacherWeekLogicTest {
 
     @Test
     fun `воскресенье относится к предыдущей неделе`() {
-
         assertEquals("05.10.2026", dates(TeacherWeekLogic.mondayToSaturday(cal(2026, 10, 11))).first())
     }
 
     @Test
     fun `границы недели - переход месяца`() {
-
         assertEquals(
             listOf("26.10.2026", "27.10.2026", "28.10.2026", "29.10.2026", "30.10.2026", "31.10.2026"),
             dates(TeacherWeekLogic.mondayToSaturday(cal(2026, 10, 29))),
@@ -56,7 +54,6 @@ class TeacherWeekLogicTest {
 
     @Test
     fun `границы недели - переход года`() {
-
         assertEquals(
             listOf("28.12.2026", "29.12.2026", "30.12.2026", "31.12.2026", "01.01.2027", "02.01.2027"),
             dates(TeacherWeekLogic.mondayToSaturday(cal(2027, 1, 1))),

@@ -16,11 +16,9 @@ class ViewerAssetsTest {
 
     private val ctx: Context = ApplicationProvider.getApplicationContext()
 
-    private fun assetText(path: String): String =
-        ctx.assets.open(path).bufferedReader().use { it.readText() }
+    private fun assetText(path: String): String = ctx.assets.open(path).bufferedReader().use { it.readText() }
 
-    private fun exists(path: String): Boolean =
-        runCatching { ctx.assets.open(path).use {} }.isSuccess
+    private fun exists(path: String): Boolean = runCatching { ctx.assets.open(path).use {} }.isSuccess
 
     @Test
     fun `все viewer-ассеты pdf и docx присутствуют`() {
@@ -46,7 +44,6 @@ class ViewerAssetsTest {
 
     @Test
     fun `mpk-page js подключён к docx, рисование удалено везде`() {
-
         assertTrue(assetText("viewer/docx.html").contains("mpk-page.js"))
 
         assertFalse(assetText("viewer/pdf.html").contains("mpk-ink.js"))

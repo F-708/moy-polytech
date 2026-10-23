@@ -24,13 +24,11 @@ object TeachersCache {
         cached = null
     }
 
-    suspend fun load(): List<Teacher> =
-        cached ?: withContext(Dispatchers.IO) {
-            AppGraph.teachersRepository
-                .loadTeachers()
-
-                .also { if (it.isNotEmpty()) cached = it }
-        }
+    suspend fun load(): List<Teacher> = cached ?: withContext(Dispatchers.IO) {
+        AppGraph.teachersRepository
+            .loadTeachers()
+            .also { if (it.isNotEmpty()) cached = it }
+    }
 }
 
 @Composable
@@ -42,7 +40,6 @@ fun rememberTeachers(): List<Teacher> {
         val observer =
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
-
                     if (firstResume) {
                         firstResume = false
                     } else {
@@ -54,7 +51,8 @@ fun rememberTeachers(): List<Teacher> {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    val teachers by produceState(emptyList(), resumeTick) { value = TeachersCache.load() }
+    val overridesRevision = com.politex.content.OwnerOverridesStore.revision.intValue
+    val teachers by produceState(emptyList(), resumeTick, overridesRevision) { value = TeachersCache.load() }
     return teachers
 }
 

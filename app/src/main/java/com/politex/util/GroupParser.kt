@@ -59,7 +59,6 @@ object GroupParser {
         text: String,
         targetGroup: String,
     ): Boolean {
-
         val regex = createGroupSearchRegex(targetGroup)
         return regex.containsMatchIn(text)
     }

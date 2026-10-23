@@ -13,11 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.TextStyleSubPageTitle
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun SubPageHeader(

@@ -44,11 +44,11 @@ object UpdatePendingStore {
             versionCode = code,
             notes = store.getString(KEY_NOTES, null).orEmpty(),
             asset =
-                UpdateAsset(
-                    name = store.getString(KEY_ASSET_NAME, null)?.takeIf { it.isNotBlank() } ?: "update.apk",
-                    url = url,
-                    size = store.getLong(KEY_ASSET_SIZE, 0L),
-                ),
+            UpdateAsset(
+                name = store.getString(KEY_ASSET_NAME, null)?.takeIf { it.isNotBlank() } ?: "update.apk",
+                url = url,
+                size = store.getLong(KEY_ASSET_SIZE, 0L),
+            ),
             sha256 = store.getString(KEY_SHA, null)?.takeIf { it.isNotBlank() },
         )
     }

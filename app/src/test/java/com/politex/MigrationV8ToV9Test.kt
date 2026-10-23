@@ -167,7 +167,10 @@ class MigrationV8ToV9Test {
         var n = 0
         db.openHelper.readableDatabase
             .query("SELECT COUNT(*) FROM grade_entries WHERE subjectName='ТОЭ'")
-            .use { c -> c.moveToFirst(); n = c.getInt(0) }
+            .use { c ->
+                c.moveToFirst()
+                n = c.getInt(0)
+            }
         assertEquals("оценки на месте", 1, n)
 
         kotlinx.coroutines.runBlocking {

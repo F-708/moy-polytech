@@ -28,8 +28,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,14 +50,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -84,7 +85,6 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import kotlin.math.ceil
 import kotlin.math.roundToInt
-import androidx.compose.ui.text.style.TextOverflow
 
 private val TEXT_LIKE_EXT = setOf("txt", "md", "markdown", "csv", "log", "json", "xml")
 
@@ -230,10 +230,8 @@ fun MaterialDocTextViewer(
     BackHandler(enabled = editMode) { requestExitEdit() }
 
     Column(modifier = modifier.fillMaxSize().background(ColorBgMain)) {
-
         MaterialViewerTopBar(title = item.title, testTag = "doc_top_bar", onBack = { if (editMode) requestExitEdit() else onBack() }) {
             if (!editMode) {
-
                 Surface(
                     shape = RoundedCornerShape(2.dp),
                     color = Color.Transparent,
@@ -286,7 +284,6 @@ fun MaterialDocTextViewer(
         } else {
             val doc = content
             when {
-
                 failed -> UnsupportedFormatPlaque(ext = item.ext, fileName = item.fileName.ifBlank { item.title })
 
                 doc == null -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -337,7 +334,6 @@ fun MaterialDocTextViewer(
                             onReset = { resetZoomSmooth() },
                         ),
                 ) {
-
                     val density = LocalDensity.current
                     val scrollState = rememberScrollState()
                     var textHeightPx by remember(item.id) { mutableIntStateOf(0) }
@@ -349,7 +345,6 @@ fun MaterialDocTextViewer(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-
                             .graphicsLayer {
                                 val live = liveZoomState.floatValue
                                 val doc = docZoomState.floatValue
@@ -361,7 +356,6 @@ fun MaterialDocTextViewer(
                             .verticalScroll(scrollState)
                             .testTag("doc_paragraph_list"),
                     ) {
-
                         Column(modifier = Modifier.fillMaxWidth()) {
                             repeat(sheets) { i ->
                                 Surface(
@@ -544,7 +538,8 @@ internal fun parseInlineMarks(par: String): AnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(s.substring(i + 2, end)) }
                         i = end + 2
                     } else {
-                        append(s[i]); i++
+                        append(s[i])
+                        i++
                     }
                 }
                 s[i] == '*' -> {
@@ -553,7 +548,8 @@ internal fun parseInlineMarks(par: String): AnnotatedString {
                         withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(s.substring(i + 1, end)) }
                         i = end + 1
                     } else {
-                        append(s[i]); i++
+                        append(s[i])
+                        i++
                     }
                 }
                 s.startsWith("__", i) -> {
@@ -562,11 +558,13 @@ internal fun parseInlineMarks(par: String): AnnotatedString {
                         withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(s.substring(i + 2, end)) }
                         i = end + 2
                     } else {
-                        append(s[i]); i++
+                        append(s[i])
+                        i++
                     }
                 }
                 else -> {
-                    append(s[i]); i++
+                    append(s[i])
+                    i++
                 }
             }
         }
@@ -574,7 +572,6 @@ internal fun parseInlineMarks(par: String): AnnotatedString {
 }
 
 private fun loadContent(item: MaterialItemEntity): List<DocxParagraph>? {
-
     if (item.textEdited) {
         return item.textContent.split('\n').map { DocxParagraph(it.trimEnd()) }
     }
@@ -589,7 +586,6 @@ private fun loadContent(item: MaterialItemEntity): List<DocxParagraph>? {
     if (!file.exists()) return null
 
     return when (item.ext) {
-
         "docx" -> runCatching { DocxTextExtractor.extract(ByteArrayInputStream(file.readBytes())) }.getOrNull()
 
         in TEXT_LIKE_EXT -> runCatching {

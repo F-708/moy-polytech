@@ -11,13 +11,12 @@ object TeacherModeStore {
 
     fun isTeacher(context: Context): Boolean = !teacherName(context).isNullOrBlank()
 
-    fun teacherName(context: Context): String? =
-        context
-            .applicationContext
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_NAME, null)
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
+    fun teacherName(context: Context): String? = context
+        .applicationContext
+        .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        .getString(KEY_NAME, null)
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
 
     fun setTeacher(
         context: Context,

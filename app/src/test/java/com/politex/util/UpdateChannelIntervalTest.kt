@@ -18,10 +18,28 @@ class UpdateChannelIntervalTest {
     }
 
     @Test
-    fun `смена канала меняет период проверок`() {
+    fun `смена канала меняет период проверок приложения`() {
         assertNotEquals(
             updateCheckIntervalHours(UpdateChannel.STABLE),
             updateCheckIntervalHours(UpdateChannel.PREVIEW),
+        )
+    }
+
+    @Test
+    fun `контент-пакет проверяется каждый час на стабильном канале`() {
+        assertEquals(1L, contentCheckIntervalHours(UpdateChannel.STABLE))
+    }
+
+    @Test
+    fun `контент-пакет проверяется каждый час на превью-канале`() {
+        assertEquals(1L, contentCheckIntervalHours(UpdateChannel.PREVIEW))
+    }
+
+    @Test
+    fun `период проверки контента не зависит от канала`() {
+        assertEquals(
+            contentCheckIntervalHours(UpdateChannel.STABLE),
+            contentCheckIntervalHours(UpdateChannel.PREVIEW),
         )
     }
 
@@ -41,5 +59,21 @@ class UpdateChannelIntervalTest {
     fun `смена канала требует перепланировки`() {
         assertTrue(periodicCheckNeedsReschedule(UpdateChannel.STABLE.wire, UpdateChannel.PREVIEW))
         assertTrue(periodicCheckNeedsReschedule(UpdateChannel.PREVIEW.wire, UpdateChannel.STABLE))
+    }
+
+    @Test
+    fun `первая постановка контент-расписания считается перепланировкой`() {
+        assertTrue(contentScheduleNeedsReschedule(null, contentCheckIntervalHours(UpdateChannel.STABLE)))
+    }
+
+    @Test
+    fun `тот же период контента не требует перепланировки`() {
+        assertFalse(contentScheduleNeedsReschedule(1L, contentCheckIntervalHours(UpdateChannel.STABLE)))
+        assertFalse(contentScheduleNeedsReschedule(1L, contentCheckIntervalHours(UpdateChannel.PREVIEW)))
+    }
+
+    @Test
+    fun `изменение периода контента требует перепланировки`() {
+        assertTrue(contentScheduleNeedsReschedule(12L, contentCheckIntervalHours(UpdateChannel.STABLE)))
     }
 }

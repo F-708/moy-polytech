@@ -32,7 +32,6 @@ class W1SyncTargetDateTest {
 
     @Test
     fun `W1 пятница для группы без субботы - цель понедельник 05_10_2026`() {
-
         val target = nextSchoolDay(cal(2026, 10, 2), saturdayIsSchoolDay = false)
         assertDate("05.10.2026", target)
         assertEquals(Calendar.MONDAY, target.get(Calendar.DAY_OF_WEEK))
@@ -65,7 +64,6 @@ class W1SyncTargetDateTest {
 
     @Test
     fun `W1 будний день - следующий день без перескоков`() {
-
         assertDate("02.10.2026", nextSchoolDay(cal(2026, 10, 1), saturdayIsSchoolDay = false))
         assertDate("02.10.2026", nextSchoolDay(cal(2026, 10, 1), saturdayIsSchoolDay = true))
     }

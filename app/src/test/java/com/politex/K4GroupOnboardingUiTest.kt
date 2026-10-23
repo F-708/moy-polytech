@@ -8,11 +8,10 @@ import java.io.File
 
 class K4GroupOnboardingUiTest {
 
-    private fun src(relative: String): String =
-        sequenceOf(
-            File("src/main/java/$relative"),
-            File("app/src/main/java/$relative"),
-        ).first { it.exists() }.readText()
+    private fun src(relative: String): String = sequenceOf(
+        File("src/main/java/$relative"),
+        File("app/src/main/java/$relative"),
+    ).first { it.exists() }.readText()
 
     private val dialogs = src("com/politex/ui/components/GroupSelectionDialog.kt")
     private val college = src("com/politex/ui/screens/CollegeScreen.kt")

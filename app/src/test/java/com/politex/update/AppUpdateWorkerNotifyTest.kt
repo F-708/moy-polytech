@@ -8,9 +8,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
-import java.io.File
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -22,6 +19,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -61,10 +61,9 @@ class AppUpdateWorkerNotifyTest {
         UpdateInstallController.cancelAndReset(context)
     }
 
-    private fun postedTitles(): List<String> =
-        shadowOf(notificationManager).allNotifications.map {
-            it.extras.getString(Notification.EXTRA_TITLE).orEmpty()
-        }
+    private fun postedTitles(): List<String> = shadowOf(notificationManager).allNotifications.map {
+        it.extras.getString(Notification.EXTRA_TITLE).orEmpty()
+    }
 
     private fun awaitState(predicate: (InstallButtonState) -> Boolean): InstallButtonState {
         repeat(200) {

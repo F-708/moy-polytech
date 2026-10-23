@@ -169,9 +169,8 @@ object NotificationHelper {
     }
 }
 
-fun lessonsWord(n: Int): String =
-    when {
-        n % 10 == 1 && n % 100 != 11 -> "урок"
-        n % 10 in 2..4 && n % 100 !in 12..14 -> "урока"
-        else -> "уроков"
-    }
+fun lessonsWord(n: Int): String = when {
+    n % 10 == 1 && n % 100 != 11 -> "урок"
+    n % 10 in 2..4 && n % 100 !in 12..14 -> "урока"
+    else -> "уроков"
+}

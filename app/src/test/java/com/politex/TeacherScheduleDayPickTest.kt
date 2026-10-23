@@ -45,7 +45,6 @@ class TeacherScheduleDayPickTest {
 
     @Test
     fun `ключ дня совпадает с форматом dateString в БД`() {
-
         val cal = GregorianCalendar(2027, Calendar.MARCH, 5, 9, 30)
         val uiKey = SimpleDateFormat("dd.MM.yyyy", Locale.ROOT).format(cal.time)
         val dbKey =

@@ -20,10 +20,9 @@ class SubjectFormatterCollisionTest {
 
     private fun subjectsOf(code: Char, course: Int): List<String> = MpkCurriculum.getSubjects(code, course)
 
-    private fun unionSubjects(): List<String> =
-        targetGroups
-            .flatMap { (_, sc) -> subjectsOf(sc.first, sc.second) }
-            .distinct()
+    private fun unionSubjects(): List<String> = targetGroups
+        .flatMap { (_, sc) -> subjectsOf(sc.first, sc.second) }
+        .distinct()
 
     @Test
     fun `короткие имена предметов 4 групп уникальны и непусты`() {

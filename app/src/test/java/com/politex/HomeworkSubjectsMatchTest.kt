@@ -23,7 +23,6 @@ class HomeworkSubjectsMatchTest {
 
     @Test
     fun `split с КОРОТКИМ предметом больше не теряется (корень бага)`() {
-
         assertTrue(match("ТОЭ / Электронные приборы", "ТОЭ"))
         assertTrue(match("Химия / Биология", "Химия"))
         assertTrue(match("Химия / Биология", "Биология"))
@@ -37,7 +36,6 @@ class HomeworkSubjectsMatchTest {
 
     @Test
     fun `аббревиатура расписания ДиагнТО матчит ДЗ по диагностике`() {
-
         val full = "Диагностика, техническое обслуживание и ремонт механических транспортных средств"
         assertTrue(match("ДиагнТО", "Диагностика"))
         assertTrue(match("ДиагнТО / ДиагнТО", "Диагностика"))

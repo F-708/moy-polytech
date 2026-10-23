@@ -44,12 +44,11 @@ object GradeAggregator {
         byCategory: Map<String, List<Int>>,
         weights: Map<String, Int>,
         weightsEnabled: Boolean,
-    ): Double? =
-        if (weightsEnabled) {
-            weightedAverage(byCategory, weights)
-        } else {
-            plainAverage(byCategory)
-        }
+    ): Double? = if (weightsEnabled) {
+        weightedAverage(byCategory, weights)
+    } else {
+        plainAverage(byCategory)
+    }
 
     fun average(
         byCategory: Map<String, List<Int>>,
@@ -123,12 +122,11 @@ object GradeAggregator {
     fun format(
         x: Double?,
         mode: String = ".0",
-    ): String =
-        when {
-            x == null -> "—"
-            mode == ".00" -> String.format(Locale.ROOT, "%.2f", roundAvg(x, mode))
-            mode == "целое" -> roundAvg(x, mode).toInt().toString()
-            round1(x) % 1.0 == 0.0 -> round1(x).toInt().toString()
-            else -> String.format(Locale.ROOT, "%.1f", round1(x))
-        }
+    ): String = when {
+        x == null -> "—"
+        mode == ".00" -> String.format(Locale.ROOT, "%.2f", roundAvg(x, mode))
+        mode == "целое" -> roundAvg(x, mode).toInt().toString()
+        round1(x) % 1.0 == 0.0 -> round1(x).toInt().toString()
+        else -> String.format(Locale.ROOT, "%.1f", round1(x))
+    }
 }

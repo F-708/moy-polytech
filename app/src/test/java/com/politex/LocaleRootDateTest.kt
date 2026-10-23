@@ -29,7 +29,10 @@ class LocaleRootDateTest {
     fun `repository db date stays ascii under arabic default locale`() = withArabicLocale {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val repo = ScheduleRepository(MpkDatabase.getInstance(context).lessonDao())
-        val cal = Calendar.getInstance().apply { clear(); set(2026, Calendar.OCTOBER, 5) }
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.OCTOBER, 5)
+        }
         val formatted = repo.formatDate(cal)
         assertEquals("05.10.2026", formatted)
         assertEquals("только ASCII-цифры и точка", formatted, formatted.filter { it.isAsciiDigitOrDot() })
@@ -37,7 +40,10 @@ class LocaleRootDateTest {
 
     @Test
     fun `homework dayIso stays ascii under arabic default locale`() = withArabicLocale {
-        val cal = Calendar.getInstance().apply { clear(); set(2026, Calendar.OCTOBER, 5) }
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.OCTOBER, 5)
+        }
         assertEquals("2026-10-05", HomeworkMarkers.dayIsoOf(cal))
     }
 

@@ -75,7 +75,6 @@ class WidgetConfigActivity : ComponentActivity() {
         setContent {
             MyApplicationTheme {
                 Surface(color = ColorBgMain, modifier = Modifier.fillMaxSize()) {
-
                     var style by remember { mutableStateOf(WidgetStyle.load(this@WidgetConfigActivity, appWidgetId)) }
                     var countdownMode by remember { mutableStateOf(CountdownMode.load(this@WidgetConfigActivity, appWidgetId)) }
                     var showRoom by remember { mutableStateOf(WidgetOptions.showRoom(this@WidgetConfigActivity, appWidgetId)) }
@@ -264,11 +263,11 @@ class WidgetConfigActivity : ComponentActivity() {
                                     selected = countdownMode == option,
                                     title = option.title,
                                     description =
-                                        if (teacherModeOn && option == CountdownMode.GROUP_LESSONS) {
-                                            "Отсчёт заканчивается на последнем уроке в вашем расписании"
-                                        } else {
-                                            option.description
-                                        },
+                                    if (teacherModeOn && option == CountdownMode.GROUP_LESSONS) {
+                                        "Отсчёт заканчивается на последнем уроке в вашем расписании"
+                                    } else {
+                                        option.description
+                                    },
                                     onClick = {
                                         countdownMode = option
                                         requestAlarmAccessOnce()

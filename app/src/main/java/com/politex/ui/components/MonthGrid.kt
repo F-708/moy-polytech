@@ -39,7 +39,6 @@ fun MonthGrid(
     val days = remember(year, month) { calculateMonthDays(year, month) }
 
     Column(modifier = modifier.fillMaxWidth()) {
-
         Row(modifier = Modifier.fillMaxWidth()) {
             listOf("ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС").forEach { day ->
                 Text(
@@ -66,7 +65,6 @@ fun MonthGrid(
                         Modifier
                             .weight(1f)
                             .aspectRatio(1.1f)
-
                             .let { m ->
                                 if (day != null) {
                                     val dateIso = String.format(Locale.ROOT, "%04d-%02d-%02d", year, month + 1, day)

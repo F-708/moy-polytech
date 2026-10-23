@@ -56,7 +56,6 @@ import com.politex.ui.screens.LessonCard
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
-import com.politex.ui.theme.ColorDividerLight
 import com.politex.ui.theme.ColorSurfaceVariantLight
 import com.politex.ui.theme.ColorTextBody
 import com.politex.ui.theme.ColorTextMuted
@@ -95,13 +94,11 @@ fun CalendarArchiveDialog(
     scheduleRepository: ScheduleRepository,
     onDismiss: () -> Unit,
     onDateSelected: ((dayOfWeek: Int, dateString: String) -> Unit)? = null,
-
     onOpenRoom: (String) -> Unit = {},
     onOpenTeacher: (String) -> Unit = {},
     isTeacherKnown: (String) -> Boolean = { false },
     modifier: Modifier = Modifier,
 ) {
-
     val calendar =
         com.politex.ui.util
             .rememberToday()

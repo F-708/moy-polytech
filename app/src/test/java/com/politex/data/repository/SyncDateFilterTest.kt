@@ -16,14 +16,13 @@ import java.io.IOException
 import java.util.Calendar
 import java.util.Locale
 
-private fun fmt(cal: Calendar): String =
-    String.format(
-        Locale.ROOT,
-        "%02d.%02d.%04d",
-        cal.get(Calendar.DAY_OF_MONTH),
-        cal.get(Calendar.MONTH) + 1,
-        cal.get(Calendar.YEAR),
-    )
+private fun fmt(cal: Calendar): String = String.format(
+    Locale.ROOT,
+    "%02d.%02d.%04d",
+    cal.get(Calendar.DAY_OF_MONTH),
+    cal.get(Calendar.MONTH) + 1,
+    cal.get(Calendar.YEAR),
+)
 
 private fun lesson(
     group: String,
@@ -54,7 +53,9 @@ private class RecordingLessonDao : LessonDao {
     override suspend fun getAllLessonsSync(): List<LessonEntity> = emptyList()
     override suspend fun getLessonsForDaySync(groupName: String, dayOfWeek: Int): List<LessonEntity> = emptyList()
     override suspend fun getDistinctGroupsForDateOrDay(dateString: String, dayOfWeek: Int): List<String> = emptyList()
-    override suspend fun insertLessons(lessons: List<LessonEntity>) { inserted += lessons }
+    override suspend fun insertLessons(lessons: List<LessonEntity>) {
+        inserted += lessons
+    }
     override suspend fun insertLesson(lesson: LessonEntity): Long = 0L
     override suspend fun clearLessonsForGroup(groupName: String) = Unit
     override suspend fun deleteLessonsForDate(groupName: String, dateString: String) = Unit
@@ -89,16 +90,14 @@ private class RestampingClient : MpkNetworkClient() {
         targetCalendar: Calendar,
         maxRetries: Int,
         preferredUrl: String?,
-    ): Result<List<LessonEntity>> =
-        Result.success(
-            listOf(
-                lesson(targetGroup, fmt(targetCalendar), 1),
-                lesson(targetGroup, "01.09.2020", 2),
-            ),
-        )
+    ): Result<List<LessonEntity>> = Result.success(
+        listOf(
+            lesson(targetGroup, fmt(targetCalendar), 1),
+            lesson(targetGroup, "01.09.2020", 2),
+        ),
+    )
 
-    override suspend fun fetchTeacherSchedule(targetCalendar: Calendar): Result<Map<String, List<TeacherSlot>>> =
-        Result.failure(IOException("offline"))
+    override suspend fun fetchTeacherSchedule(targetCalendar: Calendar): Result<Map<String, List<TeacherSlot>>> = Result.failure(IOException("offline"))
 }
 
 private class OfflineClient : MpkNetworkClient() {
@@ -127,15 +126,13 @@ private class OfflineClient : MpkNetworkClient() {
         preferredUrl: String?,
     ): Result<List<LessonEntity>> = Result.failure(IOException("offline"))
 
-    override suspend fun fetchTeacherSchedule(targetCalendar: Calendar): Result<Map<String, List<TeacherSlot>>> =
-        Result.failure(IOException("offline"))
+    override suspend fun fetchTeacherSchedule(targetCalendar: Calendar): Result<Map<String, List<TeacherSlot>>> = Result.failure(IOException("offline"))
 }
 
 class SyncDateFilterTest {
     private val group = "41О"
 
-    private fun tomorrowStr(today: Calendar = Calendar.getInstance()): String =
-        fmt(nextDayCandidates(today, saturdayIsSchoolDayFor(group, false)).last())
+    private fun tomorrowStr(today: Calendar = Calendar.getInstance()): String = fmt(nextDayCandidates(today, saturdayIsSchoolDayFor(group, false)).last())
 
     @Test
     fun `lessonsForWrite отсекает чужие даты и оставляет запрошенные и пустые`() {

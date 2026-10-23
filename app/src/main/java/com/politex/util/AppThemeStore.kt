@@ -33,10 +33,9 @@ object AppThemeStore {
         }
     }
 
-    fun isDark(context: Context): Boolean =
-        context
-            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_DARK, false)
+    fun isDark(context: Context): Boolean = context
+        .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getBoolean(KEY_DARK, false)
 
     fun setDark(
         context: Context,

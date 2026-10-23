@@ -69,7 +69,6 @@ class GroupCodePickerTest {
 
     @Test
     fun `максимальный номер группы для курса из каталога`() {
-
         assertEquals(1, groupPickerMaxNumber(catalog, 1))
         assertEquals(1, groupPickerMaxNumber(catalog, 2))
         assertEquals(2, groupPickerMaxNumber(catalog, 4))
@@ -81,7 +80,6 @@ class GroupCodePickerTest {
 
     @Test
     fun `курс и номер без групп в каталоге - буквы пустые`() {
-
         assertTrue(groupPickerLetters(catalog, 4, 3).isEmpty())
         assertTrue(groupPickerLetters(catalog, 3, 1).isEmpty())
     }

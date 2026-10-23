@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -41,7 +40,6 @@ import com.politex.ui.theme.ColorActiveBlue
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
-import com.politex.ui.theme.ColorBrandFill
 import com.politex.ui.theme.ColorSurfaceHighlight
 import com.politex.ui.theme.ColorTextBody
 import com.politex.ui.theme.ColorTextMuted
@@ -84,7 +82,6 @@ fun RoomScheduleDialog(
     currentLessonNumber: Int?,
     onTeacherClick: (String) -> Unit,
     onDismissRequest: () -> Unit,
-
     tomorrowSelected: Boolean = false,
     onDayChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -99,7 +96,6 @@ fun RoomScheduleDialog(
         containerColor = ColorBgMain,
         confirmButton = {},
         title = {
-
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -162,7 +158,6 @@ fun RoomScheduleDialog(
             if (lessons.isEmpty()) {
                 RoomScheduleEmptyState(tomorrow = tomorrowSelected)
             } else {
-
                 LazyColumn(
                     modifier =
                     Modifier

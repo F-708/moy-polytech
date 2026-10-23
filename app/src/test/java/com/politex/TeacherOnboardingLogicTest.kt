@@ -42,26 +42,22 @@ class TeacherOnboardingLogicTest {
 
     @Test
     fun `typo ivanoa finds ivanova`() {
-
         val res = search("иваноа")
         assertEquals(2, res.count { it.name.startsWith("Иванова") })
     }
 
     @Test
     fun `distance-2 typo finds eremenko`() {
-
         assertTrue(search("еремонка").any { it.name.startsWith("Еременко") })
     }
 
     @Test
     fun `distance-3 typo finds eremenko`() {
-
         assertTrue(search("ириминко").any { it.name.startsWith("Еременко") })
     }
 
     @Test
     fun `yo normalization ereMenko with yo matches csv ye`() {
-
         val res = search("ерёменко")
         assertTrue(res.any { it.name == "Еременко Ольга Васильевна" })
         assertTrue(res.any { it.name == "Еременко Владимир Викторович" })
@@ -69,13 +65,11 @@ class TeacherOnboardingLogicTest {
 
     @Test
     fun `transposition finds melnik`() {
-
         assertTrue(search("мелньик").any { it.name.startsWith("Мельник") })
     }
 
     @Test
     fun `two words match in any order across fields`() {
-
         val res = search("владимир еременко")
         assertTrue(res.any { it.name == "Еременко Владимир Викторович" })
     }
@@ -91,7 +85,6 @@ class TeacherOnboardingLogicTest {
 
     @Test
     fun `surname with wrong firstname still shows candidates`() {
-
         val res = search("савицкая наталья")
         assertTrue(res.isNotEmpty())
         assertTrue(res.all { it.name.startsWith("Савицкая") })

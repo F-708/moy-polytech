@@ -6,13 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -38,7 +35,6 @@ import com.politex.ui.screens.materials.ExternalMaterialIntake
 import com.politex.ui.screens.materials.ViewerMode
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
-import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.ColorTextBody
 import com.politex.ui.theme.ColorTopBar
 import com.politex.ui.util.bouncyClickable
@@ -64,7 +60,6 @@ fun LessonsHubScreen(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState? = null,
 ) {
-
     var userSection by rememberSaveable { mutableStateOf(LessonsSection.TASKS) }
     val hasExternalMaterial = ExternalMaterialIntake.hasWork
     val section = targetHubSection(userSection, hasExternalMaterial)
@@ -88,53 +83,52 @@ fun LessonsHubScreen(
             .fillMaxSize()
             .background(ColorBgMain),
     ) {
-
         if (!ViewerMode.active && !GradeDetailMode.active) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                LessonsSection.entries.forEach { s ->
-                    val isSelected = section == s
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, if (isSelected) ColorTopBar else ColorBorderLight),
-                            color = if (isSelected) ColorTopBar else ColorBgMain,
-                            modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 44.dp)
-                                .bouncyClickable { userSection = s }
-                                .testTag("hub_tab_${s.name.lowercase()}"),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    LessonsSection.entries.forEach { s ->
+                        val isSelected = section == s
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f),
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center,
+                            Surface(
+                                shape = RoundedCornerShape(2.dp),
+                                border = BorderStroke(1.dp, if (isSelected) ColorTopBar else ColorBorderLight),
+                                color = if (isSelected) ColorTopBar else ColorBgMain,
+                                modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 44.dp)
+                                    .bouncyClickable { userSection = s }
+                                    .testTag("hub_tab_${s.name.lowercase()}"),
                             ) {
-                                Text(
-                                    text = s.title,
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = s.title,
 
-                                    softWrap = false,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style =
-                                    androidx.compose.ui.text.TextStyle(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 11.sp,
-                                        color = if (isSelected) Color.White else ColorTextBody,
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 4.dp),
-                                )
+                                        softWrap = false,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style =
+                                        androidx.compose.ui.text.TextStyle(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 11.sp,
+                                            color = if (isSelected) Color.White else ColorTextBody,
+                                        ),
+                                        modifier = Modifier.padding(horizontal = 4.dp),
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
             }
         }
 

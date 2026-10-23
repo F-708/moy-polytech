@@ -5,9 +5,9 @@ import com.politex.data.local.entity.TeacherLessonEntity
 import com.politex.data.network.TeacherScheduleParser
 import com.politex.data.network.TeacherSlot
 import com.politex.data.repository.TeacherInsights
-import com.politex.data.repository.teacherRows
 import com.politex.data.repository.defaultTeacherDayOffset
 import com.politex.data.repository.loadTeacherDay
+import com.politex.data.repository.teacherRows
 import com.politex.data.repository.teacherSyncErrorMessage
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -22,12 +22,10 @@ class TeacherScheduleE2ETest {
         override suspend fun getForSurnameOnDate(
             surnameKey: String,
             dateString: String,
-        ): List<TeacherLessonEntity> =
-            rows.filter { it.surnameKey == surnameKey && it.dateString == dateString }
-                .sortedBy { it.lessonNumber }
+        ): List<TeacherLessonEntity> = rows.filter { it.surnameKey == surnameKey && it.dateString == dateString }
+            .sortedBy { it.lessonNumber }
 
-        override suspend fun getTeachersOnDate(dateString: String): List<String> =
-            rows.filter { it.dateString == dateString }.map { it.teacherName }.distinct()
+        override suspend fun getTeachersOnDate(dateString: String): List<String> = rows.filter { it.dateString == dateString }.map { it.teacherName }.distinct()
 
         override suspend fun insertLessons(lessons: List<TeacherLessonEntity>) {
             rows += lessons
@@ -41,12 +39,10 @@ class TeacherScheduleE2ETest {
             rows.removeAll { it.dateString in dates }
         }
 
-        override suspend fun getPresentDates(dates: List<String>): List<String> =
-            rows.map { it.dateString }.toSet().filter { it in dates }
+        override suspend fun getPresentDates(dates: List<String>): List<String> = rows.map { it.dateString }.toSet().filter { it in dates }
     }
 
-    private fun liveBytes(): ByteArray =
-        javaClass.getResourceAsStream("/fixtures/05.10.2026-raspisanie-prepodavatelej.doc")!!.readBytes()
+    private fun liveBytes(): ByteArray = javaClass.getResourceAsStream("/fixtures/05.10.2026-raspisanie-prepodavatelej.doc")!!.readBytes()
 
     @Test
     fun `док — строки — dao — чтение по surnameKey и дате даёт слоты`() = runBlocking {

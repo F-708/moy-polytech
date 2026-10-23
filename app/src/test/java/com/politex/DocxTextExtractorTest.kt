@@ -105,7 +105,6 @@ class DocxTextExtractorTest {
 
     @Test
     fun `стиль знака заголовка не путается со стилем абзаца`() {
-
         val paragraphs =
             extract(
                 """<w:p><w:pPr><w:pStyle w:val="Heading1Char"/></w:pPr><w:r><w:t>Просто текст</w:t></w:r></w:p>""",

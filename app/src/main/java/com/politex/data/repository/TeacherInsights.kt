@@ -79,13 +79,11 @@ class TeacherInsights(
 
                 val dateKey = lesson.dateString.replace("-", ".")
                 if (dateKey.isNotBlank()) {
-
                     parseDotDateMillis(dateKey)?.let { ms ->
                         val prevMs = dateMillis[full]
                         if (prevMs == null || ms > prevMs) dateMillis[full] = ms
                     }
                 } else {
-
                     weekly[full] = true
                 }
             }

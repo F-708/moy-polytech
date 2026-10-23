@@ -14,13 +14,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,7 +35,6 @@ import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +57,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,9 +70,9 @@ import com.politex.data.local.entity.MaterialKind
 import com.politex.data.model.GroupInfo
 import com.politex.ui.components.AppCard
 import com.politex.ui.components.AppDivider
+import com.politex.ui.components.BrandActionButton
 import com.politex.ui.components.EmptyState
 import com.politex.ui.components.SearchEmptyState
-import com.politex.ui.components.BrandActionButton
 import com.politex.ui.screens.materials.ExternalMaterialIntake
 import com.politex.ui.screens.materials.MaterialCard
 import com.politex.ui.screens.materials.MaterialDeleteDialog
@@ -84,22 +80,21 @@ import com.politex.ui.screens.materials.MaterialDocTextViewer
 import com.politex.ui.screens.materials.MaterialImageViewer
 import com.politex.ui.screens.materials.MaterialImportTypeDialog
 import com.politex.ui.screens.materials.MaterialPdfViewer
-import com.politex.ui.screens.materials.MaterialWebViewer
-import com.politex.ui.screens.materials.docxRouteWeb
-import com.politex.ui.screens.materials.pdfRouteWeb
-import com.politex.ui.screens.materials.webViewEngineInfo
 import com.politex.ui.screens.materials.MaterialRenameDialog
 import com.politex.ui.screens.materials.MaterialSubjectDialog
 import com.politex.ui.screens.materials.MaterialTextDialog
+import com.politex.ui.screens.materials.MaterialWebViewer
 import com.politex.ui.screens.materials.ViewerMode
+import com.politex.ui.screens.materials.docxRouteWeb
 import com.politex.ui.screens.materials.materialIconFor
 import com.politex.ui.screens.materials.materialIconTint
+import com.politex.ui.screens.materials.pdfRouteWeb
+import com.politex.ui.screens.materials.webViewEngineInfo
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.ColorBrandFill
 import com.politex.ui.theme.ColorDangerFill
-import com.politex.ui.theme.ColorDividerLight
 import com.politex.ui.theme.ColorError
 import com.politex.ui.theme.ColorSurfaceHighlight
 import com.politex.ui.theme.ColorTextBody
@@ -131,12 +126,11 @@ enum class MaterialListUi { LOADING, EMPTY, CONTENT }
 fun materialListUi(
     loaded: Boolean,
     itemCount: Int,
-): MaterialListUi =
-    when {
-        !loaded -> MaterialListUi.LOADING
-        itemCount == 0 -> MaterialListUi.EMPTY
-        else -> MaterialListUi.CONTENT
-    }
+): MaterialListUi = when {
+    !loaded -> MaterialListUi.LOADING
+    itemCount == 0 -> MaterialListUi.EMPTY
+    else -> MaterialListUi.CONTENT
+}
 
 private fun escapeSegment(s: String): String = s.replace("%", "%25").replace("|", "%7C")
 
@@ -161,13 +155,12 @@ internal sealed interface MaterialRoute {
     }
 
     companion object {
-        fun decode(raw: String): MaterialRoute? =
-            when (raw.firstOrNull()) {
-                'a' -> if (raw == "a") ArchiveScreen else null
-                'i' -> raw.substringAfter(':', "").toLongOrNull()?.let { Viewer(it) }
-                's' -> raw.substringAfter(':', "").takeIf { it.isNotEmpty() }?.let { SubjectScreen(unescapeSegment(it)) }
-                else -> null
-            }
+        fun decode(raw: String): MaterialRoute? = when (raw.firstOrNull()) {
+            'a' -> if (raw == "a") ArchiveScreen else null
+            'i' -> raw.substringAfter(':', "").toLongOrNull()?.let { Viewer(it) }
+            's' -> raw.substringAfter(':', "").takeIf { it.isNotEmpty() }?.let { SubjectScreen(unescapeSegment(it)) }
+            else -> null
+        }
     }
 }
 
@@ -336,7 +329,6 @@ fun MaterialBaseScreen(
 
     fun deleteItem(item: MaterialItemEntity) {
         scope.launch {
-
             runCatching {
                 MaterialImporter.deleteStoredFiles(item)
                 dao.deleteItemWithBookmarks(item.id)
@@ -353,7 +345,6 @@ fun MaterialBaseScreen(
                 dao.setArchived(item.id, true, dao.nextArchiveSortOrder())
                 showOk("Убрано в Архив")
             } else {
-
                 val subject = item.subjectName.ifBlank { RESTORED_SUBJECT }
                 dao.updateItem(item.copy(subjectName = subject, archived = false, sortOrder = dao.nextItemSortOrder(subject)))
                 showOk("Возвращено в «${SubjectRenameStore.displayName(context, subject)}»")
@@ -386,7 +377,6 @@ fun MaterialBaseScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             val viewer = currentRoute as? MaterialRoute.Viewer
             if (viewer != null && viewerItem != null) {
-
                 DisposableEffect(viewerItem.id) {
                     ViewerMode.active = true
                     onDispose { ViewerMode.active = false }
@@ -403,16 +393,16 @@ fun MaterialBaseScreen(
                         )
 
                     MaterialKind.FILE -> {
-
                         val context = LocalContext.current
                         val engine = remember { webViewEngineInfo(context) }
                         val fileExists = remember(viewerItem.uriPath) { File(viewerItem.uriPath).exists() }
                         var useFallback by remember(viewerItem.id) { mutableStateOf(false) }
-                        val useWeb = !useFallback && when (viewerItem.ext) {
-                            "pdf" -> pdfRouteWeb(fileExists, viewerItem.pageCount, engine.first, engine.second)
-                            "docx" -> docxRouteWeb(viewerItem.textEdited, fileExists, engine.first, engine.second)
-                            else -> false
-                        }
+                        val useWeb = !useFallback &&
+                            when (viewerItem.ext) {
+                                "pdf" -> pdfRouteWeb(fileExists, viewerItem.pageCount, engine.first, engine.second)
+                                "docx" -> docxRouteWeb(viewerItem.textEdited, fileExists, engine.first, engine.second)
+                                else -> false
+                            }
                         when {
                             useWeb ->
                                 MaterialWebViewer(
@@ -435,7 +425,6 @@ fun MaterialBaseScreen(
                         MaterialDocTextViewer(item = viewerItem, dao = dao, onBack = pop, modifier = Modifier.fillMaxSize())
                 }
             } else if (viewer != null) {
-
                 LaunchedEffect(viewer.itemId) {
                     if (dao.getItemById(viewer.itemId) == null) pop()
                 }
@@ -517,8 +506,7 @@ fun MaterialBaseScreen(
                     .testTag("material_intake_progress"),
                 contentAlignment = Alignment.Center,
             ) {
-                AppCard(
-                ) {
+                AppCard {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(16.dp),
@@ -643,7 +631,6 @@ private fun MessageBanner(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-
     LaunchedEffect(banner) {
         delay(4000)
         onClose()
@@ -688,7 +675,6 @@ private fun MaterialHeader(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-
         if (showSearch) {
             com.politex.ui.components.SearchBar(
                 value = query,
@@ -993,7 +979,6 @@ private fun MaterialSearchContent(
     val queryWords = remember(query) { FuzzySearch.queryWordCount(query) }
 
     if (hits.isEmpty()) {
-
         SearchEmptyState(
             query = query,
             hint = "Архив в поиске не участвует",
@@ -1124,7 +1109,6 @@ private fun MaterialItemRow(
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
             ) {
                 if (showReorder) {
-
                     RowIconButton(
                         icon = Icons.Default.KeyboardArrowUp,
                         description = "Выше",
@@ -1146,7 +1130,6 @@ private fun MaterialItemRow(
                     testTag = "material_rename_${item.id}",
                 ) { actions.onRename(item) }
                 if (isArchiveRow) {
-
                     RowIconButton(
                         icon = Icons.Default.Unarchive,
                         description = "Вернуть из Архива",
@@ -1229,11 +1212,10 @@ private fun pluralWord(
     one: String,
     few: String,
     many: String,
-): String =
-    when {
-        n % 10 == 1 && n % 100 != 11 -> one
-        n % 10 in 2..4 && n % 100 !in 12..14 -> few
-        else -> many
-    }
+): String = when {
+    n % 10 == 1 && n % 100 != 11 -> one
+    n % 10 in 2..4 && n % 100 !in 12..14 -> few
+    else -> many
+}
 
 private fun deferredWord(n: Int): String = pluralWord(n, "отложенный", "отложенных", "отложенных")

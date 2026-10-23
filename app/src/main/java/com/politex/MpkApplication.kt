@@ -32,7 +32,7 @@ object AppGraph {
     }
 }
 
-class MpkApplication : Application() {
+open class MpkApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         AppGraph.init(this)

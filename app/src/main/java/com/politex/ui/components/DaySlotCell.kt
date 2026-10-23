@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.politex.ui.theme.ColorBgMain
@@ -26,7 +27,6 @@ import com.politex.ui.theme.ColorTextMuted
 import com.politex.ui.theme.ColorTopBar
 import com.politex.ui.theme.Tokens
 import com.politex.ui.util.bouncyClickable
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun DaySlotCell(
@@ -41,9 +41,9 @@ fun DaySlotCell(
         border = BorderStroke(1.dp, if (selected) ColorTopBar else ColorBorderLight),
         color = if (selected) ColorTopBar else ColorBgMain,
         modifier =
-            modifier
-                .heightIn(min = Tokens.ButtonHeight)
-                .bouncyClickable(onClick = onClick),
+        modifier
+            .heightIn(min = Tokens.ButtonHeight)
+            .bouncyClickable(onClick = onClick),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -56,11 +56,11 @@ fun DaySlotCell(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style =
-                    TextStyle(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = if (selected) Color.White else ColorTextBody,
-                    ),
+                TextStyle(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = if (selected) Color.White else ColorTextBody,
+                ),
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
@@ -69,11 +69,11 @@ fun DaySlotCell(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style =
-                    TextStyle(
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                        fontSize = 10.sp,
-                        color = if (selected) ColorMenuSubtext else ColorTextMuted,
-                    ),
+                TextStyle(
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    fontSize = 10.sp,
+                    color = if (selected) ColorMenuSubtext else ColorTextMuted,
+                ),
             )
         }
     }

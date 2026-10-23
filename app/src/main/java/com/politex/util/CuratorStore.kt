@@ -2,8 +2,8 @@ package com.politex.util
 
 import android.content.Context
 import androidx.compose.runtime.mutableIntStateOf
-import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 
 object CuratorStore {
     private const val PREFS = "mpk_curators"
@@ -182,11 +182,10 @@ object CuratorStore {
         ensureLoaded(context)
     }
 
-    private fun currentAppContext(): Context? =
-        runCatching {
-            Class
-                .forName("android.app.ActivityThread")
-                .getMethod("currentApplication")
-                .invoke(null) as? Context
-        }.getOrNull()
+    private fun currentAppContext(): Context? = runCatching {
+        Class
+            .forName("android.app.ActivityThread")
+            .getMethod("currentApplication")
+            .invoke(null) as? Context
+    }.getOrNull()
 }

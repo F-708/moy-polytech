@@ -40,8 +40,7 @@ internal fun parseRange(header: String, total: Long): Pair<Long, Long>? {
     return start to minOf(end, total - 1)
 }
 
-internal fun documentMime(ext: String): String =
-    MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
+internal fun documentMime(ext: String): String = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
 
 internal class LimitedInputStream(
     private val source: InputStream,
@@ -102,8 +101,7 @@ internal fun webViewEngineInfo(context: Context): Pair<Int?, Boolean> {
     return chromiumMajor(null) { pkg?.versionName } to (pkg?.packageName in LOCKED_WEBVIEW_PACKAGES)
 }
 
-internal fun pdfRouteWeb(fileExists: Boolean, pageCount: Int, major: Int?, locked: Boolean): Boolean =
-    fileExists && pageCount > 0 && !locked && major != null && major >= PDFJS_MIN_CHROMIUM
+internal fun pdfRouteWeb(fileExists: Boolean, pageCount: Int, major: Int?, locked: Boolean): Boolean = fileExists && pageCount > 0 && !locked && major != null && major >= PDFJS_MIN_CHROMIUM
 
 internal fun docxRouteWeb(textEdited: Boolean, fileExists: Boolean, major: Int?, locked: Boolean): Boolean {
     if (textEdited || !fileExists) return false

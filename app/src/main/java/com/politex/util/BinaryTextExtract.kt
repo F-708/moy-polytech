@@ -85,6 +85,5 @@ object BinaryTextExtract {
         return if (accept(decoded)) decoded else null
     }
 
-    fun hasText(decoded: String): Boolean =
-        decoded.any { it in 'А'..'я' || it in 'A'..'z' || it in '0'..'9' }
+    fun hasText(decoded: String): Boolean = decoded.any { it in 'А'..'я' || it in 'A'..'z' || it in '0'..'9' }
 }

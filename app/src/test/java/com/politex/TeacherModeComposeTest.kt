@@ -20,13 +20,13 @@ import com.politex.ui.theme.MyApplicationTheme
 import com.politex.util.DateFormats
 import com.politex.util.GroupParser
 import com.politex.util.TeacherModeStore
-import java.util.Calendar
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.Calendar
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w360dp-h720dp")
@@ -42,18 +42,17 @@ class TeacherModeComposeTest {
         TeacherModeStore.clear(context)
     }
 
-    private fun todayLesson(): LessonEntity =
-        LessonEntity(
-            groupName = "41О",
-            dayOfWeek = 1,
-            lessonNumber = 1,
-            timeStart = "09:00",
-            timeEnd = "09:45",
-            subjectRaw = "Математика",
-            roomFirst = "214",
-            teacherFirst = "Иванова А.П.",
-            dateString = DateFormats.dotDate(Calendar.getInstance()),
-        )
+    private fun todayLesson(): LessonEntity = LessonEntity(
+        groupName = "41О",
+        dayOfWeek = 1,
+        lessonNumber = 1,
+        timeStart = "09:00",
+        timeEnd = "09:45",
+        subjectRaw = "Математика",
+        roomFirst = "214",
+        teacherFirst = "Иванова А.П.",
+        dateString = DateFormats.dotDate(Calendar.getInstance()),
+    )
 
     private fun renderSchedule(lesson: LessonEntity) {
         val repo = ScheduleRepository(MpkDatabase.getInstance(context).lessonDao())

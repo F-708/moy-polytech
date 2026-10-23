@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke as DrawStroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.testTag
@@ -58,6 +57,7 @@ import com.politex.ui.util.bouncyClickable
 import kotlinx.coroutines.delay
 import org.json.JSONArray
 import org.json.JSONObject
+import androidx.compose.ui.graphics.drawscope.Stroke as DrawStroke
 
 data class Stroke(
     val color: Int,
@@ -79,19 +79,18 @@ data class Stroke(
             return JSONObject().put("v", 1).put("strokes", arr).toString()
         }
 
-        fun parse(json: String): List<Stroke> =
-            runCatching {
-                val arr = JSONObject(json).optJSONArray("strokes") ?: return emptyList()
-                (0 until arr.length()).map { i ->
-                    val o = arr.getJSONObject(i)
-                    val ptsArr = o.optJSONArray("pts") ?: JSONArray()
-                    val pts =
-                        (0 until ptsArr.length() / 2).map { k ->
-                            Offset(ptsArr.getDouble(2 * k).toFloat(), ptsArr.getDouble(2 * k + 1).toFloat())
-                        }
-                    Stroke(o.optInt("c"), o.optDouble("w", 4.0).toFloat(), pts)
-                }
-            }.getOrDefault(emptyList())
+        fun parse(json: String): List<Stroke> = runCatching {
+            val arr = JSONObject(json).optJSONArray("strokes") ?: return emptyList()
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                val ptsArr = o.optJSONArray("pts") ?: JSONArray()
+                val pts =
+                    (0 until ptsArr.length() / 2).map { k ->
+                        Offset(ptsArr.getDouble(2 * k).toFloat(), ptsArr.getDouble(2 * k + 1).toFloat())
+                    }
+                Stroke(o.optInt("c"), o.optDouble("w", 4.0).toFloat(), pts)
+            }
+        }.getOrDefault(emptyList())
     }
 }
 
@@ -127,14 +126,11 @@ private fun distPointToSegment(p: Offset, a: Offset, b: Offset): Float {
     return (ap - ab * t).getDistance()
 }
 
-internal fun compensatedStrokeWidthPx(widthDp: Float, pxPerDp: Float, layerScale: Float): Float =
-    widthDp * pxPerDp / layerScale.coerceAtLeast(0.01f)
+internal fun compensatedStrokeWidthPx(widthDp: Float, pxPerDp: Float, layerScale: Float): Float = widthDp * pxPerDp / layerScale.coerceAtLeast(0.01f)
 
-internal fun eraserThresholdNorm(widthDp: Float, extraDp: Float, pxPerDp: Float, boxWidthPx: Float, layerScale: Float): Float =
-    (widthDp / 2f + extraDp) * pxPerDp / (layerScale.coerceAtLeast(0.01f) * boxWidthPx.coerceAtLeast(1f))
+internal fun eraserThresholdNorm(widthDp: Float, extraDp: Float, pxPerDp: Float, boxWidthPx: Float, layerScale: Float): Float = (widthDp / 2f + extraDp) * pxPerDp / (layerScale.coerceAtLeast(0.01f) * boxWidthPx.coerceAtLeast(1f))
 
-internal fun clampToBox(pos: Offset, w: Float, h: Float): Offset =
-    Offset(pos.x.coerceIn(0f, w), pos.y.coerceIn(0f, h))
+internal fun clampToBox(pos: Offset, w: Float, h: Float): Offset = Offset(pos.x.coerceIn(0f, w), pos.y.coerceIn(0f, h))
 
 sealed interface AnnotationAction {
     data class Add(val page: Int, val stroke: Stroke) : AnnotationAction
@@ -144,9 +140,13 @@ sealed interface AnnotationAction {
 
 class AnnotationUndoSession {
     private val stack = ArrayDeque<AnnotationAction>()
-    fun record(action: AnnotationAction) { stack.addLast(action) }
+    fun record(action: AnnotationAction) {
+        stack.addLast(action)
+    }
     fun pop(): AnnotationAction? = stack.removeLastOrNull()
-    fun clear() { stack.clear() }
+    fun clear() {
+        stack.clear()
+    }
     val size: Int get() = stack.size
 }
 
@@ -178,12 +178,9 @@ fun AnnotationLayer(
     modifier: Modifier = Modifier,
     eraserActive: Boolean = false,
     onEraseAt: ((Offset) -> Unit)? = null,
-
     transformKey: Any? = null,
-
     layerScale: Float = 1f,
 ) {
-
     var eraserPos by remember { mutableStateOf<Offset?>(null) }
 
     val currentOnChange by rememberUpdatedState(onCurrentChange)
@@ -195,7 +192,6 @@ fun AnnotationLayer(
         if (drawMode) {
             Modifier.pointerInput(drawMode, eraserActive, strokeColor, strokeWidthDp, transformKey) {
                 awaitEachGesture {
-
                     val w = size.width.toFloat().coerceAtLeast(1f)
                     val h = size.height.toFloat().coerceAtLeast(1f)
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -220,7 +216,6 @@ fun AnnotationLayer(
                     do {
                         val event = awaitPointerEvent()
                         if (event.changes.count { it.pressed } >= 2) {
-
                             if (!transformed) {
                                 transformed = true
                                 pts = emptyList()
@@ -274,7 +269,6 @@ private fun DrawScope.drawStroke(s: Stroke, layerScale: Float) {
         Path().apply {
             moveTo(pts[0].x, pts[0].y)
             if (pts.size == 1) {
-
                 lineTo(pts[0].x + 0.1f, pts[0].y + 0.1f)
             } else {
                 for (i in 0 until pts.size - 2) {
@@ -308,11 +302,9 @@ fun AnnotationToolbar(
     eraserActive: Boolean = false,
     onEraserToggle: () -> Unit = {},
 ) {
-
     var clearConfirm by remember { mutableStateOf(false) }
     LaunchedEffect(clearConfirm) {
         if (clearConfirm) {
-
             delay(CLEAR_CONFIRM_TIMEOUT_MS)
             clearConfirm = false
         }

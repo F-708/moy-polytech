@@ -159,7 +159,6 @@ class CollegeRouteFinderTest {
 
     @Test
     fun `ортогонализация - уголок выбирается мимо комнаты`() {
-
         val blocker =
             MapRoom(
                 id = "r", number = "105", title = "", note = "", status = "normal",
@@ -176,7 +175,6 @@ class CollegeRouteFinderTest {
 
     @Test
     fun `ортогонализация - комнаты концов сегмента не блокируют`() {
-
         val startRoom =
             MapRoom(
                 id = "a", number = "101", title = "", note = "", status = "normal",
@@ -192,7 +190,6 @@ class CollegeRouteFinderTest {
 
     @Test
     fun `ортогонализация - оба уголка через комнаты, диагональ НЕ остаётся (меньший пробой)`() {
-
         val blockers =
             listOf(
                 MapRoom(id = "r1", number = "301", title = "", note = "", status = "normal", x = 0.1f, y = 0.25f, w = 0.1f, h = 0.1f),
@@ -270,7 +267,6 @@ class CollegeRouteFinderTest {
 
     @Test
     fun `Y7 обход - полилиния маршрута не пробивает чужие кабинеты (синтетика)`() {
-
         val corridor = MapCorridor("c", listOf(MapPoint(0.1f, 0.5f), MapPoint(0.9f, 0.5f)), 0.012f)
         val blocker =
             MapRoom(id = "B", number = "999", title = "", note = "", status = "normal", x = 0.5f, y = 0.35f, w = 0.3f, h = 0.2f)
@@ -308,7 +304,6 @@ class CollegeRouteFinderTest {
 
     @Test
     fun `X26 attach проекция огибает чужую комнату - без пробоя стены`() {
-
         val corridor =
             MapCorridor(
                 "c",
@@ -344,8 +339,7 @@ class CollegeRouteFinderTest {
         val a = MapPoint(0.1f, 0.1f)
         val b = MapPoint(0.5f, 0.5f)
 
-        fun r(id: String, x: Float, y: Float, w: Float, h: Float) =
-            MapRoom(id = id, number = id, title = "", note = "", status = "normal", x = x, y = y, w = w, h = h)
+        fun r(id: String, x: Float, y: Float, w: Float, h: Float) = MapRoom(id = id, number = id, title = "", note = "", status = "normal", x = x, y = y, w = w, h = h)
         val blockers =
             listOf(
                 r("b1", 0.1f, 0.25f, 0.04f, 0.1f),

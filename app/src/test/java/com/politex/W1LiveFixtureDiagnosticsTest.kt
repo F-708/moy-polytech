@@ -6,8 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class W1LiveFixtureDiagnosticsTest {
-    private fun liveDocBytes(): ByteArray =
-        javaClass.getResourceAsStream("/fixtures/05-10-2026-raspisanie-uchashhihsya.doc")!!.readBytes()
+    private fun liveDocBytes(): ByteArray = javaClass.getResourceAsStream("/fixtures/05-10-2026-raspisanie-uchashhihsya.doc")!!.readBytes()
 
     @Test
     fun `W1 фикстура понедельника - уроки реальных групп больше нуля`() {

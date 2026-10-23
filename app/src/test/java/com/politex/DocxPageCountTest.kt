@@ -46,8 +46,7 @@ class DocxPageCountTest {
     private fun pageOfText(
         page: Int,
         paragraphs: Int = 20,
-    ): String =
-        (1..paragraphs).joinToString("") { "<w:p><w:r><w:t>Страница $page абзац $it</w:t></w:r></w:p>" }
+    ): String = (1..paragraphs).joinToString("") { "<w:p><w:r><w:t>Страница $page абзац $it</w:t></w:r></w:p>" }
 
     private fun countOf(body: String): Int = MaterialImporter.docxPageCount(ByteArrayInputStream(docxBytes(wrap(body))))
 

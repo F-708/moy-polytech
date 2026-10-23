@@ -2,10 +2,10 @@ package com.politex.content
 
 import com.politex.data.model.CollegeMapData
 import com.politex.util.Csv
+import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest
 import java.util.zip.ZipFile
-import org.json.JSONObject
 
 data class ContentPackManifest(
     val packVersion: Int,
@@ -88,11 +88,10 @@ object ContentPackValidator {
         return declaredBytes <= 0L || length == declaredBytes
     }
 
-    fun sha256Hex(bytes: ByteArray): String =
-        MessageDigest
-            .getInstance("SHA-256")
-            .digest(bytes)
-            .joinToString("") { byte -> ((byte.toInt() and 0xFF) + 0x100).toString(16).substring(1) }
+    fun sha256Hex(bytes: ByteArray): String = MessageDigest
+        .getInstance("SHA-256")
+        .digest(bytes)
+        .joinToString("") { byte -> ((byte.toInt() and 0xFF) + 0x100).toString(16).substring(1) }
 
     fun isZipSlip(entryName: String): Boolean {
         val normalized = entryName.replace('\\', '/')
@@ -145,18 +144,17 @@ object ContentPackValidator {
         return ContentPackRejection.NONE
     }
 
-    internal fun teacherRows(csv: String): List<Pair<String, String>> =
-        Csv.stripBom(csv)
-            .lineSequence()
-            .map { it.trim() }
-            .filter { it.isNotBlank() && !it.startsWith("#") }
-            .map { Csv.splitRow(it) }
-            .map { cells ->
-                val name = cells.getOrElse(0) { "" }.trim()
-                val photo = cells.getOrElse(6) { "" }.trim()
-                name to photo
-            }.filter { (name, _) -> name.isNotBlank() }
-            .toList()
+    internal fun teacherRows(csv: String): List<Pair<String, String>> = Csv.stripBom(csv)
+        .lineSequence()
+        .map { it.trim() }
+        .filter { it.isNotBlank() && !it.startsWith("#") }
+        .map { Csv.splitRow(it) }
+        .map { cells ->
+            val name = cells.getOrElse(0) { "" }.trim()
+            val photo = cells.getOrElse(6) { "" }.trim()
+            name to photo
+        }.filter { (name, _) -> name.isNotBlank() }
+        .toList()
 
     private fun extractEntries(
         archive: ZipFile,

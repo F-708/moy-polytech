@@ -34,9 +34,9 @@ fun NoLessonCard(lessonNumber: Int) {
         border = BorderStroke(1.dp, ColorDividerLight),
         shadowElevation = 0.dp,
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .testTag("no_lesson_card_$lessonNumber"),
+        Modifier
+            .fillMaxWidth()
+            .testTag("no_lesson_card_$lessonNumber"),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -52,11 +52,11 @@ fun NoLessonCard(lessonNumber: Int) {
                     Text(
                         text = "$lessonNumber",
                         style =
-                            TextStyle(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = ColorTextMuted,
-                            ),
+                        TextStyle(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = ColorTextMuted,
+                        ),
                     )
                 }
             }
@@ -64,10 +64,10 @@ fun NoLessonCard(lessonNumber: Int) {
             Text(
                 text = "Урока нет",
                 style =
-                    TextStyle(
-                        fontSize = 14.sp,
-                        color = ColorTextBody,
-                    ),
+                TextStyle(
+                    fontSize = 14.sp,
+                    color = ColorTextBody,
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

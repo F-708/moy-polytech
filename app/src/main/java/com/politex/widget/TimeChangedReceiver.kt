@@ -17,7 +17,6 @@ class TimeChangedReceiver : BroadcastReceiver() {
             Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
             -> {
-
                 val pending = goAsync()
                 WidgetUpdateHelper.widgetScope.launch {
                     try {
@@ -33,7 +32,6 @@ class TimeChangedReceiver : BroadcastReceiver() {
     companion object {
 
         internal suspend fun onTimeChanged(context: Context) {
-
             runCatching { WidgetUpdateHelper.ensureTodaySchedule(context) }
 
             WidgetUpdateHelper.updateAllWidgets(context)

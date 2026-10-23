@@ -67,8 +67,6 @@ class MaterialTextRoutingTest {
         composeRule.waitForIdle()
     }
 
-
-
     private fun insertItem(item: MaterialItemEntity): Long = runBlocking {
         db.materialDao().insertItem(item)
     }
@@ -81,7 +79,6 @@ class MaterialTextRoutingTest {
 
     @Test
     fun `текстовый материал проходит путь импорт предмет тап и показывает текст`() {
-
         val textId = runBlocking {
             MaterialImporter.importMaterial(
                 context,
@@ -133,14 +130,14 @@ class MaterialTextRoutingTest {
 
         composeRule.onNodeWithTag("material_subject_ТОЭ").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("material_item_${id}").assertDoesNotExist()
+        composeRule.onNodeWithTag("material_item_$id").assertDoesNotExist()
         composeRule.onNodeWithTag("subject_back_btn").performClick()
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("material_archive_section").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("material_item_${id}").assertExists()
-        composeRule.onNodeWithTag("material_restore_${id}").assertExists()
+        composeRule.onNodeWithTag("material_item_$id").assertExists()
+        composeRule.onNodeWithTag("material_restore_$id").assertExists()
     }
 
     @Test

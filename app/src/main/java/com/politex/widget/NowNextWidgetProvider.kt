@@ -19,13 +19,11 @@ class NowNextWidgetProvider : AppWidgetProvider() {
         manager: AppWidgetManager,
         ids: IntArray,
     ) {
-
         val pending = goAsync()
         WidgetUpdateHelper.widgetScope.launch {
             try {
                 ids.forEach { id -> runCatching { manager.updateAppWidget(id, buildViews(context, id)) } }
             } finally {
-
                 WidgetAlarm.scheduleNext(context)
                 pending.finish()
             }
@@ -94,12 +92,11 @@ class NowNextWidgetProvider : AppWidgetProvider() {
                     else -> lessons.firstOrNull { it.startMinutes() > now }
                 }
 
-            fun subjectOf(lesson: LessonEntity): String =
-                TeacherWidgetLogic.lessonTitleText(
-                    if (teacherMode) lesson.subjectRaw else SubjectFormatter.getShortName(lesson.subjectRaw),
-                    lesson.groupName,
-                    teacherMode,
-                )
+            fun subjectOf(lesson: LessonEntity): String = TeacherWidgetLogic.lessonTitleText(
+                if (teacherMode) lesson.subjectRaw else SubjectFormatter.getShortName(lesson.subjectRaw),
+                lesson.groupName,
+                teacherMode,
+            )
 
             val nextFromRoom = next?.let { RouteStartResolver.startRoomForLesson(lessons, it, pref) }
             val nowFromRoom = current?.let { RouteStartResolver.startRoomForLesson(lessons, it, pref) }
@@ -150,7 +147,6 @@ class NowNextWidgetProvider : AppWidgetProvider() {
                     views.setViewVisibility(R.id.tv_next_room2, android.view.View.GONE)
                 }
             } else {
-
                 val bells = CollegeBellSchedule.getBellsForDay(WidgetData.dayOfWeek(context))
                 val firstBell = bells.firstOrNull()
                 views.setTextViewText(R.id.tv_now_label, "СЕЙЧАС")
@@ -197,7 +193,6 @@ class NowNextWidgetProvider : AppWidgetProvider() {
             id1: Int,
             id2: Int,
         ) {
-
             val rooms = WidgetData.chooseRooms(lesson, pref)
             if (!showRoom || rooms.isEmpty()) {
                 views.setViewVisibility(id1, android.view.View.GONE)
@@ -228,6 +223,10 @@ class NowNextWidgetProvider : AppWidgetProvider() {
 }
 
 object WidgetData {
+
+    internal var calendarOverride: (() -> java.util.Calendar)? = null
+
+    fun nowCalendar(): java.util.Calendar = calendarOverride?.invoke() ?: java.util.Calendar.getInstance()
 
     fun minuteOfDay(cal: java.util.Calendar): Int = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
 

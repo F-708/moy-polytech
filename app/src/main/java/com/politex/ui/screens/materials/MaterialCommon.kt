@@ -1,6 +1,5 @@
 package com.politex.ui.screens.materials
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,8 +47,6 @@ import com.politex.data.local.entity.MaterialItemEntity
 import com.politex.ui.components.AppCard
 import com.politex.ui.theme.ColorActiveBlue
 import com.politex.ui.theme.ColorBadgeLab
-import com.politex.ui.theme.ColorBgMain
-import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.ColorDangerFill
 import com.politex.ui.theme.ColorSuccess
@@ -89,7 +86,6 @@ fun MaterialViewerTopBar(
     onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
 ) {
-
     val statusBars = WindowInsets.statusBars
     Surface(
 
@@ -98,7 +94,6 @@ fun MaterialViewerTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(testTag)
-
             .drawBehind {
                 val top = statusBars.getTop(this).toFloat()
                 if (top > 0f) drawRect(color = ColorTopBar, topLeft = Offset(0f, -top), size = Size(size.width, top))

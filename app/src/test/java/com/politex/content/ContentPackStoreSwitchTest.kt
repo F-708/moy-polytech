@@ -1,7 +1,6 @@
 package com.politex.content
 
 import androidx.test.core.app.ApplicationProvider
-import java.io.File
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -10,6 +9,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class ContentPackStoreSwitchTest {
@@ -25,13 +25,12 @@ class ContentPackStoreSwitchTest {
         ContentPackStore.reset(context)
     }
 
-    private fun makePackDir(version: Int): File =
-        ContentPackStore
-            .packDir(context, version)
-            .apply {
-                mkdirs()
-                ContentPackValidator.REQUIRED_FILES.forEach { File(this, it).writeText("x") }
-            }
+    private fun makePackDir(version: Int): File = ContentPackStore
+        .packDir(context, version)
+        .apply {
+            mkdirs()
+            ContentPackValidator.REQUIRED_FILES.forEach { File(this, it).writeText("x") }
+        }
 
     @Test
     fun `activate пишет prefs поднимает ревизию и держит активный пакет`() {

@@ -19,9 +19,8 @@ object ExactAlarmGate {
         askedThisSession: Boolean,
     ): Boolean = hintNeeded(sdkInt, canScheduleExact) && !askedThisSession
 
-    fun canScheduleExactAlarms(context: Context): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
+    fun canScheduleExactAlarms(context: Context): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+        (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
 
     fun openSettings(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return

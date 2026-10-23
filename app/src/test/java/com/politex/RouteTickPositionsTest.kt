@@ -26,7 +26,6 @@ class RouteTickPositionsTest {
 
     @Test
     fun `короткий путь - без меток (иначе они мигали бы всей пачкой)`() {
-
         assertTrue(routeTickPositions(100f, 56f, 0f, 28f).isEmpty())
 
         assertEquals(listOf(28f, 84f), routeTickPositions(112f, 56f, 0f, 28f))
@@ -66,7 +65,6 @@ class RouteTickPositionsTest {
 
     @Test
     fun `смещение заворачивается в 0 до step (включая отрицательное)`() {
-
         assertEquals(routeTickPositions(200f, 56f, 0f), routeTickPositions(200f, 56f, 56f))
 
         assertEquals(listOf(42f, 98f, 154f), routeTickPositions(200f, 56f, 70f, 28f))
@@ -76,7 +74,6 @@ class RouteTickPositionsTest {
 
     @Test
     fun `периодичность по offset - бесшовная петля и постоянная скорость`() {
-
         val base = routeTickPositions(500f, 56f, 12f, 28f)
         assertEquals(base, routeTickPositions(500f, 56f, 12f + 56f, 28f))
         assertEquals(base, routeTickPositions(500f, 56f, 12f + 56f * 3f, 28f))
@@ -97,7 +94,6 @@ class RouteTickPositionsTest {
 
     @Test
     fun `при zoom x2 позиции по доле длины те же (однородность по масштабу)`() {
-
         val total = 331f
         val p1 = routeTickPositions(total, 56f, 12f, 28f)
         val p2 = routeTickPositions(total * 2f, 112f, 24f, 56f)
@@ -109,7 +105,6 @@ class RouteTickPositionsTest {
 
     @Test
     fun `на стыках полилиний общего контура метки не дублируются и не теряются`() {
-
         val bases = listOf(0f, 90f)
         val cums = listOf(listOf(0f, 30f, 90f), listOf(0f, 60f))
         val total = 150f

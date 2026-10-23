@@ -51,7 +51,6 @@ class GroupScheduleLogicTest {
 
     @Test
     fun `следующий учебный день пропускает воскресенье`() {
-
         val monday = Calendar.getInstance().apply { set(2026, Calendar.SEPTEMBER, 21) }
         val fromSunday = Calendar.getInstance().apply { set(2026, Calendar.SEPTEMBER, 27) }
         assertEquals(2, groupScheduleDayOfWeek(groupScheduleNextSchoolDay(monday, false)))

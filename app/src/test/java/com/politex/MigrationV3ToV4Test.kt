@@ -124,7 +124,6 @@ class MigrationV3ToV4Test {
             field.isAccessible = true
             field.set(null, null)
         } catch (_: Exception) {
-
         }
     }
 }

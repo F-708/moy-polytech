@@ -34,7 +34,6 @@ class BellServiceWatchdogWorker(
     companion object {
         const val WORK_NAME = "mpk_bell_service_watchdog"
 
-        internal fun shouldScheduleFallback(startFailed: Boolean, sdkInt: Int): Boolean =
-            startFailed && sdkInt >= Build.VERSION_CODES.O
+        internal fun shouldScheduleFallback(startFailed: Boolean, sdkInt: Int): Boolean = startFailed && sdkInt >= Build.VERSION_CODES.O
     }
 }

@@ -33,7 +33,6 @@ class T8NavigationScrollTest {
 
     @Test
     fun `номер урока вне списка но меньше максимума — наверх`() {
-
         assertEquals(0, autoScrollLessonIndex(listOf(1, 3, 4), 2, true))
     }
 }

@@ -12,13 +12,11 @@ class CenterScrollOffsetTest {
 
     @Test
     fun `middle chip is centered`() {
-
         assertEquals(150, centerScrollOffset(chipStart = 500, chipWidth = 100, viewport = 800, maxScroll = 1000))
     }
 
     @Test
     fun `last chip clamps to max`() {
-
         assertEquals(1000, centerScrollOffset(chipStart = 1700, chipWidth = 100, viewport = 800, maxScroll = 1000))
     }
 }

@@ -130,31 +130,28 @@ object ExternalMaterialIntake {
         return runCatching { resolver.getType(uri) }.getOrNull()
     }
 
-    private fun Intent.streamUri(): Uri? =
-        runCatching {
+    private fun Intent.streamUri(): Uri? = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+        }
+    }.getOrNull()
+
+    private fun Intent.streamUris(): List<Uri>? = runCatching {
+        val raw: List<Parcelable>? =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
             } else {
                 @Suppress("DEPRECATION")
-                getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+                getParcelableArrayListExtra<Parcelable>(Intent.EXTRA_STREAM)
             }
-        }.getOrNull()
+        raw?.filterIsInstance<Uri>()
+    }.getOrNull()
 
-    private fun Intent.streamUris(): List<Uri>? =
-        runCatching {
-            val raw: List<Parcelable>? =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
-                } else {
-                    @Suppress("DEPRECATION")
-                    getParcelableArrayListExtra<Parcelable>(Intent.EXTRA_STREAM)
-                }
-            raw?.filterIsInstance<Uri>()
-        }.getOrNull()
-
-    private fun Intent.clipDataUri(): Uri? =
-        clipData
-            ?.takeIf { it.itemCount > 0 }
-            ?.getItemAt(0)
-            ?.uri
+    private fun Intent.clipDataUri(): Uri? = clipData
+        ?.takeIf { it.itemCount > 0 }
+        ?.getItemAt(0)
+        ?.uri
 }

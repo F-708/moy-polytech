@@ -8,19 +8,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SubgroupRoomsTest {
-    private fun splitLesson() =
-        LessonEntity(
-            groupName = "41О",
-            dayOfWeek = 1,
-            lessonNumber = 1,
-            timeStart = "09:00",
-            timeEnd = "09:45",
-            subjectRaw = "Математика",
-            roomFirst = "101",
-            teacherFirst = "",
-            roomSecond = "202",
-            isSplit = true,
-        )
+    private fun splitLesson() = LessonEntity(
+        groupName = "41О",
+        dayOfWeek = 1,
+        lessonNumber = 1,
+        timeStart = "09:00",
+        timeEnd = "09:45",
+        subjectRaw = "Математика",
+        roomFirst = "101",
+        teacherFirst = "",
+        roomSecond = "202",
+        isSplit = true,
+    )
 
     @Test
     fun `NEUTRAL - две кнопки roomFirst и roomSecond`() {

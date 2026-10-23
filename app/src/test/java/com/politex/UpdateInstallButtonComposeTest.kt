@@ -23,10 +23,6 @@ import com.politex.util.GroupParser
 import com.politex.util.TeacherModeStore
 import com.politex.util.UpdateChannel
 import com.politex.util.UpdateChannelStore
-import java.io.File
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,6 +33,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w360dp-h720dp")
@@ -74,9 +74,7 @@ class UpdateInstallButtonComposeTest {
     }
 
     private fun resetInstallController() {
-        UpdateInstallController.downloadOverride = null
-        UpdateInstallController.validateOverride = null
-        UpdateInstallController.installLaunchOverride = null
+        UpdateInstallController.resetForTests()
         UpdateInstallController.cancelAndReset(context)
     }
 

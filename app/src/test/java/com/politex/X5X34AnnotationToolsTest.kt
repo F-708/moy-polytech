@@ -24,7 +24,6 @@ class X5X34AnnotationToolsTest {
 
     @Test
     fun `порог — расстояние меньше порога попадает, больше нет`() {
-
         assertTrue(eraserHitTest(line, Offset(0.5f, 0.519f), threshold = 0.02f))
         assertFalse(eraserHitTest(line, Offset(0.5f, 0.55f), threshold = 0.02f))
 
@@ -42,7 +41,6 @@ class X5X34AnnotationToolsTest {
 
     @Test
     fun `aspect учитывается — вертикальное расстояние домножается на высоту-к-ширине`() {
-
         assertFalse(eraserHitTest(line, Offset(0.5f, 0.53f), threshold = 0.02f, aspect = 1f))
 
         assertTrue(eraserHitTest(line, Offset(0.5f, 0.53f), threshold = 0.02f, aspect = 0.5f))

@@ -25,31 +25,29 @@ class TeacherPulseHintTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun teacherLesson() =
-        LessonEntity(
-            groupName = "41О",
-            dayOfWeek = 1,
-            lessonNumber = 1,
-            timeStart = "08:15",
-            timeEnd = "09:55",
-            subjectRaw = "Математика",
-            roomFirst = "204",
-            teacherFirst = "",
-            dateString = "",
-        )
+    private fun teacherLesson() = LessonEntity(
+        groupName = "41О",
+        dayOfWeek = 1,
+        lessonNumber = 1,
+        timeStart = "08:15",
+        timeEnd = "09:55",
+        subjectRaw = "Математика",
+        roomFirst = "204",
+        teacherFirst = "",
+        dateString = "",
+    )
 
-    private fun studentLesson() =
-        LessonEntity(
-            groupName = "41О",
-            dayOfWeek = 1,
-            lessonNumber = 1,
-            timeStart = "08:15",
-            timeEnd = "09:55",
-            subjectRaw = "Математика",
-            roomFirst = "204",
-            teacherFirst = "Ковалев В.П.",
-            dateString = "",
-        )
+    private fun studentLesson() = LessonEntity(
+        groupName = "41О",
+        dayOfWeek = 1,
+        lessonNumber = 1,
+        timeStart = "08:15",
+        timeEnd = "09:55",
+        subjectRaw = "Математика",
+        roomFirst = "204",
+        teacherFirst = "Ковалев В.П.",
+        dateString = "",
+    )
 
     private fun renderSlot(
         teacherMode: Boolean,

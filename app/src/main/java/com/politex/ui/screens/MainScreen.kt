@@ -62,12 +62,12 @@ import com.politex.data.model.GroupInfo
 import com.politex.ui.components.AppDivider
 import com.politex.ui.components.MainTopBar
 import com.politex.ui.components.UndoSnackbar
+import com.politex.ui.screens.materials.ViewerMode
 import com.politex.ui.theme.ColorBgMain
-import com.politex.ui.theme.ColorBrandBlue
-import com.politex.ui.theme.ColorDividerLight
 import com.politex.ui.theme.ColorNavSelected
 import com.politex.ui.theme.ColorSurfaceHighlight
 import com.politex.ui.theme.ColorTextMuted
+import com.politex.ui.util.daySlots
 import com.politex.ui.viewmodel.ARG_SCROLL
 import com.politex.ui.viewmodel.AppTab
 import com.politex.ui.viewmodel.AppViewModel
@@ -83,8 +83,6 @@ import com.politex.ui.viewmodel.ROUTE_STUDENTS
 import com.politex.ui.viewmodel.ROUTE_TEACHER
 import com.politex.ui.viewmodel.ROUTE_TEACHERS
 import com.politex.ui.viewmodel.tabsForMode
-import com.politex.ui.screens.materials.ViewerMode
-import com.politex.ui.util.daySlots
 import com.politex.update.UpdateInstallController
 import com.politex.util.DateFormats
 import kotlinx.coroutines.flow.collectLatest
@@ -124,12 +122,11 @@ fun buildGroupScheduleRoute(group: String?): String {
 
 enum class BackAction { EXIT, TO_SCHEDULE, NONE }
 
-fun backAction(route: String?): BackAction =
-    when (route?.substringBefore("?")) {
-        ROUTE_COLLEGE -> BackAction.TO_SCHEDULE
-        ROUTE_SCHEDULE, ROUTE_LESSONS, ROUTE_BELLS -> BackAction.EXIT
-        else -> BackAction.NONE
-    }
+fun backAction(route: String?): BackAction = when (route?.substringBefore("?")) {
+    ROUTE_COLLEGE -> BackAction.TO_SCHEDULE
+    ROUTE_SCHEDULE, ROUTE_LESSONS, ROUTE_BELLS -> BackAction.EXIT
+    else -> BackAction.NONE
+}
 
 fun NavController.navigateToTab(route: String) {
     navigate(route) {
@@ -218,75 +215,74 @@ fun MainScreen(
             modifier = Modifier.fillMaxSize(),
 
             topBar = {
-
                 val onMap = backStackEntry?.destination?.route?.substringBefore("?") == ROUTE_MAP.substringBefore("?")
                 if (!ViewerMode.active && !onMap) MainTopBar()
             },
             bottomBar = {
+                if (!ViewerMode.active) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        AppDivider()
+                        NavigationBar(
+                            containerColor = ColorBgMain,
+                            tonalElevation = 0.dp,
 
-                if (!ViewerMode.active) Column(modifier = Modifier.fillMaxWidth()) {
-                    AppDivider()
-                    NavigationBar(
-                        containerColor = ColorBgMain,
-                        tonalElevation = 0.dp,
-
-                        modifier = Modifier.testTag("main_bottom_nav").heightIn(min = 72.dp),
-                    ) {
-                        val tabs =
-                            tabsForMode(uiState.isTeacherMode).map { tab ->
-                                when (tab) {
-                                    AppTab.SCHEDULE -> Triple(tab, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth)
-                                    AppTab.TASKS -> Triple(tab, Icons.Filled.MenuBook, Icons.Outlined.MenuBook)
-                                    AppTab.BELLS -> Triple(tab, Icons.Filled.AccessTime, Icons.Outlined.AccessTime)
-                                    AppTab.COLLEGE -> Triple(tab, Icons.Filled.Apps, Icons.Outlined.Apps)
+                            modifier = Modifier.testTag("main_bottom_nav").heightIn(min = 72.dp),
+                        ) {
+                            val tabs =
+                                tabsForMode(uiState.isTeacherMode).map { tab ->
+                                    when (tab) {
+                                        AppTab.SCHEDULE -> Triple(tab, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth)
+                                        AppTab.TASKS -> Triple(tab, Icons.Filled.MenuBook, Icons.Outlined.MenuBook)
+                                        AppTab.BELLS -> Triple(tab, Icons.Filled.AccessTime, Icons.Outlined.AccessTime)
+                                        AppTab.COLLEGE -> Triple(tab, Icons.Filled.Apps, Icons.Outlined.Apps)
+                                    }
                                 }
+
+                            tabs.forEach { (tab, filledIcon, outlinedIcon) ->
+                                val isSelected = selectedTab == tab
+                                NavigationBarItem(
+                                    selected = isSelected,
+                                    onClick = { navController.navigateToTab(tab.route) },
+                                    modifier = Modifier
+                                        .testTag("main_tab_${tab.name.lowercase()}")
+                                        .pulseHalo(tab == AppTab.COLLEGE && updatePending != null),
+                                    icon = {
+                                        Icon(
+                                            imageVector = if (isSelected) filledIcon else outlinedIcon,
+                                            contentDescription = tab.title,
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+
+                                            text = tab.title,
+                                            softWrap = false,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            style =
+                                            androidx.compose.ui.text.TextStyle(
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                fontSize = 10.sp,
+                                                letterSpacing = 0.sp,
+                                            ),
+                                        )
+                                    },
+                                    colors =
+                                    NavigationBarItemDefaults.colors(
+                                        selectedIconColor = ColorNavSelected,
+                                        selectedTextColor = ColorNavSelected,
+                                        indicatorColor = ColorSurfaceHighlight,
+                                        unselectedIconColor = ColorTextMuted,
+                                        unselectedTextColor = ColorTextMuted,
+                                    ),
+                                )
                             }
-
-                        tabs.forEach { (tab, filledIcon, outlinedIcon) ->
-                            val isSelected = selectedTab == tab
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = { navController.navigateToTab(tab.route) },
-                                modifier = Modifier
-                                    .testTag("main_tab_${tab.name.lowercase()}")
-                                    .pulseHalo(tab == AppTab.COLLEGE && updatePending != null),
-                                icon = {
-                                    Icon(
-                                        imageVector = if (isSelected) filledIcon else outlinedIcon,
-                                        contentDescription = tab.title,
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                },
-                                label = {
-                                    Text(
-
-                                        text = tab.title,
-                                        softWrap = false,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        style =
-                                        androidx.compose.ui.text.TextStyle(
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 10.sp,
-                                            letterSpacing = 0.sp,
-                                        ),
-                                    )
-                                },
-                                colors =
-                                NavigationBarItemDefaults.colors(
-                                    selectedIconColor = ColorNavSelected,
-                                    selectedTextColor = ColorNavSelected,
-                                    indicatorColor = ColorSurfaceHighlight,
-                                    unselectedIconColor = ColorTextMuted,
-                                    unselectedTextColor = ColorTextMuted,
-                                ),
-                            )
                         }
                     }
                 }
             },
             snackbarHost = {
-
                 SnackbarHost(hostState = snackbarHostState) { data ->
                     UndoSnackbar(data, onExpire = { snackbarHostState.currentSnackbarData?.dismiss() })
                 }
@@ -313,207 +309,206 @@ fun MainScreen(
                     popEnterTransition = { fadeIn(tween(120)) },
                     popExitTransition = { fadeOut(tween(120)) },
                 ) {
-                val scrollArg =
-                    listOf(
-                        navArgument(ARG_SCROLL) {
-                            type = NavType.StringType
-                            defaultValue = ""
-                        },
-                    )
+                    val scrollArg =
+                        listOf(
+                            navArgument(ARG_SCROLL) {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                        )
 
-                composable(scrollRoutePattern(ROUTE_SCHEDULE), arguments = scrollArg) { entry ->
+                    composable(scrollRoutePattern(ROUTE_SCHEDULE), arguments = scrollArg) { entry ->
 
-                    val groupLessons by viewModel.groupLessons.collectAsState()
-                    val pendingTasks by viewModel.pendingTasks.collectAsState()
+                        val groupLessons by viewModel.groupLessons.collectAsState()
+                        val pendingTasks by viewModel.pendingTasks.collectAsState()
 
-                    var scheduleSlot by rememberSaveable { mutableIntStateOf(0) }
-                    var scheduleDate by rememberSaveable { mutableStateOf("") }
-                    val scrollRequest = rememberScrollRequest(entry)
-                    if (uiState.isTeacherMode) {
-                        val saturdaySchool =
-                            currentGroupInfo.course == 1 || groupLessons.orEmpty().any { it.dayOfWeek == 6 }
-                        val slotDays = daySlots(Calendar.getInstance(), saturdaySchool) { false }
-                        val teacherDate =
-                            scheduleDate.ifBlank {
-                                DateFormats.dotDate(if (scheduleSlot == 0) slotDays.first else slotDays.second)
-                            }
-                        LaunchedEffect(teacherDate) { viewModel.setTeacherDate(teacherDate) }
-                    }
-                    ScheduleScreen(
-                        groupInfo = currentGroupInfo,
-                        groupLessonsFromVm = if (uiState.isTeacherMode) groupLessons.orEmpty() else groupLessons,
-                        pendingTasksFromVm = pendingTasks,
-                        scheduleRepository = viewModel.scheduleRepository,
-                        onSyncRequest = { date -> viewModel.syncSchedule(targetDate = date) },
-
-                        hasSyncError = uiState.hasSyncError,
-                        isSyncing = uiState.isSyncing,
-
-                        onOpenTasks = { navController.navigateToTab(ROUTE_LESSONS) },
-                        onTeacherClick = { name -> navController.navigate(buildTeacherRoute(name)) },
-                        onRoomClick = { room, fromRoom ->
-                            navController.navigate(buildMapRoute(room, fromRoom, showRoute = false))
-                        },
-                        scrollToCurrentRequested = scrollRequest == "CURRENT_LESSON",
-                        onScrollToCurrentConsumed = { entry.savedStateHandle[ARG_SCROLL] = "" },
-                        selectedSlot = scheduleSlot,
-                        onSlotChange = { scheduleSlot = it },
-                        selectedDateString = scheduleDate,
-                        onDateChange = { scheduleDate = it },
-                    )
-                }
-
-                composable(ROUTE_LESSONS) {
-                    if (uiState.isTeacherMode) {
-                        LaunchedEffect(Unit) { navController.navigateToTab(ROUTE_SCHEDULE) }
-                    } else {
-                        LessonsHubScreen(
+                        var scheduleSlot by rememberSaveable { mutableIntStateOf(0) }
+                        var scheduleDate by rememberSaveable { mutableStateOf("") }
+                        val scrollRequest = rememberScrollRequest(entry)
+                        if (uiState.isTeacherMode) {
+                            val saturdaySchool =
+                                currentGroupInfo.course == 1 || groupLessons.orEmpty().any { it.dayOfWeek == 6 }
+                            val slotDays = daySlots(Calendar.getInstance(), saturdaySchool) { false }
+                            val teacherDate =
+                                scheduleDate.ifBlank {
+                                    DateFormats.dotDate(if (scheduleSlot == 0) slotDays.first else slotDays.second)
+                                }
+                            LaunchedEffect(teacherDate) { viewModel.setTeacherDate(teacherDate) }
+                        }
+                        ScheduleScreen(
                             groupInfo = currentGroupInfo,
-                            taskRepository = viewModel.taskRepository,
-                            modifier = Modifier.fillMaxSize(),
+                            groupLessonsFromVm = if (uiState.isTeacherMode) groupLessons.orEmpty() else groupLessons,
+                            pendingTasksFromVm = pendingTasks,
+                            scheduleRepository = viewModel.scheduleRepository,
+                            onSyncRequest = { date -> viewModel.syncSchedule(targetDate = date) },
 
-                            snackbarHostState = snackbarHostState,
+                            hasSyncError = uiState.hasSyncError,
+                            isSyncing = uiState.isSyncing,
+
+                            onOpenTasks = { navController.navigateToTab(ROUTE_LESSONS) },
+                            onTeacherClick = { name -> navController.navigate(buildTeacherRoute(name)) },
+                            onRoomClick = { room, fromRoom ->
+                                navController.navigate(buildMapRoute(room, fromRoom, showRoute = false))
+                            },
+                            scrollToCurrentRequested = scrollRequest == "CURRENT_LESSON",
+                            onScrollToCurrentConsumed = { entry.savedStateHandle[ARG_SCROLL] = "" },
+                            selectedSlot = scheduleSlot,
+                            onSlotChange = { scheduleSlot = it },
+                            selectedDateString = scheduleDate,
+                            onDateChange = { scheduleDate = it },
+                        )
+                    }
+
+                    composable(ROUTE_LESSONS) {
+                        if (uiState.isTeacherMode) {
+                            LaunchedEffect(Unit) { navController.navigateToTab(ROUTE_SCHEDULE) }
+                        } else {
+                            LessonsHubScreen(
+                                groupInfo = currentGroupInfo,
+                                taskRepository = viewModel.taskRepository,
+                                modifier = Modifier.fillMaxSize(),
+
+                                snackbarHostState = snackbarHostState,
+                            )
+                        }
+                    }
+
+                    composable(scrollRoutePattern(ROUTE_BELLS), arguments = scrollArg) { entry ->
+                        val scrollRequest = rememberScrollRequest(entry)
+                        BellsScreen(
+                            groupInfo = currentGroupInfo,
+                            scheduleRepository = viewModel.scheduleRepository,
+                            scrollToCurrentRequested = scrollRequest == "CURRENT_BELL",
+                            onScrollToCurrentConsumed = { entry.savedStateHandle[ARG_SCROLL] = "" },
+                        )
+                    }
+
+                    composable(ROUTE_COLLEGE) {
+                        CollegeScreen(
+                            groupInfo = currentGroupInfo,
+                            onOpenSpecialty = { navController.navigate(ROUTE_SPECIALTY) },
+                            onOpenTeachers = { navController.navigate(ROUTE_TEACHERS) },
+                            onOpenSettings = { navController.navigate(ROUTE_SETTINGS) },
+                            onOpenStudents = { navController.navigate(ROUTE_STUDENTS) },
+                            onOpenGroupSchedule = { navController.navigate(buildGroupScheduleRoute(null)) },
+                            onOpenMap = { navController.navigate(buildMapRoute(null, null, showRoute = false)) },
+                        )
+                    }
+
+                    composable(ROUTE_SPECIALTY) {
+                        SpecialtyRoute(
+                            groupInfo = currentGroupInfo,
+                            onGroupChanged = { newGroup -> viewModel.setGroup(newGroup) },
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable(ROUTE_TEACHERS) {
+                        TeachersRoute(
+                            groupInfo = currentGroupInfo,
+                            scheduleRepository = viewModel.scheduleRepository,
+                            onOpenTeacher = { teacher ->
+                                navController.navigate(buildTeacherRoute(teacher.name))
+                            },
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable(
+                        ROUTE_TEACHER,
+                        arguments =
+                        listOf(
+                            navArgument("name") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                        ),
+                    ) { entry ->
+                        TeacherCardRoute(
+                            teacherName = entry.arguments?.getString("name").orEmpty(),
+                            groupInfo = currentGroupInfo,
+                            scheduleRepository = viewModel.scheduleRepository,
+                            onOpenRoom = { room ->
+                                navController.navigate(buildMapRoute(room, null, showRoute = false))
+                            },
+                            onNotFound = { navController.popBackStack() },
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable(
+                        ROUTE_MAP,
+                        arguments =
+                        listOf(
+                            navArgument("room") {
+                                type = NavType.StringType
+                                defaultValue = null
+                                nullable = true
+                            },
+                            navArgument("from") {
+                                type = NavType.StringType
+                                defaultValue = null
+                                nullable = true
+                            },
+                            navArgument("route") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            },
+                        ),
+                    ) { entry ->
+                        CollegeMapScreen(
+                            initialRoom = entry.arguments?.getString("room"),
+
+                            fromRoom = entry.arguments?.getString("from"),
+                            showRoute = entry.arguments?.getBoolean("route") == true,
+                            onBack = { navController.popBackStack() },
+                            onOpenTeacher = { name -> navController.navigate(buildTeacherRoute(name)) },
+                        )
+                    }
+
+                    composable(
+                        ROUTE_GROUP_SCHEDULE,
+                        arguments =
+                        listOf(
+                            navArgument("group") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                        ),
+                    ) { entry ->
+                        GroupScheduleRoute(
+                            group = entry.arguments?.getString("group").orEmpty(),
+                            groupInfo = currentGroupInfo,
+                            scheduleRepository = viewModel.scheduleRepository,
+                            onGroupPicked = { group ->
+                                navController.navigate(buildGroupScheduleRoute(group))
+                            },
+
+                            onChangeGroup = { navController.popBackStack() },
+                            onTeacherClick = { name -> navController.navigate(buildTeacherRoute(name)) },
+                            onRoomClick = { room, fromRoom ->
+                                navController.navigate(buildMapRoute(room, fromRoom, showRoute = false))
+                            },
+                        )
+                    }
+
+                    composable(ROUTE_SETTINGS) {
+                        SettingsRoute(
+                            groupInfo = currentGroupInfo,
+                            onGroupChanged = { newGroup -> viewModel.setGroup(newGroup) },
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable(ROUTE_STUDENTS) {
+                        StudentsRoute(
+                            scheduleRepository = viewModel.scheduleRepository,
+                            onBack = { navController.popBackStack() },
                         )
                     }
                 }
-
-                composable(scrollRoutePattern(ROUTE_BELLS), arguments = scrollArg) { entry ->
-                    val scrollRequest = rememberScrollRequest(entry)
-                    BellsScreen(
-                        groupInfo = currentGroupInfo,
-                        scheduleRepository = viewModel.scheduleRepository,
-                        scrollToCurrentRequested = scrollRequest == "CURRENT_BELL",
-                        onScrollToCurrentConsumed = { entry.savedStateHandle[ARG_SCROLL] = "" },
-                    )
-                }
-
-                composable(ROUTE_COLLEGE) {
-                    CollegeScreen(
-                        groupInfo = currentGroupInfo,
-                        onOpenSpecialty = { navController.navigate(ROUTE_SPECIALTY) },
-                        onOpenTeachers = { navController.navigate(ROUTE_TEACHERS) },
-                        onOpenSettings = { navController.navigate(ROUTE_SETTINGS) },
-                        onOpenStudents = { navController.navigate(ROUTE_STUDENTS) },
-                        onOpenGroupSchedule = { navController.navigate(buildGroupScheduleRoute(null)) },
-                        onOpenMap = { navController.navigate(buildMapRoute(null, null, showRoute = false)) },
-                    )
-                }
-
-                composable(ROUTE_SPECIALTY) {
-                    SpecialtyRoute(
-                        groupInfo = currentGroupInfo,
-                        onGroupChanged = { newGroup -> viewModel.setGroup(newGroup) },
-                        onBack = { navController.popBackStack() },
-                    )
-                }
-
-                composable(ROUTE_TEACHERS) {
-                    TeachersRoute(
-                        groupInfo = currentGroupInfo,
-                        scheduleRepository = viewModel.scheduleRepository,
-                        onOpenTeacher = { teacher ->
-                            navController.navigate(buildTeacherRoute(teacher.name))
-                        },
-                        onBack = { navController.popBackStack() },
-                    )
-                }
-
-                composable(
-                    ROUTE_TEACHER,
-                    arguments =
-                    listOf(
-                        navArgument("name") {
-                            type = NavType.StringType
-                            defaultValue = ""
-                        },
-                    ),
-                ) { entry ->
-                    TeacherCardRoute(
-                        teacherName = entry.arguments?.getString("name").orEmpty(),
-                        groupInfo = currentGroupInfo,
-                        scheduleRepository = viewModel.scheduleRepository,
-                        onOpenRoom = { room ->
-                            navController.navigate(buildMapRoute(room, null, showRoute = false))
-                        },
-                        onNotFound = { navController.popBackStack() },
-                        onBack = { navController.popBackStack() },
-                    )
-                }
-
-                composable(
-                    ROUTE_MAP,
-                    arguments =
-                    listOf(
-                        navArgument("room") {
-                            type = NavType.StringType
-                            defaultValue = null
-                            nullable = true
-                        },
-                        navArgument("from") {
-                            type = NavType.StringType
-                            defaultValue = null
-                            nullable = true
-                        },
-                        navArgument("route") {
-                            type = NavType.BoolType
-                            defaultValue = false
-                        },
-                    ),
-                ) { entry ->
-                    CollegeMapScreen(
-                        initialRoom = entry.arguments?.getString("room"),
-
-                        fromRoom = entry.arguments?.getString("from"),
-                        showRoute = entry.arguments?.getBoolean("route") == true,
-                        onBack = { navController.popBackStack() },
-                        onOpenTeacher = { name -> navController.navigate(buildTeacherRoute(name)) },
-                    )
-                }
-
-                composable(
-                    ROUTE_GROUP_SCHEDULE,
-                    arguments =
-                    listOf(
-                        navArgument("group") {
-                            type = NavType.StringType
-                            defaultValue = ""
-                        },
-                    ),
-                ) { entry ->
-                    GroupScheduleRoute(
-                        group = entry.arguments?.getString("group").orEmpty(),
-                        groupInfo = currentGroupInfo,
-                        scheduleRepository = viewModel.scheduleRepository,
-                        onGroupPicked = { group ->
-                            navController.navigate(buildGroupScheduleRoute(group))
-                        },
-
-                        onChangeGroup = { navController.popBackStack() },
-                        onTeacherClick = { name -> navController.navigate(buildTeacherRoute(name)) },
-                        onRoomClick = { room, fromRoom ->
-                            navController.navigate(buildMapRoute(room, fromRoom, showRoute = false))
-                        },
-                    )
-                }
-
-                composable(ROUTE_SETTINGS) {
-                    SettingsRoute(
-                        groupInfo = currentGroupInfo,
-                        onGroupChanged = { newGroup -> viewModel.setGroup(newGroup) },
-                        onBack = { navController.popBackStack() },
-                    )
-                }
-
-                composable(ROUTE_STUDENTS) {
-                    StudentsRoute(
-                        scheduleRepository = viewModel.scheduleRepository,
-                        onBack = { navController.popBackStack() },
-                    )
-                }
-                }
             }
         }
-
     }
 }
 

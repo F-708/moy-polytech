@@ -30,7 +30,6 @@ class TimeChangedReceiverTest {
 
     @Test
     fun `onTimeChanged перепланирует без исключений`() {
-
         kotlinx.coroutines.runBlocking { TimeChangedReceiver.onTimeChanged(ctx) }
     }
 }

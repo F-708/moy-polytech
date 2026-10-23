@@ -48,13 +48,11 @@ class NotificationQuietWindowTest {
 
     @Test
     fun beforeSix_quietEvenWithoutLessonsData() {
-
         assertTrue(BellCountdownNotifier.isQuietWindow(5 * 60 + 59, null))
     }
 
     @Test
     fun atSixResume_plusLessonsEndedFromYesterdayStillVisible() {
-
         assertFalse(BellCountdownNotifier.isQuietWindow(resume, endOfLessons))
     }
 
@@ -85,7 +83,6 @@ class NotificationQuietWindowTest {
 
     @Test
     fun morningWindow_crossesMidnightIntoNextDay() {
-
         var quiet = 0
         var visible = 0
         for (minute in 0 until 24 * 60) {

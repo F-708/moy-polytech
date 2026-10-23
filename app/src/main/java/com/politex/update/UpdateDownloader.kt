@@ -5,12 +5,12 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import com.politex.BuildConfig
-import java.io.File
-import java.security.MessageDigest
-import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
+import java.io.File
+import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 
 enum class ApkRejection {
     NONE,
@@ -121,14 +121,13 @@ object UpdateDownloader {
         ownSignatureSha256: String?,
         currentVersionCode: Int,
         apk: ApkMetadata?,
-    ): ApkRejection =
-        when {
-            apk == null -> ApkRejection.UNREADABLE
-            !apkPackageAccepted(ownPackage, apk.packageName) -> ApkRejection.PACKAGE
-            !signatureAccepted(ownSignatureSha256, apk.signatureSha256) -> ApkRejection.SIGNATURE
-            !versionAccepted(apk.versionCode, currentVersionCode) -> ApkRejection.VERSION
-            else -> ApkRejection.NONE
-        }
+    ): ApkRejection = when {
+        apk == null -> ApkRejection.UNREADABLE
+        !apkPackageAccepted(ownPackage, apk.packageName) -> ApkRejection.PACKAGE
+        !signatureAccepted(ownSignatureSha256, apk.signatureSha256) -> ApkRejection.SIGNATURE
+        !versionAccepted(apk.versionCode, currentVersionCode) -> ApkRejection.VERSION
+        else -> ApkRejection.NONE
+    }
 
     internal fun apkPackageAccepted(
         ownPackage: String,
@@ -138,10 +137,9 @@ object UpdateDownloader {
     internal fun signatureAccepted(
         installedSignatureSha256: String?,
         apkSignatureSha256: String?,
-    ): Boolean =
-        !installedSignatureSha256.isNullOrBlank() &&
-            !apkSignatureSha256.isNullOrBlank() &&
-            installedSignatureSha256.equals(apkSignatureSha256, ignoreCase = true)
+    ): Boolean = !installedSignatureSha256.isNullOrBlank() &&
+        !apkSignatureSha256.isNullOrBlank() &&
+        installedSignatureSha256.equals(apkSignatureSha256, ignoreCase = true)
 
     internal fun versionAccepted(
         apkVersionCode: Int?,
@@ -164,69 +162,64 @@ object UpdateDownloader {
         expectedBytes: Long,
     ): Boolean = actualBytes > 0L && (expectedBytes <= 0L || actualBytes == expectedBytes)
 
-    internal fun rejectionMessage(rejection: ApkRejection): String =
-        when (rejection) {
-            ApkRejection.PACKAGE -> "Обновление отклонено: пакет не совпадает"
-            ApkRejection.SIGNATURE -> "Обновление отклонено: подпись не совпадает"
-            ApkRejection.VERSION -> "Обновление отклонено: версия не новее установленной"
-            ApkRejection.UNREADABLE, ApkRejection.NONE -> "Файл обновления не найден или повреждён"
-        }
+    internal fun rejectionMessage(rejection: ApkRejection): String = when (rejection) {
+        ApkRejection.PACKAGE -> "Обновление отклонено: пакет не совпадает"
+        ApkRejection.SIGNATURE -> "Обновление отклонено: подпись не совпадает"
+        ApkRejection.VERSION -> "Обновление отклонено: версия не новее установленной"
+        ApkRejection.UNREADABLE, ApkRejection.NONE -> "Файл обновления не найден или повреждён"
+    }
 
     internal fun safeFileName(raw: String): String {
         val sanitized = raw.replace(Regex("[^A-Za-z0-9._-]"), "_")
         return sanitized.ifBlank { "latest" }
     }
 
-    internal fun sha256Hex(bytes: ByteArray): String =
-        MessageDigest
-            .getInstance("SHA-256")
-            .digest(bytes)
-            .joinToString("") { byte -> ((byte.toInt() and 0xFF) + 0x100).toString(16).substring(1) }
+    internal fun sha256Hex(bytes: ByteArray): String = MessageDigest
+        .getInstance("SHA-256")
+        .digest(bytes)
+        .joinToString("") { byte -> ((byte.toInt() and 0xFF) + 0x100).toString(16).substring(1) }
 
     private fun readApkMetadata(
         manager: PackageManager,
         path: String,
-    ): ApkMetadata? =
-        runCatching {
-            val flags =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                } else {
-                    @Suppress("DEPRECATION")
-                    PackageManager.GET_SIGNATURES
-                }
-            val info =
-                manager.getPackageArchiveInfo(path, flags)
-                    ?: return@runCatching null
-            ApkMetadata(
-                packageName = info.packageName,
-                versionCode = info.versionCodeCompat(),
-                signatureSha256 = info.signatureSha256(),
-            )
-        }.getOrNull()
+    ): ApkMetadata? = runCatching {
+        val flags =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                PackageManager.GET_SIGNING_CERTIFICATES
+            } else {
+                @Suppress("DEPRECATION")
+                PackageManager.GET_SIGNATURES
+            }
+        val info =
+            manager.getPackageArchiveInfo(path, flags)
+                ?: return@runCatching null
+        ApkMetadata(
+            packageName = info.packageName,
+            versionCode = info.versionCodeCompat(),
+            signatureSha256 = info.signatureSha256(),
+        )
+    }.getOrNull()
 
     private fun installedSignatureSha256(
         manager: PackageManager,
         packageName: String,
-    ): String? =
-        runCatching {
-            val info =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    manager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                } else {
-                    @Suppress("DEPRECATION")
-                    manager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-                }
-            info.signatureSha256()
-        }.getOrNull()
+    ): String? = runCatching {
+        val info =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                manager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            } else {
+                @Suppress("DEPRECATION")
+                manager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+            }
+        info.signatureSha256()
+    }.getOrNull()
 
-    private fun PackageInfo.versionCodeCompat(): Int =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            longVersionCode.toInt()
-        } else {
-            @Suppress("DEPRECATION")
-            versionCode
-        }
+    private fun PackageInfo.versionCodeCompat(): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        longVersionCode.toInt()
+    } else {
+        @Suppress("DEPRECATION")
+        versionCode
+    }
 
     private fun PackageInfo.signatureSha256(): String? {
         val signers =

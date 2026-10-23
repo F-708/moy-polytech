@@ -48,23 +48,22 @@ import com.politex.ui.screens.GroupScheduleRoute
 import com.politex.ui.screens.TeacherCardRoute
 import com.politex.ui.screens.TeachersRoute
 import com.politex.ui.screens.pulseHalo
-import com.politex.update.UpdateInstallController
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorNavSelected
 import com.politex.ui.theme.ColorSurfaceHighlight
 import com.politex.ui.theme.ColorTextMuted
+import com.politex.update.UpdateInstallController
 
 enum class TeacherTab { SCHEDULE, BELLS, MORE }
 
 object TeacherNavLogic {
     const val EXTRA_OPEN_TAB = "EXTRA_OPEN_TAB"
 
-    fun tabForExtra(raw: String?): TeacherTab =
-        when (raw?.trim()?.lowercase()) {
-            "bells", "week" -> TeacherTab.BELLS
-            "more" -> TeacherTab.MORE
-            else -> TeacherTab.SCHEDULE
-        }
+    fun tabForExtra(raw: String?): TeacherTab = when (raw?.trim()?.lowercase()) {
+        "bells", "week" -> TeacherTab.BELLS
+        "more" -> TeacherTab.MORE
+        else -> TeacherTab.SCHEDULE
+    }
 }
 
 private sealed interface TeacherSubPage {
@@ -117,7 +116,6 @@ fun TeacherNav(
         modifier = modifier.fillMaxSize(),
         containerColor = ColorBgMain,
         bottomBar = {
-
             NavigationBar(
                 containerColor = ColorBgMain,
                 tonalElevation = 0.dp,
@@ -158,13 +156,13 @@ fun TeacherNav(
                             )
                         },
                         colors =
-                            NavigationBarItemDefaults.colors(
-                                selectedIconColor = ColorNavSelected,
-                                selectedTextColor = ColorNavSelected,
-                                indicatorColor = ColorSurfaceHighlight,
-                                unselectedIconColor = ColorTextMuted,
-                                unselectedTextColor = ColorTextMuted,
-                            ),
+                        NavigationBarItemDefaults.colors(
+                            selectedIconColor = ColorNavSelected,
+                            selectedTextColor = ColorNavSelected,
+                            indicatorColor = ColorSurfaceHighlight,
+                            unselectedIconColor = ColorTextMuted,
+                            unselectedTextColor = ColorTextMuted,
+                        ),
                         modifier = Modifier
                             .testTag("teacher_tab_${spec.tab.name.lowercase()}")
                             .pulseHalo(spec.tab == TeacherTab.MORE && updatePending != null),

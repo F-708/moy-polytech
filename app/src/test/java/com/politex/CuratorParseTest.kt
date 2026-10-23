@@ -20,8 +20,7 @@ class CuratorParseTest {
         CuratorStore.resetInMemory()
     }
 
-    private fun fixture(): ByteArray =
-        javaClass.getResourceAsStream("/fixtures/05-10-2026-raspisanie-uchashhihsya.doc")!!.readBytes()
+    private fun fixture(): ByteArray = javaClass.getResourceAsStream("/fixtures/05-10-2026-raspisanie-uchashhihsya.doc")!!.readBytes()
 
     private fun parseFixture() = MpkScheduleParser.parseFileAllGroups(
         fixture(),

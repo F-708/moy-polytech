@@ -133,7 +133,6 @@ class DocZoomTest {
 
     @Test
     fun `GG14 sheetCount - покрывает высоту текста с зазорами`() {
-
         assertEquals(1, sheetCount(1000f, 1414f, 8f))
 
         assertEquals(1, sheetCount(1414f, 1414f, 8f))

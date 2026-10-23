@@ -161,7 +161,10 @@ class MigrationV9ToV10Test {
         var n = 0
         db.openHelper.readableDatabase
             .query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='teacher_overrides'")
-            .use { c -> c.moveToFirst(); n = c.getInt(0) }
+            .use { c ->
+                c.moveToFirst()
+                n = c.getInt(0)
+            }
         assertEquals("таблица teacher_overrides создана", 1, n)
 
         runBlocking {
@@ -255,7 +258,10 @@ class MigrationV9ToV10Test {
         var n = 0
         db.openHelper.readableDatabase
             .query("SELECT COUNT(*) FROM teacher_lessons WHERE dateString='05.10.2026'")
-            .use { c -> c.moveToFirst(); n = c.getInt(0) }
+            .use { c ->
+                c.moveToFirst()
+                n = c.getInt(0)
+            }
         assertEquals("кэш расписания преподавателей на месте", 1, n)
         resetSingleton()
     }

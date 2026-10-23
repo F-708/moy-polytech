@@ -219,8 +219,7 @@ object CollegeRouteFinder {
         return Vertex(a.x + tc * dx, a.y + tc * dy)
     }
 
-    private fun projectOnSegment(p: Vertex, a: Vertex, b: Vertex): Vertex? =
-        projectPointOnSegment(p, a, b)?.takeIf { dist(p, it) <= PROJECTION_RADIUS }
+    private fun projectOnSegment(p: Vertex, a: Vertex, b: Vertex): Vertex? = projectPointOnSegment(p, a, b)?.takeIf { dist(p, it) <= PROJECTION_RADIUS }
 
     private fun floorPath(
         floor: FloorMap,
@@ -357,7 +356,6 @@ object CollegeRouteFinder {
                 .map { floatArrayOf(it.x - it.w / 2f, it.y - it.h / 2f, it.x + it.w / 2f, it.y + it.h / 2f) }
 
             fun snap(x: Float, y: Float): Int {
-
                 var best = -1
                 var bd = Float.MAX_VALUE
                 var bestClean = -1
@@ -462,8 +460,7 @@ object CollegeRouteFinder {
         if (points.size < 2) return points
         val rects = roomRects(rooms)
 
-        fun contains(r: FloatArray, p: MapPoint): Boolean =
-            p.x >= r[0] && p.x <= r[2] && p.y >= r[1] && p.y <= r[3]
+        fun contains(r: FloatArray, p: MapPoint): Boolean = p.x >= r[0] && p.x <= r[2] && p.y >= r[1] && p.y <= r[3]
 
         fun crosses(a: MapPoint, b: MapPoint, r: FloatArray): Boolean {
             val minY = Math.min(a.y, b.y)
@@ -556,11 +553,9 @@ object CollegeRouteFinder {
         if (points.size < 2) return points
         val rects = roomRects(rooms)
 
-        fun contains(r: FloatArray, p: MapPoint): Boolean =
-            p.x >= r[0] && p.x <= r[2] && p.y >= r[1] && p.y <= r[3]
+        fun contains(r: FloatArray, p: MapPoint): Boolean = p.x >= r[0] && p.x <= r[2] && p.y >= r[1] && p.y <= r[3]
 
-        fun clean(a: MapPoint, b: MapPoint, active: List<FloatArray>): Boolean =
-            active.none { segCrossesRect(a.x, a.y, b.x, b.y, it) }
+        fun clean(a: MapPoint, b: MapPoint, active: List<FloatArray>): Boolean = active.none { segCrossesRect(a.x, a.y, b.x, b.y, it) }
 
         val hAxes = ArrayList<Float>()
         val vAxes = ArrayList<Float>()
@@ -642,7 +637,6 @@ object CollegeRouteFinder {
     }
 
     private fun simplifyPass(pts: List<MapPoint>, eps: Float): List<MapPoint> {
-
         val d = ArrayList<MapPoint>(pts.size)
         for (p in pts) if (d.isEmpty() || distP(d.last(), p) >= 1e-4f) d.add(p)
 
@@ -756,8 +750,7 @@ object CollegeRouteFinder {
 
     private fun dist(a: Vertex, b: Vertex): Float = Math.hypot((a.x - b.x).toDouble(), (a.y - b.y).toDouble()).toFloat()
 
-    private fun rectContains(r: FloatArray, x: Float, y: Float): Boolean =
-        x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3]
+    private fun rectContains(r: FloatArray, x: Float, y: Float): Boolean = x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3]
 
     internal fun segCrossesRect(
         ax: Float,

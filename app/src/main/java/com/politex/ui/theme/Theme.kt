@@ -13,7 +13,6 @@ import androidx.core.view.WindowCompat
 
 @Composable
 fun MyApplicationTheme(content: @Composable () -> Unit) {
-
     val dark = darkThemeState.value
 
     val scheme =

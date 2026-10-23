@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -51,15 +52,14 @@ import com.politex.ui.components.AppCard
 import com.politex.ui.components.SectionCaption
 import com.politex.ui.components.SubPageHeader
 import com.politex.ui.theme.ColorBgMain
+import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.ColorBrandFill
-import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorTextBody
 import com.politex.ui.theme.ColorTextMuted
 import com.politex.ui.theme.ColorTextTitle
 import com.politex.ui.util.bouncyClickable
 import com.politex.util.BellCountdownNotifier
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun TeacherSettingsScreen(
@@ -268,11 +268,9 @@ enum class BellStyleChoice(val title: String) {
     SECONDS("С секундами"),
 }
 
-internal fun bellStyleForChoice(choice: BellStyleChoice): BellCountdownNotifier.Style =
-    when (choice) {
-        BellStyleChoice.MINUTES -> BellCountdownNotifier.Style.COMPACT
-        BellStyleChoice.SECONDS -> BellCountdownNotifier.Style.WITH_SECONDS
-    }
+internal fun bellStyleForChoice(choice: BellStyleChoice): BellCountdownNotifier.Style = when (choice) {
+    BellStyleChoice.MINUTES -> BellCountdownNotifier.Style.COMPACT
+    BellStyleChoice.SECONDS -> BellCountdownNotifier.Style.WITH_SECONDS
+}
 
-internal fun choiceForStyle(style: BellCountdownNotifier.Style): BellStyleChoice =
-    if (style == BellCountdownNotifier.Style.WITH_SECONDS) BellStyleChoice.SECONDS else BellStyleChoice.MINUTES
+internal fun choiceForStyle(style: BellCountdownNotifier.Style): BellStyleChoice = if (style == BellCountdownNotifier.Style.WITH_SECONDS) BellStyleChoice.SECONDS else BellStyleChoice.MINUTES

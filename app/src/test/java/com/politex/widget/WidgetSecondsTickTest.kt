@@ -35,8 +35,6 @@ import java.util.TimeZone
 class WidgetSecondsTickTest {
     private val ctx: Context = ApplicationProvider.getApplicationContext()
 
-    private lateinit var realTz: TimeZone
-
     private val shadowAm
         get() = shadowOf(ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
 
@@ -45,8 +43,7 @@ class WidgetSecondsTickTest {
 
     @Before
     fun setUp() {
-        realTz = TimeZone.getDefault()
-        freezeAtTuesday1030(realTz)
+        WidgetData.calendarOverride = { fixedTuesday1030() }
         ShadowAlarmManager.reset()
         WidgetUpdateHelper.getPrefs(ctx).edit().clear().apply()
         WidgetUpdateHelper.invalidateSecondsCache()
@@ -56,16 +53,22 @@ class WidgetSecondsTickTest {
 
     @After
     fun tearDown() {
+        WidgetData.calendarOverride = null
         WidgetUpdateHelper.invalidateSecondsCache()
         BellCountdownWidgetProvider.invalidateLastLessonCache()
         WidgetData.invalidateCache()
-        TimeZone.setDefault(realTz)
     }
 
-    private fun alarmFor(action: String) =
-        shadowAm.scheduledAlarms.firstOrNull {
-            shadowOf(it.operation).savedIntent?.action == action
+    private fun fixedTuesday1030(): Calendar = Calendar
+        .getInstance(TimeZone.getTimeZone("UTC"))
+        .apply {
+            clear()
+            set(2026, Calendar.OCTOBER, 20, 10, 30, 0)
         }
+
+    private fun alarmFor(action: String) = shadowAm.scheduledAlarms.firstOrNull {
+        shadowOf(it.operation).savedIntent?.action == action
+    }
 
     private fun bindSecondsWidget(id: Int) {
         shadowAwm.bindAppWidgetId(id, ComponentName(ctx, BellCountdownWidgetProvider::class.java))
@@ -176,11 +179,11 @@ class WidgetSecondsTickTest {
     fun `публичный scheduleNextSecond без строки планирует тик по реальным виджетам`() {
         BellCountdownNotifier.setEnabled(ctx, false)
         bindSecondsWidget(7)
-        assertTrue(WidgetUpdateHelper.hasSecondsWidgets(ctx))
+        assertTrue(tickDiagnostics(), WidgetUpdateHelper.hasSecondsWidgets(ctx))
 
         WidgetAlarm.scheduleNextSecond(ctx)
 
-        assertNotNull(alarmFor(WidgetAlarmReceiver.ACTION_SECOND_TICK))
+        assertNotNull(tickDiagnostics(), alarmFor(WidgetAlarmReceiver.ACTION_SECOND_TICK))
     }
 
     @Test
@@ -235,9 +238,9 @@ class WidgetSecondsTickTest {
 
         assertNotNull("виджет перерисован минутным тиком", countdownLabel(7))
         assertNotNull(alarmFor(WidgetAlarmReceiver.ACTION_TICK))
-        assertNotNull(alarmFor(WidgetAlarmReceiver.ACTION_SECOND_TICK))
+        assertNotNull(tickDiagnostics(), alarmFor(WidgetAlarmReceiver.ACTION_SECOND_TICK))
         assertTrue(
-            "минутный тик обязан поднимать widget-only сервис как основной драйвер секунд",
+            "минутный тик обязан поднимать widget-only сервис как основной драйвер секунд; ${tickDiagnostics()}",
             bellServiceStartRequested(app),
         )
 
@@ -259,7 +262,7 @@ class WidgetSecondsTickTest {
 
         assertNotNull("минутный тик после перезагрузки планируется без строки", alarmFor(WidgetAlarmReceiver.ACTION_TICK))
         assertTrue(
-            "после перезагрузки widget-only сервис - основной драйвер секунд",
+            "после перезагрузки widget-only сервис - основной драйвер секунд; ${tickDiagnostics()}",
             bellServiceStartRequested(app),
         )
 
@@ -387,6 +390,10 @@ class WidgetSecondsTickTest {
         assertFalse(BellTimerService.widgetTickNeededFor(false, 10 * 60))
     }
 
+    private fun tickDiagnostics(): String = "minuteOfDay=${WidgetData.minuteOfDay(WidgetData.nowCalendar())} tz=${TimeZone.getDefault().id} " +
+        "nowMs=${System.currentTimeMillis()} hasSeconds=${WidgetUpdateHelper.hasSecondsWidgets(ctx)} " +
+        "serviceRunning=${BellTimerService.isRunning} lineOn=${BellCountdownNotifier.isEnabled(ctx)}"
+
     @Test
     fun `sync - строка выключена, секундный виджет жив - запрашивает старт виджет-сервиса`() {
         BellCountdownNotifier.setEnabled(ctx, false)
@@ -394,8 +401,8 @@ class WidgetSecondsTickTest {
         val app = shadowOf(ctx.applicationContext as Application)
         app.clearStartedServices()
 
-        assertTrue(BellTimerService.sync(ctx))
-        assertTrue(bellServiceStartRequested(app))
+        assertTrue(tickDiagnostics(), BellTimerService.sync(ctx))
+        assertTrue(tickDiagnostics(), bellServiceStartRequested(app))
     }
 
     @Test
@@ -419,47 +426,5 @@ class WidgetSecondsTickTest {
 
         assertTrue(BellTimerService.sync(ctx))
         assertTrue(bellServiceStartRequested(app))
-    }
-
-    private fun freezeAtTuesday1030(base: TimeZone) {
-        val real = System.currentTimeMillis()
-        val target =
-            Calendar.getInstance(base).apply {
-                timeInMillis = real
-                set(Calendar.DAY_OF_WEEK, Calendar.TUESDAY)
-                set(Calendar.HOUR_OF_DAY, 10)
-                set(Calendar.MINUTE, 30)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-        while (target.timeInMillis <= real) target.add(Calendar.DAY_OF_YEAR, 7)
-        val delta = (target.timeInMillis - real).toInt()
-        TimeZone.setDefault(
-            object : TimeZone() {
-                init {
-                    @Suppress("LeakingThis")
-                    id = "WIDGET_SECONDS_TICK/FROZEN"
-                }
-
-                override fun getOffset(
-                    era: Int,
-                    year: Int,
-                    month: Int,
-                    day: Int,
-                    dayOfWeek: Int,
-                    milliseconds: Int,
-                ): Int = base.getOffset(era, year, month, day, dayOfWeek, milliseconds) + delta
-
-                override fun getOffset(millis: Long): Int = base.getOffset(millis) + delta
-
-                override fun setRawOffset(offsetMillis: Int) = Unit
-
-                override fun getRawOffset(): Int = base.rawOffset + delta
-
-                override fun useDaylightTime(): Boolean = false
-
-                override fun inDaylightTime(date: java.util.Date): Boolean = false
-            },
-        )
     }
 }

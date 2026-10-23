@@ -34,7 +34,6 @@ class GroupRoomLookupTest {
 
     @Test
     fun currentLesson_roomFromSlot() {
-
         val res =
             findGroupRoomNow(
                 lessons = listOf(lesson(3, "214"), lesson(5, "101")),
@@ -49,7 +48,6 @@ class GroupRoomLookupTest {
 
     @Test
     fun currentSlotButGroupHasNoLesson_fallsToNext() {
-
         val res =
             findGroupRoomNow(
                 lessons = listOf(lesson(5, "101")),
@@ -64,7 +62,6 @@ class GroupRoomLookupTest {
 
     @Test
     fun splitLesson_prefersRoomFirst() {
-
         val res =
             findGroupRoomNow(
                 lessons = listOf(lesson(3, "214", "305", isSplit = true)),
@@ -87,7 +84,6 @@ class GroupRoomLookupTest {
 
     @Test
     fun betweenLessons_nextLessonRoom() {
-
         val res =
             findGroupRoomNow(
                 lessons = listOf(lesson(3, "214"), lesson(5, "101")),
@@ -102,7 +98,6 @@ class GroupRoomLookupTest {
 
     @Test
     fun afterAllLessons_null() {
-
         assertNull(
             findGroupRoomNow(listOf(lesson(3, "214")), 20 * 60, 1),
         )
@@ -110,7 +105,6 @@ class GroupRoomLookupTest {
 
     @Test
     fun beforeAllLessons_firstLesson() {
-
         val res =
             findGroupRoomNow(
                 lessons = listOf(lesson(3, "214"), lesson(1, "102")),
@@ -125,7 +119,6 @@ class GroupRoomLookupTest {
 
     @Test
     fun saturdayBellsUsed() {
-
         val res =
             findGroupRoomNow(
                 lessons = listOf(lesson(7, "305"), lesson(8, "101")),
@@ -144,13 +137,11 @@ class GroupRoomLookupTest {
 
     @Test
     fun noRoomOnLesson_null() {
-
         assertNull(findGroupRoomNow(listOf(lesson(3, "")), 10 * 60 + 30, 1))
     }
 
     @Test
     fun timeStartFallbackWhenBellMissing() {
-
         val res =
             findGroupRoomNow(
                 lessons = listOf(lesson(11, "214", timeStart = "17:55")),
@@ -164,14 +155,12 @@ class GroupRoomLookupTest {
 
     @Test
     fun bellSlotMapsCorrectly() {
-
         val bells = CollegeBellSchedule.getBellsForDay(1)
         assertEquals(3, bells.firstOrNull { 10 * 60 + 30 in it.startMinutes..it.endMinutes }?.lessonNumber)
     }
 
     @Test
     fun resultShape_isSerializableDataClass() {
-
         val r = GroupRoomResult(room = "214", lessonNumber = 3, isNow = true)
         assertEquals("214", r.room)
     }

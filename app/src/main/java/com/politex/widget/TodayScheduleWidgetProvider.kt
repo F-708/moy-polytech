@@ -15,13 +15,11 @@ class TodayScheduleWidgetProvider : AppWidgetProvider() {
         manager: AppWidgetManager,
         ids: IntArray,
     ) {
-
         val pending = goAsync()
         WidgetUpdateHelper.widgetScope.launch {
             try {
                 ids.forEach { id -> runCatching { manager.updateAppWidget(id, buildViews(context, id)) } }
             } finally {
-
                 WidgetAlarm.scheduleNext(context)
                 pending.finish()
             }

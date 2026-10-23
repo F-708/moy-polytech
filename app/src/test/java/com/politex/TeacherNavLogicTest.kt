@@ -15,7 +15,6 @@ class TeacherNavLogicTest {
 
     @Test
     fun `legacy widget tab strings still resolve`() {
-
         assertEquals(TeacherTab.SCHEDULE, TeacherNavLogic.tabForExtra("today"))
         assertEquals(TeacherTab.BELLS, TeacherNavLogic.tabForExtra("week"))
     }

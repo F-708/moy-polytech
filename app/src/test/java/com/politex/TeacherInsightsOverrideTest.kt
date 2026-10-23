@@ -15,20 +15,19 @@ class TeacherInsightsOverrideTest {
     private val name = "Зыбин Олег Львович"
     private val base = listOf(Teacher(name = name))
 
-    private fun lesson(date: String) =
-        LessonEntity(
-            groupName = "41О",
-            dayOfWeek = 2,
-            lessonNumber = 1,
-            timeStart = "08:15",
-            timeEnd = "09:00",
-            subjectRaw = "",
-            roomFirst = "249",
-            teacherFirst = "Зыбин О.Л.",
-            roomSecond = "",
-            teacherSecond = "",
-            dateString = date,
-        )
+    private fun lesson(date: String) = LessonEntity(
+        groupName = "41О",
+        dayOfWeek = 2,
+        lessonNumber = 1,
+        timeStart = "08:15",
+        timeEnd = "09:00",
+        subjectRaw = "",
+        roomFirst = "249",
+        teacherFirst = "Зыбин О.Л.",
+        roomSecond = "",
+        teacherSecond = "",
+        dateString = date,
+    )
 
     @Test
     fun `без override прежнее поведение W28 — свежий урок ведёт`() {
@@ -91,7 +90,6 @@ class TeacherInsightsOverrideTest {
 
     @Test
     fun `снятие при недельном шаблоне без дат держит шильдик снятым`() {
-
         val ti =
             TeacherInsights(
                 base,

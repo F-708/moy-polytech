@@ -125,7 +125,6 @@ fun TeacherHomeScreen(
     }
 
     Column(modifier = modifier.fillMaxSize().background(ColorBgMain)) {
-
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -147,11 +146,11 @@ fun TeacherHomeScreen(
 
                 Text(
                     text =
-                        if (state.lastSyncEpoch > 0L) {
-                            "обновлено в " + SimpleDateFormat("HH:mm", Locale.forLanguageTag("ru")).format(Date(state.lastSyncEpoch))
-                        } else {
-                            "данные кэша"
-                        },
+                    if (state.lastSyncEpoch > 0L) {
+                        "обновлено в " + SimpleDateFormat("HH:mm", Locale.forLanguageTag("ru")).format(Date(state.lastSyncEpoch))
+                    } else {
+                        "данные кэша"
+                    },
                     style = TextStyle(fontSize = 11.sp, color = ColorTextMuted),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -160,10 +159,10 @@ fun TeacherHomeScreen(
 
             Box(
                 modifier =
-                    Modifier
-                        .sizeIn(minWidth = Tokens.HitTarget, minHeight = Tokens.HitTarget)
-                        .bouncyClickable(onClick = { viewModel.refresh() })
-                        .testTag("teacher_refresh"),
+                Modifier
+                    .sizeIn(minWidth = Tokens.HitTarget, minHeight = Tokens.HitTarget)
+                    .bouncyClickable(onClick = { viewModel.refresh() })
+                    .testTag("teacher_refresh"),
                 contentAlignment = Alignment.Center,
             ) {
                 Surface(
@@ -208,10 +207,10 @@ fun TeacherHomeScreen(
             )
             AppCard(
                 modifier =
-                    Modifier
-                        .size(Tokens.HitTarget)
-                        .bouncyClickable { showDatePicker = true }
-                        .testTag("teacher_calendar_button"),
+                Modifier
+                    .size(Tokens.HitTarget)
+                    .bouncyClickable { showDatePicker = true }
+                    .testTag("teacher_calendar_button"),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -229,7 +228,6 @@ fun TeacherHomeScreen(
         val slots = remember(state.lessons) { teacherSlots(state.lessons) }
         val statusByNumber =
             remember(state.lessons, state.isToday) {
-
                 val c = Calendar.getInstance()
                 val nowMinutes = c.get(Calendar.HOUR_OF_DAY) * 60 + c.get(Calendar.MINUTE)
                 TeacherDayLogic
@@ -240,7 +238,6 @@ fun TeacherHomeScreen(
 
         val listState = rememberLazyListState()
         LaunchedEffect(slots, statusByNumber, state.dateKey) {
-
             val idx = slots.indexOfFirst { (_, lesson) ->
                 lesson != null && statusByNumber[lesson.lessonNumber].let { it == LessonStatus.NOW || it == LessonStatus.NEXT }
             }
@@ -310,7 +307,6 @@ private fun TeacherLessonCard(
         modifier = Modifier.fillMaxWidth().testTag("lesson_card_${lesson.lessonNumber}"),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = RoundedCornerShape(2.dp),
@@ -339,11 +335,11 @@ private fun TeacherLessonCard(
             Text(
                 text = if (noSubject) "Предмет уточняется" else lesson.subject,
                 style =
-                    TextStyle(
-                        fontWeight = if (noSubject) FontWeight.Normal else FontWeight.Bold,
-                        fontSize = if (noSubject) 11.sp else 15.sp,
-                        color = if (noSubject) ColorTextMuted else ColorTextTitle,
-                    ),
+                TextStyle(
+                    fontWeight = if (noSubject) FontWeight.Normal else FontWeight.Bold,
+                    fontSize = if (noSubject) 11.sp else 15.sp,
+                    color = if (noSubject) ColorTextMuted else ColorTextTitle,
+                ),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -494,10 +490,10 @@ private fun TeacherEmptyState(
                 border = BorderStroke(1.dp, ColorBrandBlue),
                 color = ColorBrandFill,
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .bouncyClickable(onClick = onSync)
-                        .testTag("teacher_empty_sync_btn"),
+                Modifier
+                    .fillMaxWidth()
+                    .bouncyClickable(onClick = onSync)
+                    .testTag("teacher_empty_sync_btn"),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

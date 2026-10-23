@@ -51,11 +51,9 @@ private class StubLessonDao : LessonDao {
 private class InMemoryTeacherDao : TeacherLessonDao {
     val rows = mutableListOf<TeacherLessonEntity>()
 
-    override suspend fun getForSurnameOnDate(surnameKey: String, dateString: String): List<TeacherLessonEntity> =
-        rows.filter { it.surnameKey == surnameKey && it.dateString == dateString }.sortedBy { it.lessonNumber }
+    override suspend fun getForSurnameOnDate(surnameKey: String, dateString: String): List<TeacherLessonEntity> = rows.filter { it.surnameKey == surnameKey && it.dateString == dateString }.sortedBy { it.lessonNumber }
 
-    override suspend fun getTeachersOnDate(dateString: String): List<String> =
-        rows.filter { it.dateString == dateString }.map { it.teacherName }.distinct()
+    override suspend fun getTeachersOnDate(dateString: String): List<String> = rows.filter { it.dateString == dateString }.map { it.teacherName }.distinct()
 
     override suspend fun insertLessons(lessons: List<TeacherLessonEntity>) {
         rows += lessons
@@ -69,8 +67,7 @@ private class InMemoryTeacherDao : TeacherLessonDao {
         rows.removeAll { it.dateString in dates }
     }
 
-    override suspend fun getPresentDates(dates: List<String>): List<String> =
-        rows.map { it.dateString }.toSet().filter { it in dates }
+    override suspend fun getPresentDates(dates: List<String>): List<String> = rows.map { it.dateString }.toSet().filter { it in dates }
 }
 
 private class StubTeacherClient(
@@ -101,13 +98,12 @@ private val goodDoc =
 private fun repositoryWith(
     dao: InMemoryTeacherDao,
     client: MpkNetworkClient,
-): ScheduleRepository =
-    ScheduleRepository(
-        lessonDao = StubLessonDao(),
-        networkClient = client,
-        catalogProvider = { emptyList() },
-        teacherLessonDao = dao,
-    )
+): ScheduleRepository = ScheduleRepository(
+    lessonDao = StubLessonDao(),
+    networkClient = client,
+    catalogProvider = { emptyList() },
+    teacherLessonDao = dao,
+)
 
 class TeacherScheduleSyncChainTest {
     @Test

@@ -9,14 +9,12 @@ import org.junit.Test
 class RoomNumberFitTest {
     @Test
     fun `никогда не превышает влезающий размер`() {
-
         val fit = roomNumberFit(raw = 0.5f, median = 1.2f, minReadable = 0.2f)
         assertTrue("fit=$fit должен быть <= raw=0.5", fit!! <= 0.5f)
     }
 
     @Test
     fun `мелкий кабинет не раздувается до медианы`() {
-
         val fit = roomNumberFit(raw = 0.4f, median = 1.0f, minReadable = 0.1f)
         assertEquals(0.4f, fit!!, 0.0001f)
     }
@@ -30,28 +28,24 @@ class RoomNumberFitTest {
 
     @Test
     fun `крупный кабинет всё равно ограничен влезающим размером`() {
-
         val fit = roomNumberFit(raw = 1.05f, median = 1.0f, minReadable = 0.1f)!!
         assertTrue("fit=$fit должен быть <= raw=1.05", fit <= 1.05f)
     }
 
     @Test
     fun `кабинет ровно по медиане получает медиану`() {
-
         val fit = roomNumberFit(raw = 1.0f, median = 1.0f, minReadable = 0.1f)!!
         assertEquals(1.0f, fit, 0.0001f)
     }
 
     @Test
     fun `мелкий кабинет всё равно виден — ужимается до влезающего, а не пропадает`() {
-
         val fit = roomNumberFit(raw = 0.05f, median = 1.0f, minReadable = 0.2f)
         assertEquals(0.05f, fit!!, 0.0001f)
     }
 
     @Test
     fun `размеры большинства кабинетов совпадают`() {
-
         val fits =
             listOf(2.0f, 3.5f, 10f, 1.5f).map {
                 roomNumberFit(raw = it, median = 1.0f, minReadable = 0.1f)!!
@@ -67,7 +61,6 @@ class RoomNumberFitTest {
 
     @Test
     fun `почти все кабинеты получают номер`() {
-
         var raw = 0.1f
         var drawn = 0
         var total = 0
@@ -81,7 +74,6 @@ class RoomNumberFitTest {
 
     @Test
     fun `минимальный размер не выталкивает цифру за рамку`() {
-
         var raw = 0.05f
         while (raw < 3f) {
             roomNumberFit(raw, median = 1.0f, minReadable = 0.9f)?.let {
@@ -93,7 +85,6 @@ class RoomNumberFitTest {
 
     @Test
     fun `почти все кабинеты получают номер при разумном минимуме`() {
-
         var raw = 0.1f
         var drawn = 0
         var total = 0

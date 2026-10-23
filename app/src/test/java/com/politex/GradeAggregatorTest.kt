@@ -11,7 +11,6 @@ class GradeAggregatorTest {
 
     @Test
     fun `дефолтная формула без экзамена`() {
-
         val avg =
             GradeAggregator.average(
                 mapOf(
@@ -25,7 +24,6 @@ class GradeAggregatorTest {
 
     @Test
     fun `дефолтная формула с экзаменом`() {
-
         val avg =
             GradeAggregator.average(
                 mapOf(
@@ -41,7 +39,6 @@ class GradeAggregatorTest {
 
     @Test
     fun `пустая контрольная пропускается без сдвига acc`() {
-
         val avg =
             GradeAggregator.average(
                 mapOf(
@@ -153,7 +150,6 @@ class GradeAggregatorTest {
 
     @Test
     fun `buildTreeLevels — порядок узлов зеркалит порядок сворачивания average`() {
-
         val priority = listOf("EXAM", "CONTROL", "REGULAR")
         assertEquals(
             listOf(
@@ -186,7 +182,6 @@ class GradeAggregatorTest {
 
     @Test
     fun `weightedAverage — неравные веса тянут балл`() {
-
         val avg =
             GradeAggregator.weightedAverage(
                 mapOf("REGULAR" to listOf(8), "EXAM" to listOf(6)),
@@ -197,7 +192,6 @@ class GradeAggregatorTest {
 
     @Test
     fun `weightedAverage — пустые категории и нулевые веса не входят в знаменатель`() {
-
         val avg =
             GradeAggregator.weightedAverage(
                 mapOf(
@@ -262,7 +256,6 @@ class GradeAggregatorTest {
 
     @Test
     fun `plainAverage — все оценки всех категорий одним средним`() {
-
         assertEquals(
             8.25,
             GradeAggregator.plainAverage(mapOf("REGULAR" to listOf(8, 6), "EXAM" to listOf(9, 10)))!!,

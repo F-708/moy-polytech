@@ -1,8 +1,8 @@
 package com.politex
 
+import android.Manifest
 import android.app.Application
 import android.content.Context
-import android.Manifest
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.politex.data.local.MpkDatabase

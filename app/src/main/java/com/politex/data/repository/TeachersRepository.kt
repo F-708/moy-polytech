@@ -29,7 +29,8 @@ class TeachersRepository(
     }
 
     private fun parseTeachers(): List<Teacher> = try {
-        parseCsv(ContentAssets.open(context, "teachers.csv"))
+        val base = parseCsv(ContentAssets.open(context, "teachers.csv"))
+        com.politex.content.OwnerOverridesStore.applyTeacherOverrides(context, base)
     } catch (_: Exception) {
         emptyList()
     }

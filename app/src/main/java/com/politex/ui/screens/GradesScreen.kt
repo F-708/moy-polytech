@@ -108,13 +108,12 @@ internal fun gradeDeleteAction(
     current: DeleteArmState,
     tapped: Boolean,
     expired: Boolean,
-): DeleteArmState =
-    when {
-        expired -> DeleteArmState.NONE
-        !tapped -> current
-        current == DeleteArmState.ARMED -> DeleteArmState.DELETED
-        else -> DeleteArmState.ARMED
-    }
+): DeleteArmState = when {
+    expired -> DeleteArmState.NONE
+    !tapped -> current
+    current == DeleteArmState.ARMED -> DeleteArmState.DELETED
+    else -> DeleteArmState.ARMED
+}
 
 private const val DELETE_ARM_TIMEOUT_MS = 500L
 
@@ -263,7 +262,6 @@ private fun GradeSubjectList(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     if (avg == null) {
-
                         Text(
                             text = "нет оценок",
                             style = TextStyle(fontSize = 11.sp, color = ColorTextMuted),
@@ -408,7 +406,6 @@ private fun GradeSubjectScreen(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-
     BackHandler { onBack() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -490,7 +487,6 @@ private fun GradeSubjectScreen(
             .fillMaxSize()
             .testTag("grades_subject_screen"),
     ) {
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -532,7 +528,6 @@ private fun GradeSubjectScreen(
             contentAlignment = Alignment.Center,
         ) {
             when {
-
                 !loaded -> Unit
                 avg == null -> EmptyDots(modifier = Modifier.testTag("grades_current_avg"))
                 else ->
@@ -558,7 +553,6 @@ private fun GradeSubjectScreen(
                 .testTag("grades_input_panel"),
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
-
                 undoStack.lastOrNull()?.let { deleted ->
                     AppCard(
                         modifier = Modifier
@@ -604,7 +598,6 @@ private fun GradeSubjectScreen(
                         if (pe) entries else entries.filter { it.category == inputCategory }
                     }
                 if (!loaded) {
-
                     Box(
                         modifier =
                         Modifier
@@ -634,7 +627,6 @@ private fun GradeSubjectScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-
                         activeEntries.forEach { e ->
                             val armed = armedId == e.id
                             Box(
@@ -745,7 +737,6 @@ private fun RowScope.CategorySegment(
         modifier =
         Modifier
             .weight(1f)
-
             .heightIn(min = Tokens.ChipScreen)
             .testTag("grades_chip_${category.name}")
             .bouncyClickable(onClick = onClick),
@@ -775,7 +766,6 @@ private fun WeightSlider(
     onValueChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-
     val snap: (Float, Float) -> Int = { x, w ->
         GradeAggregator.snapWeight((x / w).coerceIn(0f, 1f))
     }
@@ -838,12 +828,11 @@ private fun EmptyDots(modifier: Modifier = Modifier) {
 
 private val ROUNDING_MODES = listOf(".0" to ".0", ".00" to ".00", "целое" to "целое")
 
-private fun normalizeMode(mode: String?): String =
-    when (mode) {
-        ".00" -> ".00"
-        "целое", "1" -> "целое"
-        else -> ".0"
-    }
+private fun normalizeMode(mode: String?): String = when (mode) {
+    ".00" -> ".00"
+    "целое", "1" -> "целое"
+    else -> ".0"
+}
 
 @Composable
 private fun GradeSubjectSettingsScreen(
@@ -851,7 +840,6 @@ private fun GradeSubjectSettingsScreen(
     dao: GradeDao,
     onBack: () -> Unit,
 ) {
-
     BackHandler { onBack() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -879,7 +867,6 @@ private fun GradeSubjectSettingsScreen(
             .fillMaxSize()
             .testTag("grades_settings_screen"),
     ) {
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -918,7 +905,6 @@ private fun GradeSubjectSettingsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 12.dp),
             ) {
-
                 SectionCaption("ПРИНЦИП СЧЁТА")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1249,28 +1235,26 @@ private fun subjectAverage(
     byCategory: Map<String, List<Int>>,
     config: GradeConfigEntity?,
     weightsEnabled: Boolean,
-): Double? =
-    GradeAggregator.subjectAverage(
-        byCategory,
-        weightsMap(parseWeightsList(config?.weightsJson) ?: GradeAggregator.DEFAULT_WEIGHTS),
-        weightsEnabled,
-    )
+): Double? = GradeAggregator.subjectAverage(
+    byCategory,
+    weightsMap(parseWeightsList(config?.weightsJson) ?: GradeAggregator.DEFAULT_WEIGHTS),
+    weightsEnabled,
+)
 
-private fun parseWeightsList(json: String?): List<Int>? =
-    try {
-        if (json.isNullOrBlank()) {
+private fun parseWeightsList(json: String?): List<Int>? = try {
+    if (json.isNullOrBlank()) {
+        null
+    } else {
+        val arr = JSONArray(json)
+        if (arr.length() != UI_CATEGORIES.size) {
             null
         } else {
-            val arr = JSONArray(json)
-            if (arr.length() != UI_CATEGORIES.size) {
-                null
-            } else {
-                (0 until arr.length()).map { arr.getInt(it).coerceIn(0, 100) }
-            }
+            (0 until arr.length()).map { arr.getInt(it).coerceIn(0, 100) }
         }
-    } catch (_: Exception) {
-        null
     }
+} catch (_: Exception) {
+    null
+}
 
 private fun weightsMap(weights: List<Int>): Map<String, Int> = UI_CATEGORIES.map { it.name }.zip(weights).toMap()
 
@@ -1292,11 +1276,10 @@ private val CATEGORY_SHORT =
         GradeCategory.EXAM.name to "Экзамен",
     )
 
-private fun isoOf(cal: Calendar): String =
-    String.format(
-        Locale.ROOT,
-        "%04d-%02d-%02d",
-        cal.get(Calendar.YEAR),
-        cal.get(Calendar.MONTH) + 1,
-        cal.get(Calendar.DAY_OF_MONTH),
-    )
+private fun isoOf(cal: Calendar): String = String.format(
+    Locale.ROOT,
+    "%04d-%02d-%02d",
+    cal.get(Calendar.YEAR),
+    cal.get(Calendar.MONTH) + 1,
+    cal.get(Calendar.DAY_OF_MONTH),
+)

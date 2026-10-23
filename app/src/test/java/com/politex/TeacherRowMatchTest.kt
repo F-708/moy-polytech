@@ -18,8 +18,7 @@ class TeacherRowMatchTest {
 
     private val all = listOf(savitskayaS, savitskayaN, ivanov, petrov, krivoshey)
 
-    private fun match(row: String, selected: Teacher) =
-        TeacherInsights.matchRowToTeacher(row, selected, all)
+    private fun match(row: String, selected: Teacher) = TeacherInsights.matchRowToTeacher(row, selected, all)
 
     @Test
     fun `однофамильцы с инициалами — каждая видит только своё`() {

@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
@@ -57,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.politex.content.ContentAssets
 import com.politex.content.ContentPackStore
+import com.politex.content.OwnerOverridesStore
 import com.politex.data.model.GroupInfo
 import com.politex.data.repository.ScheduleRepository
 import com.politex.data.repository.Student
@@ -67,8 +67,8 @@ import com.politex.ui.components.AppDivider
 import com.politex.ui.components.BackButton
 import com.politex.ui.components.GroupSelectionDialog
 import com.politex.ui.components.SearchBar
-import com.politex.ui.components.SectionCaption
 import com.politex.ui.components.SearchEmptyState
+import com.politex.ui.components.SectionCaption
 import com.politex.ui.components.SubPageHeader
 import com.politex.ui.components.UpdateAvailableCard
 import com.politex.ui.theme.ColorAccentGold
@@ -80,7 +80,6 @@ import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.ColorBrandFill
-import com.politex.ui.theme.ColorDividerLight
 import com.politex.ui.theme.ColorOnAccentGold
 import com.politex.ui.theme.ColorSurfaceHighlight
 import com.politex.ui.theme.ColorSurfaceVariantLight
@@ -143,7 +142,6 @@ internal fun TeachersRoute(
     scheduleRepository: ScheduleRepository,
     onOpenTeacher: (Teacher) -> Unit,
     onBack: () -> Unit,
-
     showLeads: Boolean = true,
 ) {
     val context = LocalContext.current
@@ -171,7 +169,6 @@ internal fun TeacherCardRoute(
     onOpenRoom: (String) -> Unit,
     onNotFound: () -> Unit,
     onBack: () -> Unit,
-
     showLeads: Boolean = true,
 ) {
     var teacher by remember(teacherName) { mutableStateOf<Teacher?>(null) }
@@ -182,7 +179,6 @@ internal fun TeacherCardRoute(
             TeacherModeStore.isTeacher(context)
         }
     LaunchedEffect(teacherName) {
-
         teacher =
             com.politex.ui.util.TeachersCache
                 .load()
@@ -194,7 +190,6 @@ internal fun TeacherCardRoute(
     Column(modifier = Modifier.fillMaxSize().background(ColorBgMain)) {
         val found = teacher
         if (found == null) {
-
             com.politex.ui.components.CenteredLoader(modifier = Modifier.fillMaxSize())
         } else {
             TeacherCardPageWrapper(
@@ -259,7 +254,8 @@ private fun OtherMenu(
     onOpenMap: () -> Unit,
 ) {
     val context = LocalContext.current
-    val isAdmin = com.politex.BuildConfig.FLAVOR == "admin"
+    val isAdmin = com.politex.BuildConfig.FLAVOR == "admin" || com.politex.BuildConfig.FLAVOR == "adminplus"
+    val menuExtras = com.politex.ui.FlavorOverlay.collegeMenuExtras
     val teacherModeRevision = TeacherModeStore.revision.intValue
     val isTeacherMode =
         remember(context, teacherModeRevision) {
@@ -291,6 +287,15 @@ private fun OtherMenu(
                         badge = "ADMIN",
                         onClick = onOpenStudents,
                     )
+                }
+                item {
+                    AppDivider()
+                }
+            }
+
+            if (menuExtras != null) {
+                item {
+                    menuExtras()
                 }
                 item {
                     AppDivider()
@@ -977,7 +982,6 @@ private fun TeachersPage(
     scheduleRepository: ScheduleRepository,
     onBack: () -> Unit,
     onOpenTeacher: (Teacher) -> Unit,
-
     showLeads: Boolean = true,
 ) {
     val context = LocalContext.current
@@ -1179,11 +1183,16 @@ private fun TeacherAvatar(
 ) {
     val context = LocalContext.current
     val contentRevision = ContentPackStore.revision.intValue
+    val overridesRevision = OwnerOverridesStore.revision.intValue
     val border = if (highlight) ColorActiveBlue else ColorBorderLight
-    var photoFailed by remember(teacher.photo, contentRevision) { mutableStateOf(false) }
-    if (teacher.photo.isNotBlank() && !photoFailed) {
+    val photoModel =
+        remember(teacher.name, teacher.photo, contentRevision, overridesRevision) {
+            ContentAssets.teacherPhotoModel(context, teacher.name, teacher.photo)
+        }
+    var photoFailed by remember(photoModel) { mutableStateOf(false) }
+    if (photoModel != null && !photoFailed) {
         coil.compose.AsyncImage(
-            model = ContentAssets.photoModel(context, teacher.photo),
+            model = photoModel,
             contentDescription = teacher.name,
             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
             alignment = Alignment.TopCenter,
@@ -1212,12 +1221,11 @@ private fun TeacherAvatar(
     }
 }
 
-internal fun teacherInitial(name: String): String =
-    name
-        .trim()
-        .split(" ")
-        .firstOrNull { it.isNotBlank() }
-        ?.take(1) ?: "?"
+internal fun teacherInitial(name: String): String = name
+    .trim()
+    .split(" ")
+    .firstOrNull { it.isNotBlank() }
+    ?.take(1) ?: "?"
 
 @Composable
 private fun TeacherCardPageWrapper(
@@ -1226,7 +1234,6 @@ private fun TeacherCardPageWrapper(
     scheduleRepository: ScheduleRepository,
     onOpenRoom: (String) -> Unit,
     onBack: () -> Unit,
-
     showLeads: Boolean = true,
 ) {
     val context = LocalContext.current
@@ -1266,7 +1273,6 @@ private fun TeacherCardPageWrapper(
         autoActive = insights?.isActive(teacher.name) == true,
         lessonsWithGroup = insights?.lessonCount(teacher.name) ?: 0,
         onLeadsChipClick = {
-
             val name = teacher.name
             val ins = insights
             when {
@@ -1352,7 +1358,6 @@ private fun TeacherCardPage(
     onLeadsChipClick: () -> Unit = {},
     onOpenRoom: (String) -> Unit = {},
     onBack: () -> Unit,
-
     showLeadsChip: Boolean = true,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -1414,11 +1419,9 @@ private fun TeacherCardPage(
                     color = if (selected) ColorTopBar else ColorBgMain,
                     modifier =
                     Modifier
-
                         .heightIn(min = 44.dp)
                         .bouncyClickable { tab = index },
                 ) {
-
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center,
@@ -1472,7 +1475,6 @@ private fun LeadsChip(
     autoActive: Boolean,
     onClick: () -> Unit,
 ) {
-
     val enabled = canToggleLeads(autoActive, manualOff = autoActive && !leadsNow)
     val text =
         when {
@@ -1486,7 +1488,6 @@ private fun LeadsChip(
         border = BorderStroke(1.dp, if (leadsNow) ColorActiveBlue else ColorBorderLight),
         modifier =
         Modifier
-
             .heightIn(min = 44.dp)
             .then(
                 if (enabled) {
@@ -1523,12 +1524,16 @@ private fun AboutTeacherTab(
     roomsFromSchedule: List<String>,
     subjectsFromSchedule: List<String>,
     onOpenRoom: (String) -> Unit = {},
-
     showLeads: Boolean = true,
 ) {
     val context = LocalContext.current
     val contentRevision = ContentPackStore.revision.intValue
-    var photoFailed by remember(teacher.photo, contentRevision) { mutableStateOf(false) }
+    val overridesRevision = OwnerOverridesStore.revision.intValue
+    val photoModel =
+        remember(teacher.name, teacher.photo, contentRevision, overridesRevision) {
+            ContentAssets.teacherPhotoModel(context, teacher.name, teacher.photo)
+        }
+    var photoFailed by remember(photoModel) { mutableStateOf(false) }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -1545,9 +1550,9 @@ private fun AboutTeacherTab(
                         .fillMaxWidth()
                         .padding(16.dp),
                 ) {
-                    if (teacher.photo.isNotBlank() && !photoFailed) {
+                    if (photoModel != null && !photoFailed) {
                         coil.compose.AsyncImage(
-                            model = ContentAssets.photoModel(context, teacher.photo),
+                            model = photoModel,
                             contentDescription = teacher.name,
                             contentScale = androidx.compose.ui.layout.ContentScale.Fit,
                             onState = { state -> if (state is coil.compose.AsyncImagePainter.State.Error) photoFailed = true },
@@ -1973,7 +1978,6 @@ private fun TeacherScheduleTab(
                                     )
                                 }
                                 if (slot.room.isNotBlank()) {
-
                                     Box(
                                         modifier =
                                         Modifier
@@ -2081,7 +2085,6 @@ private fun InfoRow(
     value: String,
     onClick: (() -> Unit)? = null,
 ) {
-
     val clickModifier =
         if (onClick != null) {
             Modifier

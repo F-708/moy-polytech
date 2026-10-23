@@ -4,9 +4,9 @@ import android.content.Context
 import com.politex.BuildConfig
 import com.politex.util.UpdateChannel
 import com.politex.util.UpdateChannelStore
-import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.util.concurrent.TimeUnit
 
 sealed interface ManualCheckResult {
     data class UpdateFound(
@@ -72,9 +72,8 @@ object UpdateCheckController {
         }
     }
 
-    internal fun updatesEnabled(): Boolean =
-        AppUpdateChecker.UPDATE_ENABLED_FLAVORS.contains(BuildConfig.FLAVOR) &&
-            AppUpdateChecker.isConfigured(BuildConfig.GITHUB_OWNER, BuildConfig.GITHUB_REPO)
+    internal fun updatesEnabled(): Boolean = AppUpdateChecker.UPDATE_ENABLED_FLAVORS.contains(BuildConfig.FLAVOR) &&
+        AppUpdateChecker.isConfigured(BuildConfig.GITHUB_OWNER, BuildConfig.GITHUB_REPO)
 
     internal fun evaluateMeta(
         response: RawMetaResponse,
@@ -90,30 +89,29 @@ object UpdateCheckController {
         cachedBody: String?,
         channel: UpdateChannel,
         currentVersionCode: Int,
-    ): MetaEvaluation =
-        when (status) {
-            HTTP_NOT_MODIFIED -> {
-                val cachedMeta = UpdateMetaSource.parse(cachedBody)
-                if (cachedMeta == null) {
-                    MetaEvaluation(null, null, null, true)
-                } else {
-                    val info = UpdateMetaSource.selectFromMeta(cachedMeta, channel, currentVersionCode)
-                    MetaEvaluation(info, null, null, false)
-                }
+    ): MetaEvaluation = when (status) {
+        HTTP_NOT_MODIFIED -> {
+            val cachedMeta = UpdateMetaSource.parse(cachedBody)
+            if (cachedMeta == null) {
+                MetaEvaluation(null, null, null, true)
+            } else {
+                val info = UpdateMetaSource.selectFromMeta(cachedMeta, channel, currentVersionCode)
+                MetaEvaluation(info, null, null, false)
             }
-            HTTP_OK -> {
-                val text = body.orEmpty()
-                val meta = UpdateMetaSource.parse(text)
-                if (meta == null) {
-                    MetaEvaluation(null, null, null, true)
-                } else {
-                    val info = UpdateMetaSource.selectFromMeta(meta, channel, currentVersionCode)
-                    val etag = responseEtag?.trim()?.takeIf { it.isNotBlank() }
-                    MetaEvaluation(info, etag, etag?.let { text }, false)
-                }
-            }
-            else -> MetaEvaluation(null, null, null, true)
         }
+        HTTP_OK -> {
+            val text = body.orEmpty()
+            val meta = UpdateMetaSource.parse(text)
+            if (meta == null) {
+                MetaEvaluation(null, null, null, true)
+            } else {
+                val info = UpdateMetaSource.selectFromMeta(meta, channel, currentVersionCode)
+                val etag = responseEtag?.trim()?.takeIf { it.isNotBlank() }
+                MetaEvaluation(info, etag, etag?.let { text }, false)
+            }
+        }
+        else -> MetaEvaluation(null, null, null, true)
+    }
 
     private fun fetchBest(context: Context): FetchOutcome {
         val channel = UpdateChannelStore.channel(context)
@@ -161,10 +159,9 @@ object UpdateCheckController {
         }
     }
 
-    private fun apiFallback(channel: UpdateChannel): FetchOutcome =
-        runCatching {
-            if (channel == UpdateChannel.STABLE) fetchLatestRelease() else fetchReleaseList(channel)
-        }.getOrElse { FetchOutcome.Failure }
+    private fun apiFallback(channel: UpdateChannel): FetchOutcome = runCatching {
+        if (channel == UpdateChannel.STABLE) fetchLatestRelease() else fetchReleaseList(channel)
+    }.getOrElse { FetchOutcome.Failure }
 
     private fun fetchLatestRelease(): FetchOutcome {
         val request =
@@ -215,11 +212,10 @@ internal fun channelChangeRequiresCheck(
     selected: UpdateChannel,
 ): Boolean = previous != selected
 
-internal fun channelLabel(channel: UpdateChannel): String =
-    when (channel) {
-        UpdateChannel.STABLE -> "стабильный"
-        UpdateChannel.PREVIEW -> "превью"
-    }
+internal fun channelLabel(channel: UpdateChannel): String = when (channel) {
+    UpdateChannel.STABLE -> "стабильный"
+    UpdateChannel.PREVIEW -> "превью"
+}
 
 internal fun defaultUpdateStatus(
     channel: UpdateChannel,
@@ -230,13 +226,12 @@ internal fun manualResultText(
     result: ManualCheckResult,
     channel: UpdateChannel,
     versionName: String,
-): String =
-    when (result) {
-        is ManualCheckResult.UpdateFound -> "Найдено обновление ${result.info.versionName}"
-        ManualCheckResult.Latest -> "Вы уже используете последнюю версию"
-        ManualCheckResult.NetworkError -> "Нет соединения"
-        ManualCheckResult.Disabled -> defaultUpdateStatus(channel, versionName)
-    }
+): String = when (result) {
+    is ManualCheckResult.UpdateFound -> "Найдено обновление ${result.info.versionName}"
+    ManualCheckResult.Latest -> "Вы уже используете последнюю версию"
+    ManualCheckResult.NetworkError -> "Нет соединения"
+    ManualCheckResult.Disabled -> defaultUpdateStatus(channel, versionName)
+}
 
 internal fun manualResultIsError(result: ManualCheckResult): Boolean = result == ManualCheckResult.NetworkError
 

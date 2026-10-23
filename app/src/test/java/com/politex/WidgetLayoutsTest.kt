@@ -130,13 +130,12 @@ class WidgetLayoutsTest {
                     .newDocumentBuilder()
                     .parse(File(layoutsDir, name))
 
-            fun findById(id: String): Element =
-                doc.getElementsByTagName("*")
-                    .let { nodes ->
-                        (0 until nodes.length)
-                            .map { nodes.item(it) as Element }
-                            .first { it.getAttribute("android:id") == "@+id/$id" }
-                    }
+            fun findById(id: String): Element = doc.getElementsByTagName("*")
+                .let { nodes ->
+                    (0 until nodes.length)
+                        .map { nodes.item(it) as Element }
+                        .first { it.getAttribute("android:id") == "@+id/$id" }
+                }
 
             val bell = findById("iv_idle")
             val text = findById(textId)

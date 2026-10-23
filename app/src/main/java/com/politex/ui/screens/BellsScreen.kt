@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.politex.data.model.BellItem
@@ -61,7 +62,6 @@ import com.politex.ui.theme.ColorActiveBlue
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
-import com.politex.ui.theme.ColorDividerLight
 import com.politex.ui.theme.ColorSuccess
 import com.politex.ui.theme.ColorSurfaceHighlight
 import com.politex.ui.theme.ColorSurfaceVariantLight
@@ -77,7 +77,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import androidx.compose.ui.text.style.TextOverflow
 
 private val RAIL_BLUE: Color get() = ColorActiveBlue
 private val RAIL_BLUE_SOFT: Color get() = ColorActiveBlue.copy(alpha = 0.30f)
@@ -256,7 +255,6 @@ fun BellsScreen(
         val idx = rows.indexOfFirst { (it as? BellRow.Lesson)?.item == target }
         if (idx >= 0) {
             with(density) {
-
                 var posPx = 0f
                 rows.take(idx).forEach { row ->
                     posPx += (if (row is BellRow.Lesson) 56.dp else 26.dp).toPx() + 6.dp.toPx()
@@ -278,7 +276,6 @@ fun BellsScreen(
             .background(ColorBgMain),
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-
             Text(
                 text = "Расписание звонков",
                 style = TextStylePageTitle,
@@ -308,12 +305,10 @@ fun BellsScreen(
                         modifier =
                         Modifier
                             .fillMaxWidth()
-
                             .heightIn(min = 44.dp)
                             .bouncyClickable { selectedScheduleType = type }
                             .testTag("bells_type_${type.name.lowercase()}"),
                     ) {
-
                         Box(
                             modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center,
@@ -391,7 +386,6 @@ fun BellsScreen(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             if (showSundayNote) {
-
                 Surface(
                     shape = RoundedCornerShape(2.dp),
                     color = ColorSurfaceVariantLight,
@@ -520,7 +514,6 @@ private fun LessonBellCard(
     dotProgress: Float?,
     highlight: Boolean = false,
 ) {
-
     val flashAlpha by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (highlight) 0.16f else 0f,
         animationSpec = tween(durationMillis = if (highlight) 150 else 900),
@@ -557,7 +550,6 @@ private fun LessonBellCard(
         Modifier
             .fillMaxWidth()
             .drawBehind {
-
                 if (flashAlpha > 0.005f) {
                     drawRect(
                         color = ColorActiveBlue.copy(alpha = flashAlpha),
@@ -687,7 +679,6 @@ private fun BreakRow(row: BellRow.Break) {
         modifier =
         Modifier
             .fillMaxWidth()
-
             .drawBehind {
                 val cx = size.width + 10.dp.toPx()
                 drawLine(

@@ -66,8 +66,6 @@ class W16PdfReaderModeTest {
         composeRule.waitForIdle()
     }
 
-
-
     private fun waitForNode(tag: String) {
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
@@ -76,7 +74,6 @@ class W16PdfReaderModeTest {
 
     @Test
     fun `открытие pdf включает ViewerMode а стрелка назад сбрасывает`() {
-
         val badPdf = File(context.filesDir, "w16_bad.pdf").apply { writeBytes(byteArrayOf(0x25, 0x50, 0x44, 0x46, 0x21)) }
         val id = runBlocking {
             db.materialDao().insertItem(

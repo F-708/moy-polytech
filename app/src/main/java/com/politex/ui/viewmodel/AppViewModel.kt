@@ -69,22 +69,20 @@ enum class AppTab(
     COLLEGE("Другое", ROUTE_COLLEGE),
 }
 
-fun tabsForMode(isTeacher: Boolean): List<AppTab> =
-    if (isTeacher) AppTab.entries.filter { it != AppTab.TASKS } else AppTab.entries
+fun tabsForMode(isTeacher: Boolean): List<AppTab> = if (isTeacher) AppTab.entries.filter { it != AppTab.TASKS } else AppTab.entries
 
-fun TeacherDayLesson.toLessonEntity(dateString: String): LessonEntity =
-    LessonEntity(
-        groupName = groups.joinToString(", "),
-        dayOfWeek = MpkScheduleParser.parseDotDate(dateString)?.let { Dow.of(it) } ?: 0,
-        lessonNumber = lessonNumber,
-        timeStart = start,
-        timeEnd = end,
-        subjectRaw = subject,
-        roomFirst = room,
-        teacherFirst = "",
-        isSplit = false,
-        dateString = dateString,
-    )
+fun TeacherDayLesson.toLessonEntity(dateString: String): LessonEntity = LessonEntity(
+    groupName = groups.joinToString(", "),
+    dayOfWeek = MpkScheduleParser.parseDotDate(dateString)?.let { Dow.of(it) } ?: 0,
+    lessonNumber = lessonNumber,
+    timeStart = start,
+    timeEnd = end,
+    subjectRaw = subject,
+    roomFirst = room,
+    teacherFirst = "",
+    isSplit = false,
+    dateString = dateString,
+)
 
 data class AppUiState(
     val currentGroupName: String,

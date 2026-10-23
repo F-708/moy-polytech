@@ -20,6 +20,17 @@ object ContentAssets {
         fileName: String,
     ): String = photoModelFor(packFile(context, "$PHOTOS_DIR/$fileName"), fileName)
 
+    fun teacherPhotoModel(
+        context: Context,
+        teacherName: String,
+        fileName: String,
+    ): String? {
+        val override = OwnerOverridesStore.photoFileFor(context, teacherName)
+        if (override != null) return "file://" + override.absolutePath
+        if (fileName.isBlank()) return null
+        return photoModel(context, fileName)
+    }
+
     fun packFile(
         context: Context,
         name: String,
@@ -44,10 +55,9 @@ object ContentAssets {
     internal fun photoModelFor(
         packFile: File?,
         fileName: String,
-    ): String =
-        if (packFile != null) {
-            "file://" + packFile.absolutePath
-        } else {
-            "file:///android_asset/$PHOTOS_DIR/$fileName"
-        }
+    ): String = if (packFile != null) {
+        "file://" + packFile.absolutePath
+    } else {
+        "file:///android_asset/$PHOTOS_DIR/$fileName"
+    }
 }

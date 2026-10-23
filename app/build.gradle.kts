@@ -220,3 +220,8 @@ dependencies {
   // O9: moshi-kotlin-codegen снят вместе с moshi (не используется)
   // "ksp"(libs.moshi.kotlin.codegen)
 }
+
+tasks.withType<Test> {
+  maxHeapSize = "2g"
+  maxParallelForks = 1
+}

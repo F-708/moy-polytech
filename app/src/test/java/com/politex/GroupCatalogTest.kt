@@ -49,7 +49,6 @@ class GroupCatalogTest {
 
     @Test
     fun `поиск понимает регистр и латиницу`() {
-
         assertEquals("41С", catalog.find("41С"))
         assertEquals("41С", catalog.find("41C"))
         assertEquals("41С", catalog.find("41c"))

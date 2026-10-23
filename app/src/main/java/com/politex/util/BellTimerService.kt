@@ -52,21 +52,19 @@ class BellTimerService : Service() {
         startTicking()
     }
 
-    private fun promoteToForeground(): Boolean =
-        try {
-            startForeground(BellCountdownNotifier.NOTIFICATION_ID, foregroundNotification())
-            true
-        } catch (e: Exception) {
-            android.util.Log.w("BellTimerService", "startForeground rejected in onCreate", e)
-            false
-        }
+    private fun promoteToForeground(): Boolean = try {
+        startForeground(BellCountdownNotifier.NOTIFICATION_ID, foregroundNotification())
+        true
+    } catch (e: Exception) {
+        android.util.Log.w("BellTimerService", "startForeground rejected in onCreate", e)
+        false
+    }
 
-    private fun foregroundNotification(): android.app.Notification =
-        if (BellCountdownNotifier.isEnabled(this)) {
-            BellCountdownNotifier.buildNotification(this)
-        } else {
-            WidgetTickNotification.build(this)
-        }
+    private fun foregroundNotification(): android.app.Notification = if (BellCountdownNotifier.isEnabled(this)) {
+        BellCountdownNotifier.buildNotification(this)
+    } else {
+        WidgetTickNotification.build(this)
+    }
 
     override fun onStartCommand(
         intent: Intent?,
@@ -88,7 +86,7 @@ class BellTimerService : Service() {
                         val widgetTick =
                             widgetTickNeededFor(
                                 secondsWidgets,
-                                WidgetData.minuteOfDay(java.util.Calendar.getInstance()),
+                                WidgetData.minuteOfDay(WidgetData.nowCalendar()),
                             )
                         if (!shouldRunTickService(lineOn, widgetTick)) {
                             stopSelf()
@@ -117,7 +115,6 @@ class BellTimerService : Service() {
                         }
 
                         if (secondMode) {
-
                             BellCountdownWidgetProvider.updateSecondsWidgets(this@BellTimerService)
                         }
 
@@ -166,19 +163,17 @@ class BellTimerService : Service() {
             widgetTickNeeded: Boolean,
             serviceRunning: Boolean,
             fgsStartAllowed: Boolean,
-        ): TickDriver =
-            when {
-                serviceRunning -> TickDriver.NONE
-                bellLineEnabled -> if (fgsStartAllowed) TickDriver.LINE_FGS else TickDriver.LINE_FALLBACK_ALARM
-                widgetTickNeeded -> if (fgsStartAllowed) TickDriver.WIDGET_FGS else TickDriver.ALARM_RELAY
-                else -> TickDriver.NONE
-            }
+        ): TickDriver = when {
+            serviceRunning -> TickDriver.NONE
+            bellLineEnabled -> if (fgsStartAllowed) TickDriver.LINE_FGS else TickDriver.LINE_FALLBACK_ALARM
+            widgetTickNeeded -> if (fgsStartAllowed) TickDriver.WIDGET_FGS else TickDriver.ALARM_RELAY
+            else -> TickDriver.NONE
+        }
 
-        fun widgetTickNeeded(context: Context): Boolean =
-            widgetTickNeededFor(
-                WidgetUpdateHelper.hasSecondsWidgets(context),
-                WidgetData.minuteOfDay(java.util.Calendar.getInstance()),
-            )
+        fun widgetTickNeeded(context: Context): Boolean = widgetTickNeededFor(
+            WidgetUpdateHelper.hasSecondsWidgets(context),
+            WidgetData.minuteOfDay(WidgetData.nowCalendar()),
+        )
 
         fun sync(context: Context): Boolean {
             val lineOn = BellCountdownNotifier.isEnabled(context)

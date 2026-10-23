@@ -8,11 +8,10 @@ import java.util.Calendar
 
 class DaySlotsTest {
 
-    private fun cal(day: Int): Calendar =
-        Calendar.getInstance().apply {
-            clear()
-            set(2026, Calendar.SEPTEMBER, day, 12, 0, 0)
-        }
+    private fun cal(day: Int): Calendar = Calendar.getInstance().apply {
+        clear()
+        set(2026, Calendar.SEPTEMBER, day, 12, 0, 0)
+    }
 
     private fun dom(c: Calendar): Int = c.get(Calendar.DAY_OF_MONTH)
 
@@ -68,7 +67,6 @@ class DaySlotsTest {
 
     @Test
     fun `обычный учебный день — fallback с расписанием не задействуется`() {
-
         val (l, r) = slots(22) { c -> dom(c) == 27 }
         assertEquals(22, dom(l))
         assertEquals(23, dom(r))

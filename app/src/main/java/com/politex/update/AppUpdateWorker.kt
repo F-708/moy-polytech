@@ -24,6 +24,7 @@ import com.politex.BuildConfig
 import com.politex.R
 import com.politex.util.UpdateChannelStore
 import com.politex.util.periodicCheckNeedsReschedule
+import com.politex.util.startupCheckNeeded
 import com.politex.util.updateCheckIntervalHours
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -33,6 +34,7 @@ class AppUpdateWorker(
     params: WorkerParameters,
 ) : Worker(context, params) {
     override fun doWork(): Result {
+        rememberStartupCheck(applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE), System.currentTimeMillis())
         val found = UpdateCheckController.checkNow(applicationContext)
         if (found is ManualCheckResult.Latest) {
             UpdateInstallController.clearPending(applicationContext)
@@ -45,6 +47,7 @@ class AppUpdateWorker(
     companion object {
         const val WORK_NAME = "app_update_check"
         const val ONCE_WORK_NAME = "app_update_check_once"
+        const val STARTUP_WORK_NAME = "app_update_check_startup"
         const val CHANNEL_ID = "mpk_app_updates"
         const val NOTIFICATION_ID = 2027
         const val NOTIFICATION_REJECTED_ID = 2028
@@ -52,6 +55,7 @@ class AppUpdateWorker(
         private const val KEY_NOTIFIED_VERSION = "notified_version_name"
         private const val KEY_NOTIFIED_CODE = "notified_version_code"
         private const val KEY_SCHEDULED_CHANNEL = "scheduled_channel"
+        private const val KEY_LAST_STARTUP_CHECK_AT = "last_startup_check_at"
 
         internal var downloadOverride: ((Context, UpdateInfo) -> File?)? = null
 
@@ -124,9 +128,8 @@ class AppUpdateWorker(
         internal fun alreadyNotified(
             prefs: SharedPreferences,
             info: UpdateInfo,
-        ): Boolean =
-            prefs.getInt(KEY_NOTIFIED_CODE, 0) == info.versionCode ||
-                prefs.getString(KEY_NOTIFIED_VERSION, null) == info.versionName
+        ): Boolean = prefs.getInt(KEY_NOTIFIED_CODE, 0) == info.versionCode ||
+            prefs.getString(KEY_NOTIFIED_VERSION, null) == info.versionName
 
         fun schedule(context: Context) {
             if (!AppUpdateChecker.UPDATE_ENABLED_FLAVORS.contains(BuildConfig.FLAVOR)) return
@@ -186,6 +189,39 @@ class AppUpdateWorker(
                     request,
                 )
             }
+        }
+
+        fun checkOnStartup(context: Context) {
+            if (!AppUpdateChecker.UPDATE_ENABLED_FLAVORS.contains(BuildConfig.FLAVOR)) return
+            val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val now = System.currentTimeMillis()
+            if (!startupCheckNeeded(prefs.getLong(KEY_LAST_STARTUP_CHECK_AT, 0L), now)) return
+            rememberStartupCheck(prefs, now)
+            runCatching {
+                val request =
+                    OneTimeWorkRequestBuilder<AppUpdateWorker>()
+                        .setConstraints(
+                            Constraints
+                                .Builder()
+                                .setRequiredNetworkType(NetworkType.CONNECTED)
+                                .build(),
+                        ).build()
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    STARTUP_WORK_NAME,
+                    ExistingWorkPolicy.KEEP,
+                    request,
+                )
+            }
+        }
+
+        internal fun rememberStartupCheck(
+            prefs: SharedPreferences,
+            now: Long,
+        ) {
+            prefs
+                .edit()
+                .putLong(KEY_LAST_STARTUP_CHECK_AT, now)
+                .apply()
         }
 
         internal fun remember(

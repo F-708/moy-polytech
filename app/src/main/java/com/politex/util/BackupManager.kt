@@ -82,7 +82,6 @@ object BackupManager {
             tasks.forEach { task ->
                 array.put(
                     taskToJson(task).apply {
-
                         val reminders = reminderDao.getForTask(task.id)
                         if (reminders.isNotEmpty()) {
                             put(
@@ -380,10 +379,9 @@ private fun StudentTaskEntity.dedupeKey(): String = listOf(groupName, subjectNam
 
 private fun GradeEntryEntity.dedupeKey(): String = listOf(subjectName, category, value, label, dateIso).joinToString("|").lowercase()
 
-private fun LessonEntity.dedupeKey(): String =
-    listOf(groupName, dateString, dayOfWeek, lessonNumber, subjectRaw, timeStart, timeEnd, roomFirst, roomSecond)
-        .joinToString("|")
-        .lowercase()
+private fun LessonEntity.dedupeKey(): String = listOf(groupName, dateString, dayOfWeek, lessonNumber, subjectRaw, timeStart, timeEnd, roomFirst, roomSecond)
+    .joinToString("|")
+    .lowercase()
 
 fun defaultBackupFileName(): String {
     val cal = java.util.Calendar.getInstance()

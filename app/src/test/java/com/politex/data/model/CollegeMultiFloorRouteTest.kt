@@ -114,7 +114,6 @@ class CollegeMultiFloorRouteTest {
 
     @Test
     fun `аварийная лестница не используется`() {
-
         val f =
             mapOf(
                 "1" to floor(listOf(stair("s1a", 0.25f, 0.5f))),

@@ -71,8 +71,7 @@ object ContentPackStore {
         revision.intValue++
     }
 
-    internal fun isUsablePackDir(dir: File): Boolean =
-        dir.isDirectory && ContentPackValidator.REQUIRED_FILES.all { File(dir, it).isFile }
+    internal fun isUsablePackDir(dir: File): Boolean = dir.isDirectory && ContentPackValidator.REQUIRED_FILES.all { File(dir, it).isFile }
 
     internal fun prune(
         context: Context,
@@ -97,10 +96,9 @@ object ContentPackStore {
 fun contentPackStatusText(
     activeVersion: Int,
     generatedAt: String,
-): String =
-    if (activeVersion > 0) {
-        val date = generatedAt.trim().substringBefore('T').takeIf { it.isNotBlank() }
-        if (date != null) "Пакет v$activeVersion от $date" else "Пакет v$activeVersion"
-    } else {
-        "Встроенные данные"
-    }
+): String = if (activeVersion > 0) {
+    val date = generatedAt.trim().substringBefore('T').takeIf { it.isNotBlank() }
+    if (date != null) "Пакет v$activeVersion от $date" else "Пакет v$activeVersion"
+} else {
+    "Встроенные данные"
+}

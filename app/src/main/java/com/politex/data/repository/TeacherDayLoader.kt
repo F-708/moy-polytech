@@ -19,8 +19,7 @@ internal fun teacherTargetCalendar(
     dayOffset: Int,
     customDate: Calendar?,
     base: Calendar = Calendar.getInstance(),
-): Calendar =
-    customDate ?: (base.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, dayOffset) }
+): Calendar = customDate ?: (base.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, dayOffset) }
 
 internal fun defaultTeacherDayOffset(todayDow: Int): Int = if (todayDow == 7) 1 else 0
 
@@ -85,8 +84,7 @@ data class TeacherDay(
 internal fun freshTeacherLessons(
     day: TeacherDay?,
     date: String,
-): List<TeacherDayLesson> =
-    if (day != null && day.date == date) day.lessons else emptyList()
+): List<TeacherDayLesson> = if (day != null && day.date == date) day.lessons else emptyList()
 
 data class NextLesson(
     val dateString: String,
@@ -108,7 +106,6 @@ object TeacherDayLogic {
         var nextAssigned = false
         return lessons.map { l ->
             when {
-
                 l.startMinutes < 0 -> LessonStatus.UPCOMING
                 nowMinutes in l.startMinutes..l.endMinutes -> LessonStatus.NOW
                 nowMinutes > l.endMinutes -> LessonStatus.PAST
@@ -192,10 +189,9 @@ private const val PROFILE_PREFS = "mpk_teacher_profile"
 private const val KEY_LAST_SYNC = "lastSyncEpoch"
 
 object TeacherDayLoader {
-    fun readLastSyncEpoch(context: Context): Long =
-        context
-            .getSharedPreferences(PROFILE_PREFS, Context.MODE_PRIVATE)
-            .getLong(KEY_LAST_SYNC, 0L)
+    fun readLastSyncEpoch(context: Context): Long = context
+        .getSharedPreferences(PROFILE_PREFS, Context.MODE_PRIVATE)
+        .getLong(KEY_LAST_SYNC, 0L)
 
     fun markSyncedNow(context: Context) {
         context
@@ -211,37 +207,36 @@ object TeacherDayLoader {
         profile: TeacherProfile,
         dateString: String,
         allTeachers: List<Teacher>? = null,
-    ): TeacherDay =
-        withContext(Dispatchers.IO) {
-            val cal = MpkScheduleParser.parseDotDate(dateString)
-            val dow = cal?.let { Dow.of(it) } ?: 0
-            val teachers = allTeachers ?: TeachersRepository(context).loadTeachers()
-            val selected = Teacher(name = profile.name)
-            var ambiguous = false
-            val result =
-                loadTeacherDay(
-                    dateKey = dateString,
-                    fromDatabase = {
-                        val (rows, amb) = readMatchedRows(repository, profile, selected, teachers, dateString, dow)
-                        ambiguous = amb
-                        rows.map {
-                            TeacherSlot(it.lessonNumber, splitGroups(it.groups), it.subject, it.room, it.dayOfWeek)
-                        }
-                    },
-                    sync = {
-                        cal?.let { repository.syncTeacherScheduleForDate(it) }
-                            ?: Result.failure(IOException("Неверная дата $dateString"))
-                    },
-                )
-            TeacherDay(
-                lessons = result.slots.map { toLesson(it, dow) },
-                ambiguous = ambiguous,
-                error = result.error,
-                isSynced = repository.hasTeacherScheduleForDate(dateString),
-                lastSyncEpoch = readLastSyncEpoch(context),
-                date = result.dateKey,
+    ): TeacherDay = withContext(Dispatchers.IO) {
+        val cal = MpkScheduleParser.parseDotDate(dateString)
+        val dow = cal?.let { Dow.of(it) } ?: 0
+        val teachers = allTeachers ?: TeachersRepository(context).loadTeachers()
+        val selected = Teacher(name = profile.name)
+        var ambiguous = false
+        val result =
+            loadTeacherDay(
+                dateKey = dateString,
+                fromDatabase = {
+                    val (rows, amb) = readMatchedRows(repository, profile, selected, teachers, dateString, dow)
+                    ambiguous = amb
+                    rows.map {
+                        TeacherSlot(it.lessonNumber, splitGroups(it.groups), it.subject, it.room, it.dayOfWeek)
+                    }
+                },
+                sync = {
+                    cal?.let { repository.syncTeacherScheduleForDate(it) }
+                        ?: Result.failure(IOException("Неверная дата $dateString"))
+                },
             )
-        }
+        TeacherDay(
+            lessons = result.slots.map { toLesson(it, dow) },
+            ambiguous = ambiguous,
+            error = result.error,
+            isSynced = repository.hasTeacherScheduleForDate(dateString),
+            lastSyncEpoch = readLastSyncEpoch(context),
+            date = result.dateKey,
+        )
+    }
 
     suspend fun findNextLesson(
         context: Context,
@@ -250,35 +245,34 @@ object TeacherDayLoader {
         baseDate: String,
         allTeachers: List<Teacher>? = null,
         maxDays: Int = 7,
-    ): NextLesson? =
-        withContext(Dispatchers.IO) {
-            val base = MpkScheduleParser.parseDotDate(baseDate) ?: return@withContext null
-            val teachers = allTeachers ?: TeachersRepository(context).loadTeachers()
-            val selected = Teacher(name = profile.name)
-            var anyCached = false
-            var firstSchoolCal: Calendar? = null
-            for (offset in 1..maxDays) {
-                val cal = teacherTargetCalendar(offset, null, base)
-                val dow = Dow.of(cal)
-                if (dow == 7) continue
-                if (firstSchoolCal == null) firstSchoolCal = cal
-                val dateKey = DateFormats.dotDate(cal)
-                if (repository.hasTeacherScheduleForDate(dateKey)) anyCached = true
-                firstRow(repository, profile, selected, teachers, dateKey, dow)
-                    ?.let { return@withContext NextLesson(dateKey, dow, toLesson(it, dow)) }
-            }
-
-            val cal = firstSchoolCal
-            if (!anyCached && cal != null) {
-                val dateKey = DateFormats.dotDate(cal)
-                val dow = Dow.of(cal)
-                runCatching { repository.syncTeacherScheduleForDate(cal) }
-                    .onFailure { if (it is CancellationException) throw it }
-                firstRow(repository, profile, selected, teachers, dateKey, dow)
-                    ?.let { return@withContext NextLesson(dateKey, dow, toLesson(it, dow)) }
-            }
-            null
+    ): NextLesson? = withContext(Dispatchers.IO) {
+        val base = MpkScheduleParser.parseDotDate(baseDate) ?: return@withContext null
+        val teachers = allTeachers ?: TeachersRepository(context).loadTeachers()
+        val selected = Teacher(name = profile.name)
+        var anyCached = false
+        var firstSchoolCal: Calendar? = null
+        for (offset in 1..maxDays) {
+            val cal = teacherTargetCalendar(offset, null, base)
+            val dow = Dow.of(cal)
+            if (dow == 7) continue
+            if (firstSchoolCal == null) firstSchoolCal = cal
+            val dateKey = DateFormats.dotDate(cal)
+            if (repository.hasTeacherScheduleForDate(dateKey)) anyCached = true
+            firstRow(repository, profile, selected, teachers, dateKey, dow)
+                ?.let { return@withContext NextLesson(dateKey, dow, toLesson(it, dow)) }
         }
+
+        val cal = firstSchoolCal
+        if (!anyCached && cal != null) {
+            val dateKey = DateFormats.dotDate(cal)
+            val dow = Dow.of(cal)
+            runCatching { repository.syncTeacherScheduleForDate(cal) }
+                .onFailure { if (it is CancellationException) throw it }
+            firstRow(repository, profile, selected, teachers, dateKey, dow)
+                ?.let { return@withContext NextLesson(dateKey, dow, toLesson(it, dow)) }
+        }
+        null
+    }
 
     private suspend fun firstRow(
         repository: ScheduleRepository,

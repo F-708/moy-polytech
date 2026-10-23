@@ -60,7 +60,6 @@ class Gg89RoomsTest {
 
     @Test
     fun `GG8 ключ кэша содержит дату — та же минута на следующие сутки не сталкивается`() {
-
         val yesterday = WidgetData.lessonsCacheKey(minute = 480, group = "41О", date = "05.10.2026")
         val today = WidgetData.lessonsCacheKey(minute = 480, group = "41О", date = "06.10.2026")
         assertNotEquals(yesterday, today)

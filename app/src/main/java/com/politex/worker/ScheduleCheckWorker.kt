@@ -26,12 +26,11 @@ internal enum class TeacherDayDecision { NOTIFY, MARK_CHECKED, RETRY_LATER }
 internal fun teacherDayDecision(
     documentPresent: Boolean,
     teacherRows: Int,
-): TeacherDayDecision =
-    when {
-        teacherRows > 0 -> TeacherDayDecision.NOTIFY
-        documentPresent -> TeacherDayDecision.MARK_CHECKED
-        else -> TeacherDayDecision.RETRY_LATER
-    }
+): TeacherDayDecision = when {
+    teacherRows > 0 -> TeacherDayDecision.NOTIFY
+    documentPresent -> TeacherDayDecision.MARK_CHECKED
+    else -> TeacherDayDecision.RETRY_LATER
+}
 
 internal fun teacherMarkKey(
     kind: String,
@@ -39,16 +38,15 @@ internal fun teacherMarkKey(
     date: String,
 ): String = "${kind}_T_${surnameKey}_$date"
 
-internal fun scheduleDayTitle(dow: Int): String =
-    when (dow) {
-        1 -> "понедельник"
-        2 -> "вторник"
-        3 -> "среду"
-        4 -> "четверг"
-        5 -> "пятницу"
-        6 -> "субботу"
-        else -> "следующий учебный день"
-    }
+internal fun scheduleDayTitle(dow: Int): String = when (dow) {
+    1 -> "понедельник"
+    2 -> "вторник"
+    3 -> "среду"
+    4 -> "четверг"
+    5 -> "пятницу"
+    6 -> "субботу"
+    else -> "следующий учебный день"
+}
 
 class ScheduleCheckWorker(
     context: Context,
@@ -145,17 +143,14 @@ class ScheduleCheckWorker(
 
                         mark(prefKey)
                     } else {
-
                         mark(checkedKey)
                     }
                 } else {
-
                     mark(checkedKey)
                 }
                 Result.success()
             },
             onFailure = {
-
                 Result.success()
             },
         )

@@ -178,14 +178,12 @@ object TeacherScheduleParser {
         null
     }
 
-    private fun extractUtf16(bytes: ByteArray): String =
-        BinaryTextExtract.utf16LeRuns(bytes, bellAsTab = false).joinToString("\n")
+    private fun extractUtf16(bytes: ByteArray): String = BinaryTextExtract.utf16LeRuns(bytes, bellAsTab = false).joinToString("\n")
 
-    private fun extractCp1251(bytes: ByteArray): String =
-        BinaryTextExtract
-            .cp1251Runs(bytes, bellAsTab = false, minRunBytes = 6) {
-                it.contains('║') || it.count { c -> c in 'А'..'я' } > 3
-            }.joinToString("\n")
+    private fun extractCp1251(bytes: ByteArray): String = BinaryTextExtract
+        .cp1251Runs(bytes, bellAsTab = false, minRunBytes = 6) {
+            it.contains('║') || it.count { c -> c in 'А'..'я' } > 3
+        }.joinToString("\n")
 
     private fun parseDocx(bytes: ByteArray): Map<String, List<TeacherSlot>>? = parseDocxText(bytes)?.let { parsePlainText(it) }
 

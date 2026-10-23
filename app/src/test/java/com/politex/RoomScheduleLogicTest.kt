@@ -91,7 +91,6 @@ class RoomScheduleLogicTest {
 
     @Test
     fun `текущая пара по звонкам — внутри урока и на перемене`() {
-
         assertEquals(3, currentRoomLessonNumber(10 * 60 + 30, 1))
 
         assertEquals(null, currentRoomLessonNumber(10 * 60 + 5, 1))
@@ -103,7 +102,6 @@ class RoomScheduleLogicTest {
 
     @Test
     fun `инфочас четверга не считается парой`() {
-
         assertEquals(null, currentRoomLessonNumber(14 * 60 + 20, 4))
     }
 
@@ -123,7 +121,6 @@ class RoomScheduleLogicTest {
 
     @Test
     fun `подтверждение источника слота — CollegeBellSchedule getCurrentSlot`() {
-
         val slot = CollegeBellSchedule.getCurrentSlot(8 * 60 + 45, 1)
         assertEquals(1, slot?.lessonNumber)
     }

@@ -22,7 +22,6 @@ class BBAnnotationModelTest {
 
     @Test
     fun `CC5 ImageViewer — штрих константен НА ЭКРАНЕ при graphicsLayer scale (layerScale = zoom)`() {
-
         val pxPerDp = 3f
         listOf(0.5f, 1f, 2f, 4f).forEach { scale ->
             val drawn = compensatedStrokeWidthPx(4f, pxPerDp, scale)
@@ -32,7 +31,6 @@ class BBAnnotationModelTest {
 
     @Test
     fun `DD2+HH3 PDF — толщина штриха константна ОТНОСИТЕЛЬНО СТРАНИЦЫ (экранная ~ zoom)`() {
-
         val containerW = 1080f
         val pxPerDp = 3f
         listOf(0.5f, 1f, 2f, 4f).forEach { zoom ->
@@ -50,7 +48,6 @@ class BBAnnotationModelTest {
 
     @Test
     fun `DD2+HH3 PDF eraser — порог в page-координатах, нормализованный не зависит от zoom`() {
-
         val containerW = 1080f
         val norm =
             listOf(0.5f, 1f, 2f, 4f).map {

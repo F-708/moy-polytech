@@ -4,9 +4,6 @@ import android.content.Context
 import android.content.Intent
 import com.politex.BuildConfig
 import com.politex.util.UpdatePendingStore
-import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -16,6 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.roundToInt
 
 sealed interface InstallButtonState {
     data object IdleFound : InstallButtonState
@@ -73,41 +73,40 @@ sealed interface InstallEvent {
 internal fun installReduce(
     state: InstallButtonState,
     event: InstallEvent,
-): InstallButtonState =
-    when (event) {
-        InstallEvent.Reset -> InstallButtonState.IdleFound
-        is InstallEvent.Failed ->
-            when (state) {
-                is InstallButtonState.Downloading,
-                is InstallButtonState.Downloaded,
-                is InstallButtonState.InstallLaunched,
-                -> InstallButtonState.Error(event.cause)
-                else -> state
-            }
-        InstallEvent.DownloadStarted ->
-            when (state) {
-                InstallButtonState.IdleFound,
-                is InstallButtonState.Error,
-                -> InstallButtonState.Downloading(0f)
-                else -> state
-            }
-        is InstallEvent.Progress ->
-            when (state) {
-                is InstallButtonState.Downloading ->
-                    InstallButtonState.Downloading(installProgressOf(event.readBytes, event.totalBytes))
-                else -> state
-            }
-        is InstallEvent.Completed ->
-            when (state) {
-                is InstallButtonState.Downloading -> InstallButtonState.Downloaded(event.apkPath)
-                else -> state
-            }
-        InstallEvent.InstallStarted ->
-            when (state) {
-                is InstallButtonState.Downloaded -> InstallButtonState.InstallLaunched(state.apkPath)
-                else -> state
-            }
-    }
+): InstallButtonState = when (event) {
+    InstallEvent.Reset -> InstallButtonState.IdleFound
+    is InstallEvent.Failed ->
+        when (state) {
+            is InstallButtonState.Downloading,
+            is InstallButtonState.Downloaded,
+            is InstallButtonState.InstallLaunched,
+            -> InstallButtonState.Error(event.cause)
+            else -> state
+        }
+    InstallEvent.DownloadStarted ->
+        when (state) {
+            InstallButtonState.IdleFound,
+            is InstallButtonState.Error,
+            -> InstallButtonState.Downloading(0f)
+            else -> state
+        }
+    is InstallEvent.Progress ->
+        when (state) {
+            is InstallButtonState.Downloading ->
+                InstallButtonState.Downloading(installProgressOf(event.readBytes, event.totalBytes))
+            else -> state
+        }
+    is InstallEvent.Completed ->
+        when (state) {
+            is InstallButtonState.Downloading -> InstallButtonState.Downloaded(event.apkPath)
+            else -> state
+        }
+    InstallEvent.InstallStarted ->
+        when (state) {
+            is InstallButtonState.Downloaded -> InstallButtonState.InstallLaunched(state.apkPath)
+            else -> state
+        }
+}
 
 internal fun installProgressOf(
     readBytes: Long,
@@ -118,46 +117,42 @@ internal fun installProgressOf(
     return (ratio * 100f).roundToInt() / 100f
 }
 
-internal fun installErrorMessage(cause: InstallError): String =
-    when (cause) {
-        InstallError.Network -> "Не удалось скачать обновление"
-        InstallError.Checksum -> "Обновление отклонено: файл повреждён"
-        InstallError.Launch -> "Не удалось открыть установщик"
-        is InstallError.Rejected -> UpdateDownloader.rejectionMessage(cause.rejection)
-    }
+internal fun installErrorMessage(cause: InstallError): String = when (cause) {
+    InstallError.Network -> "Не удалось скачать обновление"
+    InstallError.Checksum -> "Обновление отклонено: файл повреждён"
+    InstallError.Launch -> "Не удалось открыть установщик"
+    is InstallError.Rejected -> UpdateDownloader.rejectionMessage(cause.rejection)
+}
 
-internal fun installButtonDescription(state: InstallButtonState): String =
-    when (state) {
-        is InstallButtonState.Downloading -> "Загрузка обновления"
-        is InstallButtonState.Downloaded,
-        is InstallButtonState.InstallLaunched,
-        -> "Установить обновление"
-        else -> "Скачать обновление"
-    }
+internal fun installButtonDescription(state: InstallButtonState): String = when (state) {
+    is InstallButtonState.Downloading -> "Загрузка обновления"
+    is InstallButtonState.Downloaded,
+    is InstallButtonState.InstallLaunched,
+    -> "Установить обновление"
+    else -> "Скачать обновление"
+}
 
 internal fun downloadingStatusText(progress: Float): String {
     val percent = (progress.coerceIn(0f, 1f) * 100f).roundToInt()
     return if (percent > 0) "Загрузка обновления… $percent%" else "Загрузка обновления…"
 }
 
-internal fun downloadedStatusText(versionName: String?): String =
-    if (versionName.isNullOrBlank()) {
-        "Обновление загружено. Нажмите, чтобы установить"
-    } else {
-        "Обновление $versionName загружено. Нажмите, чтобы установить"
-    }
+internal fun downloadedStatusText(versionName: String?): String = if (versionName.isNullOrBlank()) {
+    "Обновление загружено. Нажмите, чтобы установить"
+} else {
+    "Обновление $versionName загружено. Нажмите, чтобы установить"
+}
 
 internal fun moreUpdateSubtitle(
     state: InstallButtonState,
     versionName: String,
-): String =
-    when (state) {
-        is InstallButtonState.Downloading -> downloadingStatusText(state.progress)
-        is InstallButtonState.Downloaded,
-        is InstallButtonState.InstallLaunched,
-        -> downloadedStatusText(versionName)
-        else -> "Версия $versionName · нажмите, чтобы скачать"
-    }
+): String = when (state) {
+    is InstallButtonState.Downloading -> downloadingStatusText(state.progress)
+    is InstallButtonState.Downloaded,
+    is InstallButtonState.InstallLaunched,
+    -> downloadedStatusText(versionName)
+    else -> "Версия $versionName · нажмите, чтобы скачать"
+}
 
 object UpdateInstallController {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -169,6 +164,7 @@ object UpdateInstallController {
 
     private var activeJob: Job? = null
     private var activeCancel: AtomicBoolean? = null
+    private var restoreJob: Job? = null
 
     internal var downloadOverride: ((Context, UpdateInfo, (Long, Long) -> Unit, () -> Boolean) -> File?)? = null
     internal var validateOverride: ((Context, File) -> ApkRejection)? = null
@@ -202,19 +198,20 @@ object UpdateInstallController {
         }
         mutableFound.value = info
         if (mutableState.value !is InstallButtonState.IdleFound) return
-        scope.launch {
-            val file = cachedValidFile(appContext, info) ?: return@launch
-            mutableState.update { current ->
-                if (current is InstallButtonState.IdleFound) {
-                    installReduce(
-                        installReduce(current, InstallEvent.DownloadStarted),
-                        InstallEvent.Completed(file.absolutePath),
-                    )
-                } else {
-                    current
+        restoreJob =
+            scope.launch {
+                val file = cachedValidFile(appContext, info) ?: return@launch
+                mutableState.update { current ->
+                    if (current is InstallButtonState.IdleFound) {
+                        installReduce(
+                            installReduce(current, InstallEvent.DownloadStarted),
+                            InstallEvent.Completed(file.absolutePath),
+                        )
+                    } else {
+                        current
+                    }
                 }
             }
-        }
     }
 
     fun cachedValidFile(
@@ -327,9 +324,25 @@ object UpdateInstallController {
         activeCancel = null
         activeJob?.cancel()
         activeJob = null
+        restoreJob?.cancel()
+        restoreJob = null
         UpdatePendingStore.clear(context.applicationContext)
         mutableFound.value = null
         publish(InstallEvent.Reset)
+    }
+
+    internal fun resetForTests() {
+        activeCancel?.set(true)
+        activeCancel = null
+        activeJob?.cancel()
+        activeJob = null
+        restoreJob?.cancel()
+        restoreJob = null
+        downloadOverride = null
+        validateOverride = null
+        installLaunchOverride = null
+        mutableFound.value = null
+        mutableState.value = InstallButtonState.IdleFound
     }
 
     fun acknowledgeError() {

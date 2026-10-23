@@ -69,7 +69,6 @@ import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
 import com.politex.ui.theme.ColorBrandFill
-import com.politex.ui.theme.ColorDividerLight
 import com.politex.ui.theme.ColorSuccess
 import com.politex.ui.theme.ColorSurfaceHighlight
 import com.politex.ui.theme.ColorSurfaceVariantLight
@@ -77,7 +76,6 @@ import com.politex.ui.theme.ColorTextBody
 import com.politex.ui.theme.ColorTextMuted
 import com.politex.ui.theme.ColorTextTitle
 import com.politex.ui.theme.ColorTopBar
-import com.politex.ui.theme.TextStylePageTitle
 import com.politex.ui.theme.TextStyleSubPageTitle
 import com.politex.ui.theme.Tokens
 import com.politex.ui.util.bouncyClickable
@@ -284,7 +282,6 @@ fun GroupScheduleScreen(
         syncError = null
         syncEmptyNotice = null
         scope.launch {
-
             val result = scheduleRepository.syncScheduleDetailed(
                 group,
                 force = force,
@@ -349,7 +346,6 @@ fun GroupScheduleScreen(
             .fillMaxSize()
             .background(ColorBgMain),
     ) {
-
         Row(
             modifier =
             Modifier
@@ -430,7 +426,6 @@ fun GroupScheduleScreen(
         AppDivider()
 
         if (selectedGroupName.isBlank()) {
-
             val catalogCodes = remember(context) { GroupCatalog.load(context).all() }
             GroupSchedulePicker(
                 selectedCourse = selectedCourse,
@@ -439,7 +434,6 @@ fun GroupScheduleScreen(
                 onGroupSelected = onGroupSelected,
             )
         } else {
-
             Surface(
                 shape = RoundedCornerShape(2.dp),
                 color = ColorTopBar,
@@ -593,7 +587,6 @@ fun GroupScheduleScreen(
             if (isInitialLoad) {
                 CenteredLoader(modifier = Modifier.fillMaxWidth().weight(1f))
             } else if (lessons.isEmpty()) {
-
                 Box(
                     modifier =
                     Modifier
@@ -627,7 +620,6 @@ fun GroupScheduleScreen(
                         Text(
                             text =
                             when {
-
                                 isSyncing -> checkingStatusFor(activeDateString)
                                 syncError != null -> syncError ?: ""
                                 noticeForActiveDate != null -> noticeForActiveDate
@@ -694,7 +686,6 @@ fun GroupScheduleScreen(
                     }
                 }
             } else {
-
                 GroupScheduleLessonList(
                     lessons = lessons,
                     currentLessonNumber = currentLessonNumber,

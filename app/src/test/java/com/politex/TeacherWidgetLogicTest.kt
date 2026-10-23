@@ -80,7 +80,6 @@ class TeacherWidgetLogicTest {
 
     @Test
     fun state_sundayWithLessons_notDayOff() {
-
         val l = listOf(lesson(1, at(9, 0), at(10, 0)))
         assertTrue(TeacherWidgetLogic.nextState(l, at(9, 30), 7, null) is TeacherNextState.Running)
     }

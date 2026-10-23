@@ -24,7 +24,6 @@ class RealMapMultiFloorRouteTest {
 
     @Test
     fun `данные карты загружаются из ассета`() {
-
         assertFalse("карта не должна быть пустой (ассет не загрузился?)", mapData.isEmpty)
         assertTrue("на 1 этаже должны быть комнаты", mapData.floor("1").rooms.isNotEmpty())
     }
@@ -73,7 +72,6 @@ class RealMapMultiFloorRouteTest {
 
     @Test
     fun `маршрут по аварийной лестнице невозможен`() {
-
         val r = CollegeRouteFinder.findMultiFloorRoute(room("118"), room("223"), floorsMap())
         if (r != null) {
             val stairsUsed =
@@ -219,8 +217,12 @@ class RealMapMultiFloorRouteTest {
                 val walls =
                     floor.rooms
                         .filter {
-                            it.status != "nonexistent" && it.status != "passage" && it.w > 0f && it.h > 0f &&
-                                it.number != a && it.number != b
+                            it.status != "nonexistent" &&
+                                it.status != "passage" &&
+                                it.w > 0f &&
+                                it.h > 0f &&
+                                it.number != a &&
+                                it.number != b
                         }.map { floatArrayOf(it.x - it.w / 2f, it.y - it.h / 2f, it.x + it.w / 2f, it.y + it.h / 2f) }
                 for (i in 1 until poly.size) {
                     for (w in walls) {

@@ -46,7 +46,6 @@ class MapTapHitTest {
 
     @Test
     fun `тап рядом с кабинетом дотягивается slop-фолбэком`() {
-
         val hit =
             mapTapToRoom(
                 pos = Offset(imgW / 2f + 18f, imgH / 2f - 12f),

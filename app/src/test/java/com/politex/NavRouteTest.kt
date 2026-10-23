@@ -29,7 +29,6 @@ class NavRouteTest {
 
     @Test
     fun `from пустой строкой сохраняется — это маршрут от главного входа (R1)`() {
-
         assertEquals("map?room=321&from=", buildMapRoute("321", "", false))
     }
 
@@ -50,7 +49,6 @@ class NavRouteTest {
 
     @Test
     fun `X4 карта из календаря-архива — кабинет без маршрута (from=null, route=false)`() {
-
         val route = buildMapRoute("214", null, false)
         assertEquals("map?room=214", route)
         assertFalse(route.contains("from="))
@@ -108,7 +106,6 @@ class NavRouteTest {
 
     @Test
     fun `X7 backAction - query вкладки отбрасывается (паттерн route)`() {
-
         assertEquals(com.politex.ui.screens.BackAction.EXIT, com.politex.ui.screens.backAction("schedule?scroll={scroll}"))
         assertEquals(com.politex.ui.screens.BackAction.EXIT, com.politex.ui.screens.backAction("bells?scroll=CURRENT_BELL"))
     }

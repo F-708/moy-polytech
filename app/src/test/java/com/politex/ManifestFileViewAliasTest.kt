@@ -13,11 +13,10 @@ class ManifestFileViewAliasTest {
 
     private val android = "http://schemas.android.com/apk/res/android"
 
-    private fun resolveFile(vararg paths: String): File =
-        paths
-            .map(::File)
-            .firstOrNull { it.isFile }
-            ?: error("Файл не найден: ${paths.joinToString()}")
+    private fun resolveFile(vararg paths: String): File = paths
+        .map(::File)
+        .firstOrNull { it.isFile }
+        ?: error("Файл не найден: ${paths.joinToString()}")
 
     private fun manifest(): Element {
         val file = resolveFile("src/main/AndroidManifest.xml", "app/src/main/AndroidManifest.xml")
@@ -25,11 +24,10 @@ class ManifestFileViewAliasTest {
         return factory.newDocumentBuilder().parse(file).documentElement
     }
 
-    private fun Element.childElements(tag: String): List<Element> =
-        (0 until childNodes.length)
-            .map { childNodes.item(it) }
-            .filterIsInstance<Element>()
-            .filter { it.tagName == tag }
+    private fun Element.childElements(tag: String): List<Element> = (0 until childNodes.length)
+        .map { childNodes.item(it) }
+        .filterIsInstance<Element>()
+        .filter { it.tagName == tag }
 
     private fun attribute(
         element: Element,

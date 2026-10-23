@@ -54,13 +54,12 @@ class GroupScheduleRenderTest {
         dateString = "",
     )
 
-    private fun weekLessons(group: String): List<LessonEntity> =
-        (1..6).flatMap { dow ->
-            listOf(
-                lesson(group, dow, 1, "08:15", "09:55"),
-                lesson(group, dow, 2, "09:55", "11:30"),
-            )
-        }
+    private fun weekLessons(group: String): List<LessonEntity> = (1..6).flatMap { dow ->
+        listOf(
+            lesson(group, dow, 1, "08:15", "09:55"),
+            lesson(group, dow, 2, "09:55", "11:30"),
+        )
+    }
 
     private fun seed(
         group: String,

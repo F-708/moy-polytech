@@ -12,7 +12,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun eveningAfterGroupLessons_showsTomorrowMorning() {
-
         val info =
             BellCountdownWidgetProvider.tomorrowFirstLessonLabel(
                 20 * 60,
@@ -28,7 +27,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun eveningAfterCollegeBells_showsTomorrowMorning() {
-
         val info =
             BellCountdownWidgetProvider.tomorrowFirstLessonLabel(
                 19 * 60 + 36,
@@ -44,7 +42,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun saturdayEvening_countsToMonday() {
-
         val info =
             BellCountdownWidgetProvider.tomorrowFirstLessonLabel(
                 20 * 60,
@@ -59,7 +56,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun beforeLessonsEnd_null() {
-
         assertNull(
             BellCountdownWidgetProvider.tomorrowFirstLessonLabel(
                 13 * 60,
@@ -86,7 +82,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun sunday_showsMondayCountdown() {
-
         val info =
             BellCountdownWidgetProvider.tomorrowFirstLessonLabel(
                 20 * 60,
@@ -114,7 +109,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun noGroupLessonsToday_null() {
-
         assertNull(
             BellCountdownWidgetProvider.tomorrowFirstLessonLabel(
                 20 * 60,
@@ -128,7 +122,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun night_at_00_24_showsFirstLessonToday() {
-
         val info =
             BellCountdownWidgetProvider.nightFirstLessonLabel(
                 24,
@@ -157,7 +150,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun night_after07_null() {
-
         assertNull(
             BellCountdownWidgetProvider.nightFirstLessonLabel(
                 7 * 60,
@@ -184,7 +176,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun night_noGroupLessonsToday_null() {
-
         assertNull(
             BellCountdownWidgetProvider.nightFirstLessonLabel(
                 30,
@@ -198,7 +189,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun night_collegeMode_worksWithoutGroupLessons() {
-
         val info =
             BellCountdownWidgetProvider.nightFirstLessonLabel(
                 30,
@@ -212,7 +202,6 @@ class TomorrowLessonWidgetTest {
 
     @Test
     fun hoursRounding() {
-
         assertEquals("12 ч", BellCountdownWidgetProvider.formatHoursRounded(735L))
         assertEquals("13 ч", BellCountdownWidgetProvider.formatHoursRounded(759L))
         assertEquals("1 ч", BellCountdownWidgetProvider.formatHoursRounded(25L))

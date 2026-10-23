@@ -35,7 +35,6 @@ class RouteStartResolverTest {
 
     @Test
     fun `II1 тап по 3-му уроку — старт от кабинета 2-го даже утром до всех уроков`() {
-
         assertEquals(
             RouteStartResolver.RouteStart.From("223"),
             RouteStartResolver.startForLesson(lessons, lessons[2], SubgroupPref.NEUTRAL),
@@ -93,7 +92,6 @@ class RouteStartResolverTest {
 
     @Test
     fun `GG2 prev non-split — from = комната предыдущего, без вопроса`() {
-
         assertEquals(
             RouteStartResolver.RouteStart.From("320"),
             RouteStartResolver.startForLesson(splitDay, splitDay[2], SubgroupPref.NEUTRAL),

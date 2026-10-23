@@ -59,13 +59,12 @@ object TeacherWidgetLogic {
         return if (lessons.isEmpty()) TeacherNextState.EmptyToday(next) else TeacherNextState.DayDone(next)
     }
 
-    fun findNextLesson(days: List<TeacherDayRef>): NextLessonRef? =
-        days
-            .firstOrNull { it.dow != 7 && it.lessons.isNotEmpty() }
-            ?.let { day ->
-                val first = day.lessons.minByOrNull { it.lessonNumber } ?: day.lessons.first()
-                NextLessonRef(day.dateString, day.dow, first)
-            }
+    fun findNextLesson(days: List<TeacherDayRef>): NextLessonRef? = days
+        .firstOrNull { it.dow != 7 && it.lessons.isNotEmpty() }
+        ?.let { day ->
+            val first = day.lessons.minByOrNull { it.lessonNumber } ?: day.lessons.first()
+            NextLessonRef(day.dateString, day.dow, first)
+        }
 
     fun cacheKey(
         date: String,
@@ -73,12 +72,11 @@ object TeacherWidgetLogic {
         profileName: String,
     ): String = "$date|$minute|$profileName"
 
-    fun updatedLabel(epochMillis: Long): String =
-        if (epochMillis <= 0L) {
-            ""
-        } else {
-            "обновлено в " + SimpleDateFormat("HH:mm", Locale.ROOT).format(Date(epochMillis))
-        }
+    fun updatedLabel(epochMillis: Long): String = if (epochMillis <= 0L) {
+        ""
+    } else {
+        "обновлено в " + SimpleDateFormat("HH:mm", Locale.ROOT).format(Date(epochMillis))
+    }
 
     fun todayHeader(
         dayOfMonth: Int,
@@ -114,12 +112,11 @@ object TeacherWidgetLogic {
     fun widgetHeader(
         group: String,
         teacherName: String?,
-    ): String =
-        when {
-            !teacherName.isNullOrBlank() -> "СЕГОДНЯ • ${surnameLabel(teacherName)}"
-            group.isBlank() -> "РАСПИСАНИЕ"
-            else -> "СЕГОДНЯ • $group"
-        }
+    ): String = when {
+        !teacherName.isNullOrBlank() -> "СЕГОДНЯ • ${surnameLabel(teacherName)}"
+        group.isBlank() -> "РАСПИСАНИЕ"
+        else -> "СЕГОДНЯ • $group"
+    }
 
     fun lessonTitleText(
         subject: String,
@@ -136,18 +133,17 @@ object TeacherWidgetLogic {
 fun TeacherWidgetLesson.toEntity(
     dateString: String,
     dow: Int,
-): LessonEntity =
-    LessonEntity(
-        groupName = groups.joinToString(", "),
-        dayOfWeek = dow,
-        lessonNumber = lessonNumber,
-        timeStart = start,
-        timeEnd = end,
-        subjectRaw = subject,
-        roomFirst = room,
-        teacherFirst = "",
-        isSplit = false,
-        dateString = dateString,
-    )
+): LessonEntity = LessonEntity(
+    groupName = groups.joinToString(", "),
+    dayOfWeek = dow,
+    lessonNumber = lessonNumber,
+    timeStart = start,
+    timeEnd = end,
+    subjectRaw = subject,
+    roomFirst = room,
+    teacherFirst = "",
+    isSplit = false,
+    dateString = dateString,
+)
 
 fun TeacherWidgetSnapshot.toEntities(): List<LessonEntity> = lessons.map { it.toEntity(dateString, dow) }

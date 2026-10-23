@@ -6,17 +6,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class TeacherWidgetSubjectTest {
-    private fun row(subject: String): TeacherLessonEntity =
-        TeacherLessonEntity(
-            teacherName = "Деревянко Т.Ф.",
-            surnameKey = "деревянко",
-            dateString = "05.10.2026",
-            dayOfWeek = 1,
-            lessonNumber = 1,
-            groups = "32Н",
-            subject = subject,
-            room = "150",
-        )
+    private fun row(subject: String): TeacherLessonEntity = TeacherLessonEntity(
+        teacherName = "Деревянко Т.Ф.",
+        surnameKey = "деревянко",
+        dateString = "05.10.2026",
+        dayOfWeek = 1,
+        lessonNumber = 1,
+        groups = "32Н",
+        subject = subject,
+        room = "150",
+    )
 
     @Test
     fun `виджет-данные раскрывают сокращения преподавательского документа`() {

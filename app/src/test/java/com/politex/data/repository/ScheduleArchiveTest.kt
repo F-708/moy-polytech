@@ -45,7 +45,6 @@ class ScheduleArchiveTest {
 
     @Test
     fun `прошедший тот же день недели не равен текущей неделе`() {
-
         val past = ms(2026, 9, 8)
         val current = ms(2026, 9, 15)
         assertNotEquals(past, current)
@@ -56,7 +55,6 @@ class ScheduleArchiveTest {
 
     @Test
     fun `граница месяца и года при штамповке дат`() {
-
         val monday =
             Calendar.getInstance().apply {
                 clear()
@@ -105,7 +103,6 @@ class ScheduleArchiveTest {
 
     @Test
     fun `lexicographic trap - 28 сентября позже 5 октября только по строке`() {
-
         val sep = ms(2026, 9, 28)
         val oct = ms(2026, 10, 5)
         assertTrue(sep < oct)

@@ -13,7 +13,6 @@ import com.politex.ui.teacher.TeacherTheme
 import com.politex.update.UpdateAsset
 import com.politex.update.UpdateInfo
 import com.politex.update.UpdateInstallController
-import java.io.File
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -22,6 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w412dp-h915dp-xhdpi")

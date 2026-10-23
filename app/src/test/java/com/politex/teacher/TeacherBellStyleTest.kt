@@ -31,7 +31,6 @@ class TeacherBellStyleTest {
 
     @Test
     fun `студенческие стили недостижимые в teacher схлопываются в В минутах`() {
-
         assertEquals(BellStyleChoice.MINUTES, choiceForStyle(BellCountdownNotifier.Style.WITH_LESSON))
         assertEquals(BellStyleChoice.MINUTES, choiceForStyle(BellCountdownNotifier.Style.WITH_PROGRESS))
         assertEquals(BellStyleChoice.MINUTES, choiceForStyle(BellCountdownNotifier.Style.WITH_APP_NAME))

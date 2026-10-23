@@ -19,7 +19,6 @@ class TeacherNextWidgetProvider : AppWidgetProvider() {
             try {
                 ids.forEach { id -> runCatching { manager.updateAppWidget(id, buildViews(context, id, manager)) } }
             } finally {
-
                 WidgetAlarm.scheduleNext(context)
                 pending.finish()
             }
@@ -41,7 +40,6 @@ class TeacherNextWidgetProvider : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: android.os.Bundle?,
     ) {
-
         WidgetUpdateHelper.widgetScope.launch {
             runCatching { manager.updateAppWidget(appWidgetId, buildViews(context, appWidgetId, manager)) }
         }

@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -57,7 +58,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 import java.io.File
-import androidx.compose.ui.text.style.TextOverflow
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -134,10 +134,10 @@ fun MaterialWebViewer(
                     shape = RoundedCornerShape(2.dp),
                     color = Color.Transparent,
                     modifier =
-                        Modifier
-                            .heightIn(min = 44.dp)
-                            .bouncyClickable(onClick = { showPageJump = true })
-                            .testTag("web_page_indicator"),
+                    Modifier
+                        .heightIn(min = 44.dp)
+                        .bouncyClickable(onClick = { showPageJump = true })
+                        .testTag("web_page_indicator"),
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 8.dp)) {
                         Text(
@@ -230,7 +230,6 @@ private fun createDocWebView(
     val mime = documentMime(item.ext)
 
     return WebView(ctx).apply {
-
         with(settings) {
             javaScriptEnabled = true
             domStorageEnabled = false
@@ -266,7 +265,6 @@ private fun createDocWebView(
         webViewClient =
             object : WebViewClientCompat() {
                 override fun onPageFinished(view: WebView, url: String) {
-
                     if (canBookmark) openPort(view)
                 }
 
@@ -298,7 +296,6 @@ private fun createDocWebView(
                 }
 
                 override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
-
                     if (webRef[0] === view) {
                         webRef[0] = null
                         runCatching { (view.parent as? ViewGroup)?.removeView(view) }
@@ -326,42 +323,39 @@ private fun buildDocUrl(item: MaterialItemEntity, file: File): String {
         (if (resume > 1) "&resume=$resume" else "")
 }
 
-private fun docResponse(file: File, mime: String, range: String?): WebResourceResponse =
-    try {
-        val total = file.length()
-        val rangeable = useRanges(total)
-        val span = if (rangeable) range?.let { parseRange(it, total) } else null
-        val nosniff = "X-Content-Type-Options" to "nosniff"
-        if (span == null) {
-            val headers = mutableMapOf(nosniff)
-            if (rangeable) headers["Accept-Ranges"] = "bytes"
-            if (total >= 0) headers["Content-Length"] = total.toString()
-            WebResourceResponse(mime, null, 200, "OK", headers, file.inputStream())
-        } else {
-            val (start, end) = span
-            WebResourceResponse(
-                mime,
-                null,
-                206,
-                "Partial Content",
-                mapOf(
-                    nosniff,
-                    "Accept-Ranges" to "bytes",
-                    "Content-Range" to "bytes $start-$end/$total",
-                    "Content-Length" to (end - start + 1).toString(),
-                ),
-                fileSlice(file, start, end),
-            )
-        }
-    } catch (e: Exception) {
-        webNotFound()
+private fun docResponse(file: File, mime: String, range: String?): WebResourceResponse = try {
+    val total = file.length()
+    val rangeable = useRanges(total)
+    val span = if (rangeable) range?.let { parseRange(it, total) } else null
+    val nosniff = "X-Content-Type-Options" to "nosniff"
+    if (span == null) {
+        val headers = mutableMapOf(nosniff)
+        if (rangeable) headers["Accept-Ranges"] = "bytes"
+        if (total >= 0) headers["Content-Length"] = total.toString()
+        WebResourceResponse(mime, null, 200, "OK", headers, file.inputStream())
+    } else {
+        val (start, end) = span
+        WebResourceResponse(
+            mime,
+            null,
+            206,
+            "Partial Content",
+            mapOf(
+                nosniff,
+                "Accept-Ranges" to "bytes",
+                "Content-Range" to "bytes $start-$end/$total",
+                "Content-Length" to (end - start + 1).toString(),
+            ),
+            fileSlice(file, start, end),
+        )
     }
+} catch (e: Exception) {
+    webNotFound()
+}
 
-private fun WebResourceResponse.withViewerPolicy(): WebResourceResponse =
-    apply { responseHeaders = responseHeaders.orEmpty() + ("Content-Security-Policy" to ViewerPolicy.CSP) }
+private fun WebResourceResponse.withViewerPolicy(): WebResourceResponse = apply { responseHeaders = responseHeaders.orEmpty() + ("Content-Security-Policy" to ViewerPolicy.CSP) }
 
-private fun webNotFound(): WebResourceResponse =
-    WebResourceResponse("text/plain", "utf-8", 404, "Not Found", null, ByteArrayInputStream(ByteArray(0)))
+private fun webNotFound(): WebResourceResponse = WebResourceResponse("text/plain", "utf-8", 404, "Not Found", null, ByteArrayInputStream(ByteArray(0)))
 
 private fun isViewerPage(url: Uri): Boolean {
     val path = url.path ?: return false

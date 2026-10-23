@@ -19,7 +19,6 @@ import java.util.Calendar
 class BellCountdownWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-
         val pending = goAsync()
         WidgetUpdateHelper.widgetScope.launch {
             try {
@@ -40,13 +39,11 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onDisabled(context: Context) {
-
         WidgetAlarm.cancelIfNoWork(context)
         runCatching { com.politex.util.BellTimerService.sync(context) }
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
-
         appWidgetIds.forEach { WidgetPrefs.clear(context, it) }
         WidgetUpdateHelper.invalidateSecondsCache()
         WidgetAlarm.scheduleNextSecond(context)
@@ -164,7 +161,6 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
             if (minutes < SHOW_FROM_MINUTE) return null
 
             if (mode == CountdownMode.GROUP_LESSONS) {
-
                 if (lastGroupLesson == null) return null
                 val lastBell = bells.lastOrNull {
                     !it.isInfoHour && it.lessonNumber <= lastGroupLesson
@@ -232,7 +228,6 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
                     }
                 }
             } catch (_: Exception) {
-
                 return null
             }
 
@@ -256,7 +251,8 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
             return result
         }
 
-        private fun buildViews(context: Context, appWidgetId: Int): RemoteViews {            val views = RemoteViews(context.packageName, R.layout.widget_bell_countdown)
+        private fun buildViews(context: Context, appWidgetId: Int): RemoteViews {
+            val views = RemoteViews(context.packageName, R.layout.widget_bell_countdown)
 
             val style = WidgetStyle.load(context, appWidgetId).colors(context)
 
@@ -283,8 +279,7 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
 
             val secondsOn = WidgetOptions.seconds(context, appWidgetId)
             val secondNow = cal.get(Calendar.SECOND)
-            fun valueText(minutesLeft: Long): String =
-                if (secondsOn) formatSeconds(minutesLeft * 60 - secondNow) else formatMinutes(minutesLeft)
+            fun valueText(minutesLeft: Long): String = if (secondsOn) formatSeconds(minutesLeft * 60 - secondNow) else formatMinutes(minutesLeft)
             when {
                 info != null && info.first >= 0 -> {
                     val (minutesLeft, label, _) = info
@@ -321,7 +316,6 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
                             WidgetUpdateHelper.showIdle(views)
                         }
                         else -> {
-
                             views.setTextViewText(
                                 R.id.tv_countdown_label,
                                 if (dow == 7) "Выходной" else "Сегодня уроков нет",
@@ -433,8 +427,7 @@ enum class WidgetStyle(
 
         fun fromName(name: String?): WidgetStyle = entries.firstOrNull { it.name == name } ?: SYSTEM
 
-        fun load(context: Context, appWidgetId: Int): WidgetStyle =
-            fromName(WidgetUpdateHelper.getPrefs(context).getString(PREF_PREFIX + appWidgetId, null))
+        fun load(context: Context, appWidgetId: Int): WidgetStyle = fromName(WidgetUpdateHelper.getPrefs(context).getString(PREF_PREFIX + appWidgetId, null))
 
         fun save(context: Context, appWidgetId: Int, style: WidgetStyle) {
             WidgetUpdateHelper.getPrefs(context)
@@ -444,26 +437,25 @@ enum class WidgetStyle(
         }
     }
 
-    fun colors(context: Context): WidgetColors =
-        when (this) {
-            SYSTEM -> {
-                val night =
-                    context.resources.configuration.uiMode and
-                        android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
-                        android.content.res.Configuration.UI_MODE_NIGHT_YES
-                systemColors(night)
-            }
-            APP -> {
-                val p = com.politex.util.AppThemeStore.load(context).palette
-                WidgetColors(
-                    backgroundColor = p.brandFill.toArgb(),
-                    mainColor = 0xFFFFFFFF.toInt(),
-                    subColor = 0xFFD6E2F0.toInt(),
-                    highlightColor = p.topBar.toArgb(),
-                    pastColor = 0xFF9FB0C4.toInt(),
-                )
-            }
+    fun colors(context: Context): WidgetColors = when (this) {
+        SYSTEM -> {
+            val night =
+                context.resources.configuration.uiMode and
+                    android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                    android.content.res.Configuration.UI_MODE_NIGHT_YES
+            systemColors(night)
         }
+        APP -> {
+            val p = com.politex.util.AppThemeStore.load(context).palette
+            WidgetColors(
+                backgroundColor = p.brandFill.toArgb(),
+                mainColor = 0xFFFFFFFF.toInt(),
+                subColor = 0xFFD6E2F0.toInt(),
+                highlightColor = p.topBar.toArgb(),
+                pastColor = 0xFF9FB0C4.toInt(),
+            )
+        }
+    }
 }
 
 data class WidgetColors(
@@ -559,7 +551,7 @@ object WidgetAlarm {
             context = context,
             hasSecondsWidgets = WidgetUpdateHelper.hasSecondsWidgets(context),
             serviceRunning = com.politex.util.BellTimerService.isRunning,
-            minutesOfDay = WidgetData.minuteOfDay(Calendar.getInstance()),
+            minutesOfDay = WidgetData.minuteOfDay(WidgetData.nowCalendar()),
             nowMs = System.currentTimeMillis(),
         )
     }
@@ -602,11 +594,9 @@ class WidgetAlarmReceiver : android.content.BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             ACTION_TICK -> {
-
                 val pending = goAsync()
                 WidgetUpdateHelper.widgetScope.launch {
                     try {
-
                         runCatching { WidgetUpdateHelper.ensureTodaySchedule(context) }
 
                         if (com.politex.util.BellCountdownNotifier.isEnabled(context)) {
@@ -620,7 +610,6 @@ class WidgetAlarmReceiver : android.content.BroadcastReceiver() {
                         if (WidgetUpdateHelper.isFullUpdateStale(context)) {
                             WidgetUpdateHelper.updateAllWidgets(context)
                         } else {
-
                             val serviceAlive = com.politex.util.BellCountdownNotifier.isEnabled(context) &&
                                 com.politex.util.BellTimerService.isRunning
                             if (serviceAlive) {
@@ -632,7 +621,6 @@ class WidgetAlarmReceiver : android.content.BroadcastReceiver() {
 
                         runCatching { TeacherWidgetUpdater.updateAllNow(context) }
                     } finally {
-
                         runCatching { WidgetAlarm.scheduleNext(context) }
                         runCatching { WidgetAlarm.scheduleNextSecond(context) }
                         pending.finish()
@@ -640,7 +628,6 @@ class WidgetAlarmReceiver : android.content.BroadcastReceiver() {
                 }
             }
             ACTION_SECOND_TICK -> {
-
                 val pending = goAsync()
                 WidgetUpdateHelper.widgetScope.launch {
                     try {
@@ -653,7 +640,6 @@ class WidgetAlarmReceiver : android.content.BroadcastReceiver() {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
             -> {
-
                 WidgetAlarm.scheduleNext(context)
                 WidgetAlarm.scheduleNextSecond(context)
 
