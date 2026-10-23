@@ -10,7 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [30, 31, 33, 35])
 class WidgetPrefsClearTest {
     private val ctx: Context = ApplicationProvider.getApplicationContext()
 

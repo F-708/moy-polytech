@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- XX: минимальный фалбэк-виджет — только разрешённые RemoteViews-классы
+     (LinearLayout + TextView), без drawable/цветов из кода, явные цвета в XML,
+     чтобы читался на любом лаунчере и в тёмной теме. Показывается, когда
+     buildViews/apply основного layout'а упал — пользователь не остаётся
+     с пустой рамкой навсегда. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_fallback_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="10dp"
+    android:background="#FFFFFFFF">
+
+    <TextView
+        android:id="@+id/tv_fallback_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Мой Политех"
+        android:textSize="12sp"
+        android:textColor="#FF6B7280"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/tv_fallback_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#FF111827"
+        android:maxLines="1"
+        android:ellipsize="end" />
+</LinearLayout>

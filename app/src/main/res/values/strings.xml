@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">Мой Политех</string>
     <string name="bell_countdown_widget_description">Сколько осталось до звонка: обратный отсчёт и текущее время</string>
+    <string name="now_next_widget_description">Что идёт сейчас и что будет следующим: время, предмет, кабинет</string>
+    <string name="today_schedule_widget_description">Всё расписание на сегодня списком: время, предмет, кабинет</string>
+    <string name="bells_widget_description">Расписание звонков с подсветкой текущего урока</string>
+    <string name="teacher_today_widget_description">Пары преподавателя на сегодня списком</string>
+    <string name="teacher_next_widget_description">Ближайшая пара преподавателя: время, группы, кабинет</string>
     <string name="teacher_feedback_email">mpk.teacher.app@gmail.com</string>
 </resources>

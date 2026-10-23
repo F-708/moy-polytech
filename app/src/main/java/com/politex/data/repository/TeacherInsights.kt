@@ -14,7 +14,7 @@ class TeacherInsights(
     private val leadsOn: (String) -> Boolean = { false },
 ) {
     private val bySurname: Map<String, List<Teacher>> =
-        teachers.groupBy { surnameOf(it.name) }.filterKeys { it.isNotBlank() }
+        teachers.groupBy { surnameOf(it.matchName) }.filterKeys { it.isNotBlank() }
 
     private val staleMillis = STALE_DAYS * 24L * 60L * 60L * 1000L
 
@@ -135,7 +135,7 @@ class TeacherInsights(
             val initials = initialsOf(clean)
             if (initials.isEmpty()) return null
             return candidates.firstOrNull { teacher ->
-                val candidateInitials = initialsOf(teacher.name)
+                val candidateInitials = initialsOf(teacher.matchName)
                 candidateInitials.isNotEmpty() && candidateInitials.startsWith(initials)
             }
         }
@@ -147,7 +147,7 @@ class TeacherInsights(
                 if (candidates.size == 1) return candidates.first()
                 val initials = initialsOf(clean)
                 return candidates.firstOrNull { teacher ->
-                    initials.isNotEmpty() && initialsOf(teacher.name).startsWith(initials)
+                    initials.isNotEmpty() && initialsOf(teacher.matchName).startsWith(initials)
                 }
             }
         }
@@ -164,15 +164,15 @@ class TeacherInsights(
             selected: Teacher,
             allTeachers: List<Teacher>,
         ): TeacherRowMatch {
-            val selectedKey = surnameOf(selected.name)
+            val selectedKey = surnameOf(selected.matchName)
             if (selectedKey.isBlank()) return TeacherRowMatch.NO
             val parts = splitTeacherNames(rowTeacherName).filter { surnameOf(it) == selectedKey }
             if (parts.isEmpty()) return TeacherRowMatch.NO
-            val selIni = initialsOf(selected.name)
+            val selIni = initialsOf(selected.matchName)
             val others =
                 allTeachers
-                    .filter { surnameOf(it.name) == selectedKey && it.name != selected.name }
-                    .distinctBy { it.name }
+                    .filter { surnameOf(it.matchName) == selectedKey && it.matchName != selected.matchName }
+                    .distinctBy { it.matchName }
             var ambiguous = false
             for (part in parts) {
                 val ini = initialsOf(part)
@@ -182,7 +182,7 @@ class TeacherInsights(
                     continue
                 }
                 if (!initialsCompatible(ini, selIni)) continue
-                val rivals = others.filter { initialsCompatible(ini, initialsOf(it.name)) }
+                val rivals = others.filter { initialsCompatible(ini, initialsOf(it.matchName)) }
                 if (rivals.isEmpty()) return TeacherRowMatch.YES
                 ambiguous = true
             }

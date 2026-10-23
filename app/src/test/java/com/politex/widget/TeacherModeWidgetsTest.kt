@@ -25,7 +25,7 @@ import java.util.Calendar
 import java.util.TimeZone
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [30, 31, 33, 35])
 class TeacherModeWidgetsTest {
     private val ctx: Context = ApplicationProvider.getApplicationContext()
     private val db get() = MpkDatabase.getInstance(ctx)

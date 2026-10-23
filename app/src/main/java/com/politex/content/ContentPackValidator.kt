@@ -27,6 +27,7 @@ enum class ContentPackRejection {
     PHOTOS,
     MAP,
     GROUPS,
+    OVERRIDES,
 }
 
 object ContentPackValidator {
@@ -36,6 +37,7 @@ object ContentPackValidator {
     const val MIN_GROUPS = 20
     const val PHOTOS_PREFIX = "teachers_photos/"
     val REQUIRED_FILES = listOf("teachers.csv", "group_codes.csv", "college_map.json")
+    const val OVERRIDES_FILE = OwnerOverridesStore.PACK_FILE
 
     fun parseManifest(json: String?): ContentPackManifest? {
         if (json.isNullOrBlank()) return null
@@ -141,6 +143,11 @@ object ContentPackValidator {
         if (groups < MIN_GROUPS) return ContentPackRejection.GROUPS
         val mapJson = runCatching { File(dir, "college_map.json").readText() }.getOrNull() ?: return ContentPackRejection.MAP
         if (!runCatching { mapParses(mapJson) }.getOrDefault(false)) return ContentPackRejection.MAP
+        val overridesFile = File(dir, OVERRIDES_FILE)
+        if (overridesFile.isFile) {
+            val overridesJson = runCatching { overridesFile.readText() }.getOrNull() ?: return ContentPackRejection.OVERRIDES
+            if (OwnerOverridesStore.parsePackTeachers(overridesJson) == null) return ContentPackRejection.OVERRIDES
+        }
         return ContentPackRejection.NONE
     }
 

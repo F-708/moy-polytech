@@ -182,7 +182,8 @@ internal fun TeacherCardRoute(
             com.politex.ui.util.TeachersCache
                 .load()
                 .firstOrNull {
-                    TeacherInsights.surnameOf(it.name) == TeacherInsights.surnameOf(teacherName)
+                    TeacherInsights.surnameOf(it.name) == TeacherInsights.surnameOf(teacherName) ||
+                        TeacherInsights.surnameOf(it.matchName) == TeacherInsights.surnameOf(teacherName)
                 }
         if (teacher == null) onNotFound()
     }

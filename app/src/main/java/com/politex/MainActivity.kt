@@ -9,6 +9,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -44,6 +48,7 @@ internal fun intakeFingerprint(material: PendingMaterial): String = when (materi
 class MainActivity : ComponentActivity() {
 
     private var navController: NavHostController? = null
+    private var whatsNewEntries: List<com.politex.ui.changelog.WhatsNewEntry> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,6 +82,7 @@ class MainActivity : ComponentActivity() {
             }
             com.politex.update.AppUpdateWorker.schedule(this)
             com.politex.update.AppUpdateWorker.checkOnStartup(this)
+            whatsNewEntries = com.politex.ui.changelog.WhatsNewStore.onLaunch(this, BuildConfig.VERSION_CODE)
         }
         com.politex.content.ContentPackWorker.schedule(this)
         com.politex.content.ContentPackWorker.checkOnStartup(this)
@@ -96,12 +102,24 @@ class MainActivity : ComponentActivity() {
                 com.politex.ui.teacher.TeacherRoot(modifier = Modifier.fillMaxSize())
             } else {
                 MyApplicationTheme {
+                    var showWhatsNew by remember { mutableStateOf(whatsNewEntries.isNotEmpty()) }
                     val mainContent: @Composable () -> Unit = {
                         MainScreen(
                             viewModel = appViewModel,
                             navController = navController,
                             modifier = Modifier.fillMaxSize(),
                         )
+                        if (showWhatsNew && whatsNewEntries.isNotEmpty()) {
+                            com.politex.ui.changelog.WhatsNewDialog(
+                                versionName = whatsNewEntries.last().versionName,
+                                items = whatsNewEntries.flatMap { it.items },
+                                onDismiss = {
+                                    showWhatsNew = false
+                                    whatsNewEntries = emptyList()
+                                    com.politex.ui.changelog.WhatsNewStore.recordSeen(this@MainActivity, BuildConfig.VERSION_CODE)
+                                },
+                            )
+                        }
                     }
                     val rootOverlay = com.politex.ui.FlavorOverlay.root
                     if (rootOverlay != null) {

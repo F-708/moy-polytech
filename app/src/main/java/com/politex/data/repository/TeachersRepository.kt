@@ -16,7 +16,10 @@ data class Teacher(
     val department: String = "",
     val experience: String = "",
     val category: String = "",
-)
+    val sourceName: String = "",
+) {
+    val matchName: String get() = sourceName.ifBlank { name }
+}
 
 class TeachersRepository(
     private val context: Context,

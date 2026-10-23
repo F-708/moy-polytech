@@ -11,6 +11,7 @@ import android.os.Build
 import android.widget.RemoteViews
 import com.politex.MainActivity
 import com.politex.R
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,7 +25,9 @@ object WidgetUpdateHelper {
     private const val KEY_LAST_FULL_UPDATE = "last_full_update_ms"
     private const val STALE_AFTER_MS = 10 * 60_000L
 
-    internal val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    internal val widgetScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, _ -> },
+    )
 
     @Volatile private var secondsWidgetsCache = false
 
@@ -75,12 +78,37 @@ object WidgetUpdateHelper {
     }
 
     fun updateAllWidgets(context: Context) {
-        BellCountdownWidgetProvider.updateAll(context)
-        NowNextWidgetProvider.updateAll(context)
-        TodayScheduleWidgetProvider.updateAll(context)
-        BellsWidgetProvider.updateAll(context)
+        runCatching { BellCountdownWidgetProvider.updateAll(context) }
+        runCatching { NowNextWidgetProvider.updateAll(context) }
+        runCatching { TodayScheduleWidgetProvider.updateAll(context) }
+        runCatching { BellsWidgetProvider.updateAll(context) }
 
         getPrefs(context).edit().putLong(KEY_LAST_FULL_UPDATE, System.currentTimeMillis()).apply()
+    }
+
+    fun fallbackViews(
+        context: Context,
+        title: String,
+    ): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.widget_fallback)
+        val cal = WidgetData.nowCalendar()
+        views.setTextViewText(R.id.tv_fallback_title, title)
+        views.setTextViewText(
+            R.id.tv_fallback_value,
+            String.format(java.util.Locale.ROOT, "%02d:%02d", cal.get(java.util.Calendar.HOUR_OF_DAY), cal.get(java.util.Calendar.MINUTE)),
+        )
+        return views
+    }
+
+    fun applyOrFallback(
+        context: Context,
+        manager: AppWidgetManager,
+        appWidgetId: Int,
+        title: String,
+        views: RemoteViews?,
+    ) {
+        if (views != null && runCatching { manager.updateAppWidget(appWidgetId, views) }.isSuccess) return
+        runCatching { manager.updateAppWidget(appWidgetId, fallbackViews(context, title)) }
     }
 
     fun isFullUpdateStale(context: Context): Boolean {

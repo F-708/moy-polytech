@@ -83,6 +83,7 @@ class WidgetConfigActivity : ComponentActivity() {
 
                     var canExactAlarms by remember { mutableStateOf(ExactAlarmGate.canScheduleExactAlarms(this@WidgetConfigActivity)) }
                     var alarmAsked by remember { mutableStateOf(false) }
+                    val miuiHintVisible = remember { MiuiWidgetHint.takeOnce(this@WidgetConfigActivity, canExactAlarms) }
                     val lifecycleOwner = LocalLifecycleOwner.current
                     DisposableEffect(lifecycleOwner) {
                         val observer = LifecycleEventObserver { _, event ->
@@ -131,6 +132,14 @@ class WidgetConfigActivity : ComponentActivity() {
                             ExactAlarmHintCard(
                                 text = "Чтобы обновление работало корректно, нужен доступ к будильникам",
                                 onAllow = { ExactAlarmGate.openSettings(this@WidgetConfigActivity) },
+                            )
+                        }
+
+                        if (miuiHintVisible) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ExactAlarmHintCard(
+                                text = "На Xiaomi разрешите автозапуск в настройках батареи, иначе виджет может не обновляться",
+                                onAllow = { MiuiWidgetHint.openBatterySettings(this@WidgetConfigActivity) },
                             )
                         }
 

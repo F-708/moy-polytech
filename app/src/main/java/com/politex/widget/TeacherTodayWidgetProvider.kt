@@ -17,7 +17,10 @@ class TeacherTodayWidgetProvider : AppWidgetProvider() {
         val pending = goAsync()
         WidgetUpdateHelper.widgetScope.launch {
             try {
-                ids.forEach { id -> runCatching { manager.updateAppWidget(id, buildViews(context, id)) } }
+                ids.forEach { id ->
+                    val views = runCatching { buildViews(context, id) }.getOrNull()
+                    WidgetUpdateHelper.applyOrFallback(context, manager, id, FALLBACK_TITLE, views)
+                }
             } finally {
                 WidgetAlarm.scheduleNext(context)
                 pending.finish()
@@ -37,10 +40,15 @@ class TeacherTodayWidgetProvider : AppWidgetProvider() {
     companion object {
         private const val MAX_ROWS = 10
 
+        const val FALLBACK_TITLE = "Моё сегодня"
+
         suspend fun updateAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, TeacherTodayWidgetProvider::class.java))
-            ids.forEach { id -> runCatching { manager.updateAppWidget(id, buildViews(context, id)) } }
+            ids.forEach { id ->
+                val views = runCatching { buildViews(context, id) }.getOrNull()
+                WidgetUpdateHelper.applyOrFallback(context, manager, id, FALLBACK_TITLE, views)
+            }
         }
 
         private suspend fun buildViews(

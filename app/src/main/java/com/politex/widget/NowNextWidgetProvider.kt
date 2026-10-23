@@ -22,7 +22,10 @@ class NowNextWidgetProvider : AppWidgetProvider() {
         val pending = goAsync()
         WidgetUpdateHelper.widgetScope.launch {
             try {
-                ids.forEach { id -> runCatching { manager.updateAppWidget(id, buildViews(context, id)) } }
+                ids.forEach { id ->
+                    val views = runCatching { buildViews(context, id) }.getOrNull()
+                    WidgetUpdateHelper.applyOrFallback(context, manager, id, FALLBACK_TITLE, views)
+                }
             } finally {
                 WidgetAlarm.scheduleNext(context)
                 pending.finish()
@@ -37,11 +40,16 @@ class NowNextWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        const val FALLBACK_TITLE = "Сейчас и дальше"
+
         fun updateAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, NowNextWidgetProvider::class.java))
 
-            ids.forEach { id -> runCatching { manager.updateAppWidget(id, buildViews(context, id)) } }
+            ids.forEach { id ->
+                val views = runCatching { buildViews(context, id) }.getOrNull()
+                WidgetUpdateHelper.applyOrFallback(context, manager, id, FALLBACK_TITLE, views)
+            }
         }
 
         internal fun buildViews(

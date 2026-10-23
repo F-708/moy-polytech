@@ -48,7 +48,7 @@ object TeacherOnboardingLogic {
             .map { it.teacher }
     }
 
-    fun profileOf(teacher: Teacher): TeacherProfile = TeacherProfile(name = teacher.name, surnameKey = TeacherInsights.surnameOf(teacher.name))
+    fun profileOf(teacher: Teacher): TeacherProfile = TeacherProfile(name = teacher.name, surnameKey = TeacherInsights.surnameOf(teacher.matchName))
 
     fun showOnboarding(
         profile: TeacherProfile?,

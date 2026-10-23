@@ -1,9 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- XX: minHeight=250dp = 4 ячейки (70n−30) — согласовано с targetCellHeight=4;
+     прежние 180dp давали 3 ячейки на Android ≤11 и 4 на 12+ (рассинхрон сетки).
+     minResizeHeight позволяет лаунчеру ужать виджет до 3 ячеек. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:configure="com.politex.widget.WidgetConfigActivity"
+    android:description="@string/bells_widget_description"
     android:minWidth="110dp"
-    android:minHeight="180dp"
+    android:minHeight="250dp"
     android:minResizeWidth="110dp"
+    android:minResizeHeight="180dp"
     android:targetCellWidth="2"
     android:targetCellHeight="4"
     android:updatePeriodMillis="1800000"

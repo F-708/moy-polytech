@@ -60,7 +60,11 @@ fun rememberTeachers(): List<Teacher> {
 fun rememberIsTeacherKnown(): (String) -> Boolean {
     val teachers = rememberTeachers()
     return remember(teachers) {
-        val known = teachers.map { TeacherInsights.surnameOf(it.name) }.toHashSet()
+        val known = HashSet<String>()
+        teachers.forEach {
+            known += TeacherInsights.surnameOf(it.name)
+            known += TeacherInsights.surnameOf(it.matchName)
+        }
         val check: (String) -> Boolean = { name -> TeacherInsights.surnameOf(name) in known }
         check
     }

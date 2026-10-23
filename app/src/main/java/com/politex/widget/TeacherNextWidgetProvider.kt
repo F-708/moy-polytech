@@ -17,7 +17,10 @@ class TeacherNextWidgetProvider : AppWidgetProvider() {
         val pending = goAsync()
         WidgetUpdateHelper.widgetScope.launch {
             try {
-                ids.forEach { id -> runCatching { manager.updateAppWidget(id, buildViews(context, id, manager)) } }
+                ids.forEach { id ->
+                    val views = runCatching { buildViews(context, id, manager) }.getOrNull()
+                    WidgetUpdateHelper.applyOrFallback(context, manager, id, FALLBACK_TITLE, views)
+                }
             } finally {
                 WidgetAlarm.scheduleNext(context)
                 pending.finish()
@@ -41,7 +44,8 @@ class TeacherNextWidgetProvider : AppWidgetProvider() {
         newOptions: android.os.Bundle?,
     ) {
         WidgetUpdateHelper.widgetScope.launch {
-            runCatching { manager.updateAppWidget(appWidgetId, buildViews(context, appWidgetId, manager)) }
+            val views = runCatching { buildViews(context, appWidgetId, manager) }.getOrNull()
+            WidgetUpdateHelper.applyOrFallback(context, manager, appWidgetId, FALLBACK_TITLE, views)
         }
     }
 
@@ -49,10 +53,15 @@ class TeacherNextWidgetProvider : AppWidgetProvider() {
 
         private const val COMPACT_MAX_HEIGHT_DP = 70
 
+        const val FALLBACK_TITLE = "Следующая пара"
+
         suspend fun updateAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, TeacherNextWidgetProvider::class.java))
-            ids.forEach { id -> runCatching { manager.updateAppWidget(id, buildViews(context, id, manager)) } }
+            ids.forEach { id ->
+                val views = runCatching { buildViews(context, id, manager) }.getOrNull()
+                WidgetUpdateHelper.applyOrFallback(context, manager, id, FALLBACK_TITLE, views)
+            }
         }
 
         private suspend fun buildViews(

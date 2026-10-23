@@ -55,10 +55,12 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
 
         const val SHOW_FROM_MINUTE = 7 * 60
 
+        const val FALLBACK_TITLE = "До звонка"
+
         fun updateWidgets(context: Context, manager: AppWidgetManager, ids: IntArray) {
             ids.forEach { id ->
-                val views = buildViews(context, id)
-                manager.updateAppWidget(id, views)
+                val views = runCatching { buildViews(context, id) }.getOrNull()
+                WidgetUpdateHelper.applyOrFallback(context, manager, id, FALLBACK_TITLE, views)
             }
         }
 

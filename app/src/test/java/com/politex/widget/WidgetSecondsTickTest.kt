@@ -31,7 +31,7 @@ import java.util.Calendar
 import java.util.TimeZone
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [30, 31, 33, 35])
 class WidgetSecondsTickTest {
     private val ctx: Context = ApplicationProvider.getApplicationContext()
 

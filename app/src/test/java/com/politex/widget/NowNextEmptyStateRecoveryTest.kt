@@ -17,7 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [30, 31, 33, 35])
 class NowNextEmptyStateRecoveryTest {
     private val ctx: Context = ApplicationProvider.getApplicationContext()
     private val dao = MpkDatabase.getInstance(ctx).lessonDao()

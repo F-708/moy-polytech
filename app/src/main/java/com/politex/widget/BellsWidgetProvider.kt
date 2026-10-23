@@ -14,8 +14,11 @@ class BellsWidgetProvider : AppWidgetProvider() {
         manager: AppWidgetManager,
         ids: IntArray,
     ) {
-        ids.forEach { id -> manager.updateAppWidget(id, buildViews(context, id)) }
-        WidgetAlarm.scheduleNext(context)
+        ids.forEach { id ->
+            val views = runCatching { buildViews(context, id) }.getOrNull()
+            WidgetUpdateHelper.applyOrFallback(context, manager, id, FALLBACK_TITLE, views)
+        }
+        runCatching { WidgetAlarm.scheduleNext(context) }
     }
 
     override fun onEnabled(context: Context) = WidgetAlarm.scheduleNext(context)
@@ -25,10 +28,15 @@ class BellsWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        const val FALLBACK_TITLE = "Звонки"
+
         fun updateAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, BellsWidgetProvider::class.java))
-            ids.forEach { id -> manager.updateAppWidget(id, buildViews(context, id)) }
+            ids.forEach { id ->
+                val views = runCatching { buildViews(context, id) }.getOrNull()
+                WidgetUpdateHelper.applyOrFallback(context, manager, id, FALLBACK_TITLE, views)
+            }
         }
 
         private fun buildViews(

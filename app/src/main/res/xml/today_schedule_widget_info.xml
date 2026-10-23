@@ -1,9 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- XX: minWidth/targetCellWidth — 4 ячейки (формула 70n−30: 250dp = 4 колонки).
+     Прежние 320dp/5 не помещались в 4-колоночную сетку MIUI (Xiaomi) — пикер
+     скрывал виджет или отклонял размещение. minResize* разрешают ужаться до 3×2. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:configure="com.politex.widget.WidgetConfigActivity"
-    android:minWidth="320dp"
+    android:description="@string/today_schedule_widget_description"
+    android:minWidth="250dp"
     android:minHeight="180dp"
-    android:targetCellWidth="5"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="110dp"
+    android:targetCellWidth="4"
     android:targetCellHeight="3"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_today_schedule"
