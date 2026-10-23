@@ -42,6 +42,15 @@ jobs:
           # Run мог ждать в очереди concurrency — берём свежий HEAD ветки.
           ref: ${{ github.ref_name }}
 
+      - name: Установка ImageMagick
+        run: |
+          set -euo pipefail
+          if ! command -v identify >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq imagemagick
+          fi
+          identify --version | head -n 1
+
       - name: Сжать фото, превышающие порог
         run: |
           set -euo pipefail
@@ -51,10 +60,10 @@ jobs:
           PROCESSED=0
           for f in *; do
             [ -f "$f" ] || continue
-            INFO="$(identify -format '%w %h %B' "./$f" 2>/dev/null | head -n 1 || true)"
+            INFO="$(identify -format '%w %h %B' "./$f" 2>&1 | head -n 1 || true)"
             read -r W H B <<<"$INFO" || true
             if ! [[ "${W:-}" =~ ^[0-9]+$ && "${H:-}" =~ ^[0-9]+$ && "${B:-}" =~ ^[0-9]+$ ]]; then
-              echo "::warning::Файл $f не распознан как изображение — пропускаю"
+              echo "::warning::Файл $f не распознан как изображение ($INFO) — пропускаю"
               continue
             fi
             if [ "$W" -le "$MAX_DIM" ] && [ "$H" -le "$MAX_DIM" ] && [ "$B" -le "$MAX_BYTES" ]; then
