@@ -1,10 +1,10 @@
 {
   "channel": "preview",
-  "version": "2.0.1-preview.5",
-  "version_code": 20001005,
-  "apk": "https://github.com/F-708/moy-polytech/releases/download/v2.0.1-preview.5/moy-polytech-2.0.1-preview.5.apk",
-  "apk_name": "moy-polytech-2.0.1-preview.5.apk",
-  "sha256": "e8b4117ed6c62f7747ae581beab8ae113e98f9dd2063222223b288a61b5471a8",
-  "published_at": "2026-10-23T09:57:54Z",
-  "min_version_code": 20001005
+  "version": "2.0.1-preview.6",
+  "version_code": 20001006,
+  "apk": "https://github.com/F-708/moy-polytech/releases/download/v2.0.1-preview.6/moy-polytech-2.0.1-preview.6.apk",
+  "apk_name": "moy-polytech-2.0.1-preview.6.apk",
+  "sha256": "410ca1449471ba317d2c0981e7f8660f79d4b69a217dcc9bcc84d2c73e54de0a",
+  "published_at": "2026-10-23T19:21:01Z",
+  "min_version_code": 20001006
 }
