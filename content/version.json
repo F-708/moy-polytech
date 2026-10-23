@@ -1,8 +1,8 @@
 {
-  "pack_version": 6,
-  "generated_at": "2026-10-23T09:49:17Z",
+  "pack_version": 7,
+  "generated_at": "2026-10-23T10:02:29Z",
   "url": "content-pack.zip",
-  "size_bytes": 2161399,
-  "sha256": "ea7d552ef4cb7cc1a74b3a71616c5bdd9ac316dae127aabf369a8458c09c02a5",
+  "size_bytes": 2260414,
+  "sha256": "e8bf13cb50a10c5febef71a6a64d95d834d8f55e88a5cceaf1712216cad490e6",
   "min_app_version": 0
 }
