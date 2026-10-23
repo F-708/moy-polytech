@@ -38,6 +38,7 @@ class TimeChangedReceiver : BroadcastReceiver() {
 
             WidgetAlarm.scheduleNext(context)
             WidgetAlarm.scheduleNextSecond(context)
+            com.politex.worker.WidgetSyncWorker.enqueue(context)
 
             runCatching { BellTimerService.sync(context) }
 

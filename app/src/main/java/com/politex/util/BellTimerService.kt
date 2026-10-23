@@ -136,6 +136,7 @@ class BellTimerService : Service() {
         scope.cancel()
         isRunning = false
         runCatching { WidgetAlarm.scheduleNextSecond(this) }
+        runCatching { WidgetAlarm.scheduleWindowWake(this) }
         super.onDestroy()
     }
 

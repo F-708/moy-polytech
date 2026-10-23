@@ -128,47 +128,10 @@ class WidgetConfigActivity : ComponentActivity() {
 
                         if (ExactAlarmGate.hintNeeded(Build.VERSION.SDK_INT, canExactAlarms)) {
                             Spacer(modifier = Modifier.height(12.dp))
-                            Surface(
-                                shape = RoundedCornerShape(2.dp),
-                                color = ColorBgMain,
-                                border = BorderStroke(1.dp, ColorBrandBlue),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = "Чтобы обновление работало корректно, нужен доступ к будильникам",
-                                        fontSize = 12.sp,
-                                        color = ColorTextBody,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(2.dp),
-                                        color = ColorBrandFill,
-                                        modifier =
-                                        Modifier
-                                            .heightIn(min = 44.dp)
-                                            .bouncyClickable {
-                                                ExactAlarmGate.openSettings(this@WidgetConfigActivity)
-                                            },
-                                    ) {
-                                        Box(
-                                            contentAlignment = Alignment.Center,
-                                            modifier = Modifier.padding(horizontal = 12.dp),
-                                        ) {
-                                            Text(
-                                                text = "РАЗРЕШИТЬ",
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                            ExactAlarmHintCard(
+                                text = "Чтобы обновление работало корректно, нужен доступ к будильникам",
+                                onAllow = { ExactAlarmGate.openSettings(this@WidgetConfigActivity) },
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(18.dp))
@@ -304,28 +267,17 @@ class WidgetConfigActivity : ComponentActivity() {
                                 }
                             }
                             if (kind == WidgetKind.COUNTDOWN) {
-                                Row(
-                                    modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "Показывать секунды",
-                                            fontSize = 14.sp,
-                                            color = ColorTextBody,
-                                        )
-                                        Text(
-                                            text = "Отсчёт вида «4:32» — обновление каждую секунду",
-                                            fontSize = 12.sp,
-                                            color = ColorTextMuted,
-                                        )
-                                    }
-                                    Switch(checked = showSeconds, onCheckedChange = { showSeconds = it })
-                                }
+                                SecondsOptionSection(
+                                    showSeconds = showSeconds,
+                                    onToggle = { showSeconds = it },
+                                    alarmHintVisible =
+                                    ExactAlarmGate.secondsHintNeeded(
+                                        Build.VERSION.SDK_INT,
+                                        canExactAlarms,
+                                        showSeconds,
+                                    ),
+                                    onAllowAlarms = { ExactAlarmGate.openSettings(this@WidgetConfigActivity) },
+                                )
                             }
                         }
 
@@ -351,6 +303,7 @@ class WidgetConfigActivity : ComponentActivity() {
                                     }
                                     WidgetAlarm.scheduleNext(this@WidgetConfigActivity)
                                     WidgetAlarm.scheduleNextSecond(this@WidgetConfigActivity)
+                                    com.politex.worker.WidgetSyncWorker.enqueue(this@WidgetConfigActivity)
                                     runCatching { com.politex.util.BellTimerService.sync(this@WidgetConfigActivity) }
 
                                     requestAlarmAccessOnce()
@@ -545,5 +498,89 @@ private fun OptionRow(
                 }
             }
         }
+    }
+}
+
+@Composable
+internal fun ExactAlarmHintCard(
+    text: String,
+    onAllow: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(2.dp),
+        color = ColorBgMain,
+        border = BorderStroke(1.dp, ColorBrandBlue),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = text,
+                fontSize = 12.sp,
+                color = ColorTextBody,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Surface(
+                shape = RoundedCornerShape(2.dp),
+                color = ColorBrandFill,
+                modifier =
+                Modifier
+                    .heightIn(min = 44.dp)
+                    .bouncyClickable(onClick = onAllow),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                ) {
+                    Text(
+                        text = "РАЗРЕШИТЬ",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SecondsOptionSection(
+    showSeconds: Boolean,
+    onToggle: (Boolean) -> Unit,
+    alarmHintVisible: Boolean,
+    onAllowAlarms: () -> Unit,
+) {
+    Row(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Показывать секунды",
+                fontSize = 14.sp,
+                color = ColorTextBody,
+            )
+            Text(
+                text = "Отсчёт вида «4:32» — обновление каждую секунду",
+                fontSize = 12.sp,
+                color = ColorTextMuted,
+            )
+        }
+        Switch(checked = showSeconds, onCheckedChange = onToggle)
+    }
+    if (alarmHintVisible) {
+        Spacer(modifier = Modifier.height(8.dp))
+        ExactAlarmHintCard(
+            text = "Секундный отсчёт требует доступа к будильникам: без него виджет обновляется реже",
+            onAllow = onAllowAlarms,
+        )
     }
 }

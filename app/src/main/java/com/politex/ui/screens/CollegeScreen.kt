@@ -74,7 +74,6 @@ import com.politex.ui.components.UpdateAvailableCard
 import com.politex.ui.theme.ColorAccentGold
 import com.politex.ui.theme.ColorAccentGoldBg
 import com.politex.ui.theme.ColorAccentGoldBright
-import com.politex.ui.theme.ColorAccentGoldMuted
 import com.politex.ui.theme.ColorActiveBlue
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
@@ -283,7 +282,6 @@ private fun OtherMenu(
                     AdminMenuCard(
                         icon = { Icon(Icons.Default.AdminPanelSettings, null, tint = ColorAccentGoldBright, modifier = Modifier.size(20.dp)) },
                         title = "База данных учащихся",
-                        subtitle = "Все учащиеся колледжа: фильтры по группам и курсам",
                         badge = "ADMIN",
                         onClick = onOpenStudents,
                     )
@@ -410,7 +408,6 @@ private fun MenuCard(
 private fun AdminMenuCard(
     icon: @Composable () -> Unit,
     title: String,
-    subtitle: String,
     badge: String,
     onClick: () -> Unit,
 ) {
@@ -424,7 +421,10 @@ private fun AdminMenuCard(
             .bouncyClickable(onClick = onClick),
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier =
+            Modifier
+                .padding(14.dp)
+                .heightIn(min = Tokens.HitTarget),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -435,46 +435,38 @@ private fun AdminMenuCard(
                 contentAlignment = Alignment.Center,
             ) { icon() }
             Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = title,
-                        style =
-                        androidx.compose.ui.text.TextStyle(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = ColorAccentGoldBright,
-                        ),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(2.dp),
-                        color = ColorAccentGold,
-                        modifier = Modifier.padding(start = 2.dp),
-                    ) {
-                        Text(
-                            text = badge,
-                            style =
-                            androidx.compose.ui.text.TextStyle(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 8.sp,
-                                color = ColorOnAccentGold,
-                            ),
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                        )
-                    }
-                }
+            Text(
+                text = title,
+                style =
+                androidx.compose.ui.text.TextStyle(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = ColorAccentGoldBright,
+                ),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Surface(
+                shape = RoundedCornerShape(2.dp),
+                color = ColorAccentGold,
+            ) {
                 Text(
-                    text = subtitle,
+                    text = badge,
                     style =
                     androidx.compose.ui.text.TextStyle(
-                        fontSize = 12.sp,
-                        color = ColorAccentGoldMuted,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 8.sp,
+                        color = ColorOnAccentGold,
                     ),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                 )
             }
+            Spacer(modifier = Modifier.width(6.dp))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,

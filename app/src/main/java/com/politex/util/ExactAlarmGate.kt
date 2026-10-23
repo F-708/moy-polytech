@@ -19,6 +19,12 @@ object ExactAlarmGate {
         askedThisSession: Boolean,
     ): Boolean = hintNeeded(sdkInt, canScheduleExact) && !askedThisSession
 
+    fun secondsHintNeeded(
+        sdkInt: Int,
+        canScheduleExact: Boolean,
+        secondsSelected: Boolean,
+    ): Boolean = secondsSelected && hintNeeded(sdkInt, canScheduleExact)
+
     fun canScheduleExactAlarms(context: Context): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
         (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
 

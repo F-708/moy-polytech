@@ -28,15 +28,34 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
+import org.junit.rules.TestRule
 import org.junit.runner.RunWith
+import org.junit.runners.model.Statement
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w360dp-h720dp")
 class CuratorUiTest {
+    private val composeRule = createComposeRule()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val rules: RuleChain =
+        RuleChain
+            .outerRule(
+                TestRule { base, _ ->
+                    object : Statement() {
+                        override fun evaluate() {
+                            try {
+                                base.evaluate()
+                            } finally {
+                                if (::db.isInitialized) db.close()
+                            }
+                        }
+                    }
+                },
+            ).around(composeRule)
 
     private val context get() = ApplicationProvider.getApplicationContext<Context>()
     private lateinit var db: MpkDatabase
@@ -53,7 +72,6 @@ class CuratorUiTest {
     @After
     fun tearDown() {
         CuratorStore.clearAll(context)
-        db.close()
     }
 
     private fun seedLessons(group: String) {

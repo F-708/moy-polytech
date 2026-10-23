@@ -59,12 +59,17 @@ class WidgetSecondsTickTest {
         WidgetData.invalidateCache()
     }
 
-    private fun fixedTuesday1030(): Calendar = Calendar
+    private fun fixedCalendar(
+        hour: Int,
+        minute: Int,
+    ): Calendar = Calendar
         .getInstance(TimeZone.getTimeZone("UTC"))
         .apply {
             clear()
-            set(2026, Calendar.OCTOBER, 20, 10, 30, 0)
+            set(2026, Calendar.OCTOBER, 20, hour, minute, 0)
         }
+
+    private fun fixedTuesday1030(): Calendar = fixedCalendar(10, 30)
 
     private fun alarmFor(action: String) = shadowAm.scheduledAlarms.firstOrNull {
         shadowOf(it.operation).savedIntent?.action == action
@@ -261,6 +266,7 @@ class WidgetSecondsTickTest {
         WidgetAlarmReceiver().onReceive(ctx, Intent(Intent.ACTION_BOOT_COMPLETED))
 
         assertNotNull("минутный тик после перезагрузки планируется без строки", alarmFor(WidgetAlarmReceiver.ACTION_TICK))
+        assertNotNull("после перезагрузки утренний wake вооружён", alarmFor(WidgetAlarmReceiver.ACTION_WINDOW_WAKE))
         assertTrue(
             "после перезагрузки widget-only сервис - основной драйвер секунд; ${tickDiagnostics()}",
             bellServiceStartRequested(app),
@@ -426,5 +432,107 @@ class WidgetSecondsTickTest {
 
         assertTrue(BellTimerService.sync(ctx))
         assertTrue(bellServiceStartRequested(app))
+    }
+
+    @Test
+    fun `windowWakeTrigger - ранним утром будит сегодня, вечером и ровно в 6-55 - завтра`() {
+        val early = fixedCalendar(5, 0)
+        val wakeToday = WidgetAlarm.windowWakeTrigger(early)
+        val todayWake = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = wakeToday }
+        assertEquals(6, todayWake.get(Calendar.HOUR_OF_DAY))
+        assertEquals(55, todayWake.get(Calendar.MINUTE))
+        assertEquals(early.get(Calendar.DAY_OF_YEAR), todayWake.get(Calendar.DAY_OF_YEAR))
+
+        val evening = fixedCalendar(21, 30)
+        val wakeTomorrow = WidgetAlarm.windowWakeTrigger(evening)
+        val tomorrowWake = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = wakeTomorrow }
+        assertEquals(6, tomorrowWake.get(Calendar.HOUR_OF_DAY))
+        assertEquals(55, tomorrowWake.get(Calendar.MINUTE))
+        assertEquals(
+            evening.get(Calendar.DAY_OF_YEAR) + 1,
+            tomorrowWake.get(Calendar.DAY_OF_YEAR),
+        )
+
+        val exact = fixedCalendar(6, 55)
+        assertTrue(
+            "ровно в 6:55 следующий wake уже завтра",
+            WidgetAlarm.windowWakeTrigger(exact) > exact.timeInMillis + 23 * 3600_000L,
+        )
+    }
+
+    @Test
+    fun `window wake - с виджетом ставится, без виджетов нет`() {
+        BellCountdownNotifier.setEnabled(ctx, false)
+
+        WidgetAlarm.scheduleWindowWake(ctx)
+        assertNull("без виджетов утренний wake не нужен", alarmFor(WidgetAlarmReceiver.ACTION_WINDOW_WAKE))
+
+        bindSecondsWidget(7)
+        WidgetAlarm.scheduleWindowWake(ctx)
+        val wake = alarmFor(WidgetAlarmReceiver.ACTION_WINDOW_WAKE)
+        assertNotNull("при живых виджетах утренний wake обязан стоять", wake)
+        assertTrue(
+            "wake планируется позже текущего (замороженного) момента",
+            wake!!.triggerAtTime > fixedTuesday1030().timeInMillis,
+        )
+    }
+
+    @Test
+    fun `window wake уникален - повторные погасания не плодят будильники`() {
+        bindSecondsWidget(7)
+
+        repeat(3) { WidgetAlarm.scheduleWindowWake(ctx) }
+
+        val count = shadowAm.scheduledAlarms.count {
+            shadowOf(it.operation).savedIntent?.action == WidgetAlarmReceiver.ACTION_WINDOW_WAKE
+        }
+        assertEquals("один PendingIntent - один будильник", 1, count)
+    }
+
+    @Test
+    fun `cancelWindowWake снимает утренний будильник`() {
+        bindSecondsWidget(7)
+        WidgetAlarm.scheduleWindowWake(ctx)
+        assertNotNull(alarmFor(WidgetAlarmReceiver.ACTION_WINDOW_WAKE))
+
+        WidgetAlarm.cancelWindowWake(ctx)
+        assertNull(alarmFor(WidgetAlarmReceiver.ACTION_WINDOW_WAKE))
+    }
+
+    @Test
+    fun `scheduleNext вместе с минутным тиком вооружает утренний wake`() {
+        bindSecondsWidget(7)
+
+        WidgetAlarm.scheduleNext(ctx)
+
+        assertNotNull(alarmFor(WidgetAlarmReceiver.ACTION_TICK))
+        assertNotNull(alarmFor(WidgetAlarmReceiver.ACTION_WINDOW_WAKE))
+    }
+
+    @Test
+    fun `wake-тик поднимает виджет-сервис без строки и восстанавливает все цепочки`() = runBlocking {
+        BellCountdownNotifier.setEnabled(ctx, false)
+        bindSecondsWidget(7)
+        val app = shadowOf(ctx.applicationContext as Application)
+        app.clearStartedServices()
+        ShadowAlarmManager.reset()
+
+        WidgetAlarmReceiver().onReceive(ctx, Intent(WidgetAlarmReceiver.ACTION_WINDOW_WAKE))
+        drainWidgetScope()
+
+        assertTrue(
+            "wake обязан поднимать widget-only сервис; ${tickDiagnostics()}",
+            bellServiceStartRequested(app),
+        )
+        assertNotNull("wake перевзводит себя на следующий день", alarmFor(WidgetAlarmReceiver.ACTION_WINDOW_WAKE))
+        assertNotNull("wake восстанавливает минутную эстафету", alarmFor(WidgetAlarmReceiver.ACTION_TICK))
+        assertNotNull("wake восстанавливает секундную эстафету", alarmFor(WidgetAlarmReceiver.ACTION_SECOND_TICK))
+        assertNotNull("виджеты перерисованы утром", countdownLabel(7))
+
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        assertTrue(
+            "wake без строки не постит уведомление «до звонка»",
+            shadowOf(nm).allNotifications.isEmpty(),
+        )
     }
 }

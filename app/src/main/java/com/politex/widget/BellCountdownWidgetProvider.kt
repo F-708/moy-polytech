@@ -35,6 +35,7 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
     override fun onEnabled(context: Context) {
         WidgetAlarm.scheduleNext(context)
         WidgetAlarm.scheduleNextSecond(context)
+        com.politex.worker.WidgetSyncWorker.enqueue(context)
         runCatching { com.politex.util.BellTimerService.sync(context) }
     }
 
@@ -473,6 +474,22 @@ object WidgetAlarm {
 
     private const val MINUTE_TICK_REQUEST_CODE = 4002
     private const val SECOND_TICK_REQUEST_CODE = 4003
+    private const val WINDOW_WAKE_REQUEST_CODE = 4004
+
+    internal const val WINDOW_WAKE_HOUR = 6
+    internal const val WINDOW_WAKE_MINUTE = 55
+
+    private fun windowWakePendingIntent(context: Context): PendingIntent {
+        val intent = Intent(context, WidgetAlarmReceiver::class.java).apply {
+            action = WidgetAlarmReceiver.ACTION_WINDOW_WAKE
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            WINDOW_WAKE_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
 
     private fun pendingIntent(context: Context): PendingIntent {
         val intent = Intent(context, WidgetAlarmReceiver::class.java).apply {
@@ -512,12 +529,14 @@ object WidgetAlarm {
     }
 
     fun scheduleNext(context: Context) {
-        scheduleNextIf(context, hasWork(context))
+        val work = hasWork(context)
+        scheduleNextIf(context, work)
+        if (work) scheduleWindowWake(context)
     }
 
     internal fun scheduleNextIf(context: Context, hasWork: Boolean) {
         if (!hasWork) return
-        val cal = Calendar.getInstance()
+        val cal = WidgetData.nowCalendar()
         val minutes = WidgetData.minuteOfDay(cal)
         val now = System.currentTimeMillis()
 
@@ -534,6 +553,32 @@ object WidgetAlarm {
         }
 
         WidgetUpdateHelper.setExactOrIdle(context, triggerAt, pendingIntent(context))
+    }
+
+    internal fun windowWakeTrigger(nowCal: Calendar): Long {
+        val wake =
+            (nowCal.clone() as Calendar).apply {
+                set(Calendar.HOUR_OF_DAY, WINDOW_WAKE_HOUR)
+                set(Calendar.MINUTE, WINDOW_WAKE_MINUTE)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+        if (wake.timeInMillis <= nowCal.timeInMillis) wake.add(Calendar.DAY_OF_YEAR, 1)
+        return wake.timeInMillis
+    }
+
+    fun scheduleWindowWake(context: Context) {
+        if (!hasWork(context)) return
+        WidgetUpdateHelper.setExactOrIdle(
+            context,
+            windowWakeTrigger(WidgetData.nowCalendar()),
+            windowWakePendingIntent(context),
+        )
+    }
+
+    fun cancelWindowWake(context: Context) {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        am.cancel(windowWakePendingIntent(context))
     }
 
     internal fun inSchoolWindow(minutesOfDay: Int): Boolean = minutesOfDay in SCHOOL_START until SCHOOL_END
@@ -576,6 +621,7 @@ object WidgetAlarm {
         if (shouldCancelAlarm(hasWork(context))) {
             cancel(context)
             cancelSecond(context)
+            cancelWindowWake(context)
         }
     }
 
@@ -637,11 +683,28 @@ class WidgetAlarmReceiver : android.content.BroadcastReceiver() {
                     }
                 }
             }
+            ACTION_WINDOW_WAKE -> {
+                runCatching { WidgetAlarm.scheduleWindowWake(context) }
+                runCatching { com.politex.util.BellTimerService.sync(context) }
+
+                val pending = goAsync()
+                WidgetUpdateHelper.widgetScope.launch {
+                    try {
+                        WidgetAlarm.scheduleNext(context)
+                        WidgetAlarm.scheduleNextSecond(context)
+                        WidgetUpdateHelper.updateAllWidgets(context)
+                        runCatching { TeacherWidgetUpdater.updateAllNow(context) }
+                    } finally {
+                        pending.finish()
+                    }
+                }
+            }
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
             -> {
                 WidgetAlarm.scheduleNext(context)
                 WidgetAlarm.scheduleNextSecond(context)
+                com.politex.worker.WidgetSyncWorker.enqueue(context)
 
                 runCatching { com.politex.util.BellTimerService.sync(context) }
 
@@ -662,6 +725,7 @@ class WidgetAlarmReceiver : android.content.BroadcastReceiver() {
     companion object {
         const val ACTION_TICK = "com.politex.widget.ACTION_BELL_COUNTDOWN_TICK"
         const val ACTION_SECOND_TICK = "com.politex.widget.ACTION_BELL_COUNTDOWN_SECOND_TICK"
+        const val ACTION_WINDOW_WAKE = "com.politex.widget.ACTION_WINDOW_WAKE"
 
         internal suspend fun handleSecondTick(context: Context) {
             BellCountdownWidgetProvider.updateSecondsWidgets(context)
