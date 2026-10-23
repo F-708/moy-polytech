@@ -57,8 +57,10 @@ jobs:
           set -euo pipefail
           cd content
           rm -f /tmp/content-pack.zip
-          find teachers.csv group_codes.csv college_map.json teachers_photos -exec touch -h -d "@1700000000" {} +
-          zip -q -r -X /tmp/content-pack.zip teachers.csv group_codes.csv college_map.json teachers_photos
+          OVR=""
+          if [ -f owner_overrides.json ]; then OVR="owner_overrides.json"; fi
+          find teachers.csv group_codes.csv college_map.json teachers_photos $OVR -exec touch -h -d "@1700000000" {} +
+          zip -q -r -X /tmp/content-pack.zip teachers.csv group_codes.csv college_map.json teachers_photos $OVR
           SHA="$(sha256sum /tmp/content-pack.zip | cut -d' ' -f1)"
           SIZE="$(stat -c %s /tmp/content-pack.zip)"
           PREV_SHA=""

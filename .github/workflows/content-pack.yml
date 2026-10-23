@@ -10,6 +10,7 @@ on:
       - 'content/teachers.csv'
       - 'content/group_codes.csv'
       - 'content/college_map.json'
+      - 'content/owner_overrides.json'
       - '.github/workflows/content-pack.yml'
       - '.github/workflows/content-pack-build.yml'
   workflow_dispatch:
