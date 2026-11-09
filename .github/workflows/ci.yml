@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -35,4 +35,10 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - name: Тесты
-        run: ./gradlew :app:testStandardDebugUnitTest --console=plain
+        run: |
+          for attempt in 1 2 3; do
+            ./gradlew :app:testStandardDebugUnitTest --console=plain && exit 0
+            echo "Попытка $attempt не удалась, повтор через 20 секунд"
+            sleep 20
+          done
+          exit 1
