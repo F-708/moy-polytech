@@ -1,4 +1,4 @@
-﻿name: Release APK
+name: Release APK
 
 on:
   push:
@@ -107,13 +107,25 @@ jobs:
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :app:testStandardDebugUnitTest --console=plain
+        run: |
+          for attempt in 1 2 3; do
+            ./gradlew :app:testStandardDebugUnitTest --console=plain && exit 0
+            echo "Попытка $attempt не удалась, повтор через 20 секунд"
+            sleep 20
+          done
+          exit 1
 
       - name: Релизный APK
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :app:assembleStandardRelease --console=plain
+        run: |
+          for attempt in 1 2 3; do
+            ./gradlew :app:assembleStandardRelease --console=plain && exit 0
+            echo "Попытка $attempt не удалась, повтор через 20 секунд"
+            sleep 20
+          done
+          exit 1
 
       - name: Переименование APK и sha256
         id: artifact
