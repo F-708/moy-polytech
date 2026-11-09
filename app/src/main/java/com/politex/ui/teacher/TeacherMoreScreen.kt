@@ -70,7 +70,7 @@ fun TeacherMoreScreen(
     Column(
         modifier = modifier.fillMaxSize().background(ColorBgMain),
     ) {
-        Header(title = "Ещё", subtitle = "Профиль, преподаватели и настройки")
+        Header(title = "Ещё", subtitle = "Профиль и настройки")
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -81,7 +81,7 @@ fun TeacherMoreScreen(
                 MenuCard(
                     icon = { Icon(Icons.Default.AccountCircle, null, tint = Color.White, modifier = Modifier.size(20.dp)) },
                     title = profile?.name ?: "Выберите себя",
-                    subtitle = if (profile != null) "Нажмите, чтобы сменить преподавателя" else "Найти себя в списке преподавателей",
+                    subtitle = if (profile != null) "Сменить преподавателя" else "Найти себя в списке",
                     onClick = onPickProfile,
                     testTag = "more_profile",
                 )
@@ -90,7 +90,7 @@ fun TeacherMoreScreen(
                 MenuCard(
                     icon = { Icon(Icons.Default.AccessTime, null, tint = Color.White, modifier = Modifier.size(20.dp)) },
                     title = "Расписание звонков",
-                    subtitle = "Время звонков на сегодня и по дням",
+                    subtitle = "Время звонков по дням",
                     onClick = onOpenBells,
                     testTag = "more_bells",
                 )
@@ -108,7 +108,7 @@ fun TeacherMoreScreen(
                 MenuCard(
                     icon = { Icon(Icons.Default.DateRange, null, tint = Color.White, modifier = Modifier.size(20.dp)) },
                     title = "Найти группу",
-                    subtitle = "Расписание любой группы колледжа",
+                    subtitle = "Расписание любой группы",
                     onClick = onOpenGroupSchedule,
                     testTag = "more_group",
                 )
@@ -117,7 +117,7 @@ fun TeacherMoreScreen(
                 MenuCard(
                     icon = { Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(20.dp)) },
                     title = "Преподаватели",
-                    subtitle = "Поиск по базе, избранное и фотографии",
+                    subtitle = "Поиск, избранное и фото",
                     onClick = onOpenTeachers,
                     testTag = "more_teachers",
                 )
@@ -126,7 +126,7 @@ fun TeacherMoreScreen(
                 MenuCard(
                     icon = { Icon(Icons.Default.Settings, null, tint = Color.White, modifier = Modifier.size(20.dp)) },
                     title = "Настройки",
-                    subtitle = "Профиль, «до звонка», масштаб и тема",
+                    subtitle = "Оформление и «до звонка»",
                     onClick = onOpenSettings,
                     testTag = "more_settings",
                 )
@@ -221,7 +221,7 @@ fun TeacherBellsPage(
             Text("Звонки · $dowTitle", style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 17.sp, color = ColorTextTitle))
         }
         Text(
-            "Звонок по стандартному расписанию колледжа. Сокращённые дни и переносы приложение не определяет — сверяйтесь с объявлением учебной части.",
+            "Стандартное расписание звонков. Сокращённые дни и переносы не учитываются.",
             style = TextStyle(fontSize = metrics.chipText, color = ColorTextMuted),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp).testTag("bells_honest_text"),
         )
@@ -267,6 +267,6 @@ private fun dowTitle(dow: Int): String = when (dow) {
 }
 
 internal const val TEACHER_ABOUT_DISCLAIMER =
-    "Неофициальное приложение. Данные из открытых источников guo-mpk.by. Может отставать от приказов о заменах."
+    "Неофициальное приложение. Данные с guo-mpk.by, могут отставать от приказов."
 
 internal fun teacherAboutVersion(): String = BuildConfig.VERSION_NAME

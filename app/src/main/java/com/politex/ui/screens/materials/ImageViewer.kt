@@ -86,7 +86,7 @@ fun MaterialImageViewer(
                     modifier = Modifier.padding(24.dp),
                 ) {
                     Text(
-                        text = "Изображения не найдены: файлы материала удалены с диска.",
+                        text = "Файлы материала удалены с диска.",
                         style = TextStyle(fontSize = 13.sp, color = ColorTextMuted),
                         textAlign = TextAlign.Center,
                     )

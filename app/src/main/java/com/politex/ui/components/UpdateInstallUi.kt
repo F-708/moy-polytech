@@ -3,11 +3,14 @@ package com.politex.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,11 +32,13 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.politex.BuildConfig
@@ -62,33 +67,58 @@ fun UpdateInstallButton(
         animationSpec = tween(durationMillis = 300),
         label = "UpdateInstallProgress",
     )
-    Box(
+    val label =
+        when {
+            downloading && targetProgress > 0f -> "${(targetProgress * 100).toInt()}%"
+            downloading -> "Загрузка"
+            ready -> "Установить"
+            else -> "Скачать"
+        }
+    Row(
         modifier = modifier
-            .size(44.dp)
+            .height(40.dp)
+            .background(ColorBrandFill.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
             .bouncyClickable(enabled = !downloading, onClick = onClick)
+            .padding(horizontal = 10.dp)
             .semantics { contentDescription = installButtonDescription(state) },
-        contentAlignment = Alignment.Center,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         when {
-            downloading -> UpdateProgressIcon(progress = animatedProgress)
+            downloading -> UpdateProgressIcon(progress = animatedProgress, boxSize = 24.dp)
             ready -> SettingsIcon(Icons.Default.FileDownloadDone)
             else -> SettingsIcon(Icons.Default.FileDownload)
         }
+        Text(
+            text = label,
+            style =
+            TextStyle(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 12.sp,
+                color = ColorBrandBlue,
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.clearAndSetSemantics { },
+        )
     }
 }
 
 @Composable
-fun UpdateProgressIcon(progress: Float) {
+fun UpdateProgressIcon(
+    progress: Float,
+    boxSize: Dp = 36.dp,
+) {
     val clamped = progress.coerceIn(0f, 1f)
     Box(
         modifier = Modifier
-            .size(36.dp)
+            .size(boxSize)
             .background(ColorBrandFill.copy(alpha = 0.12f), RoundedCornerShape(2.dp)),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .size(20.dp)
+                .size(boxSize * 0.55f)
                 .drawWithContent {
                     clipRect(top = size.height * (1f - clamped)) {
                         this@drawWithContent.drawContent()
@@ -100,14 +130,14 @@ fun UpdateProgressIcon(progress: Float) {
                 imageVector = Icons.Default.FileDownload,
                 contentDescription = null,
                 tint = ColorBrandFill,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.fillMaxSize(),
             )
         }
         Icon(
             imageVector = Icons.Outlined.FileDownload,
             contentDescription = null,
             tint = ColorBrandBlue,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(boxSize * 0.55f),
         )
     }
 }

@@ -223,4 +223,21 @@ class WidgetLayoutsTest {
         assertTrue("minWidth != 250dp (формула 70*4-30)", text.contains("android:minWidth=\"250dp\""))
         assertTrue("maxResizeWidth != 320dp (5 колонок)", text.contains("android:maxResizeWidth=\"320dp\""))
     }
+
+    @Test
+    fun `погодная подложка виджетов — одна статичная картинка`() {
+        listOf("widget_now_next.xml", "widget_today_schedule.xml", "widget_bells.xml", "widget_bell_countdown.xml")
+            .forEach { name ->
+                val text = File(layoutsDir, name).readText()
+                assertTrue("$name: нет картинки @+id/iv_weather_backdrop", text.contains("@+id/iv_weather_backdrop"))
+                val attrs = text.substringAfter("@+id/iv_weather_backdrop").substringBefore("/>")
+                assertTrue(
+                    "$name: подложка должна быть ImageView",
+                    Regex("<ImageView\\s+android:id=\"@\\+id/iv_weather_backdrop\"").containsMatchIn(text),
+                )
+                assertTrue("$name: картинка не растянута на виджет", attrs.contains("android:scaleType=\"fitXY\""))
+                assertTrue("$name: картинка не скрыта по умолчанию", attrs.contains("android:visibility=\"gone\""))
+                assertTrue("$name: кадры анимации остались", !text.contains("weather_frame_"))
+            }
+    }
 }

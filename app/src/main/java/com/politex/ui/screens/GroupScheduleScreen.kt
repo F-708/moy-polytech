@@ -62,6 +62,7 @@ import com.politex.data.repository.SyncOutcome
 import com.politex.data.repository.checkingStatusFor
 import com.politex.data.repository.emptyStateText
 import com.politex.ui.components.AppCard
+import com.politex.ui.effects.weatherScene
 import com.politex.ui.components.AppDivider
 import com.politex.ui.components.CenteredLoader
 import com.politex.ui.components.DaySlotCell
@@ -293,13 +294,13 @@ fun GroupScheduleScreen(
                     lastOutcome = outcome
                     syncEmptyNotice = when (outcome) {
                         is SyncOutcome.FoundNoGroup ->
-                            "Группы $group нет в опубликованном расписании на ${outcome.date}"
+                            "Группы $group нет в расписании на ${outcome.date}"
                         is SyncOutcome.NotFound ->
                             "Расписание на ${outcome.date} ещё не опубликовано"
                         is SyncOutcome.Ok -> null
                     }
                 },
-                onFailure = { syncError = "Не удалось загрузить расписание: проверьте интернет" },
+                onFailure = { syncError = "Не удалось загрузить. Проверьте интернет." },
             )
         }
     }
@@ -344,7 +345,7 @@ fun GroupScheduleScreen(
         modifier =
         modifier
             .fillMaxSize()
-            .background(ColorBgMain),
+            .weatherScene(),
     ) {
         Row(
             modifier =
@@ -378,9 +379,9 @@ fun GroupScheduleScreen(
                 Text(
                     text =
                     if (selectedGroupName.isBlank()) {
-                        "Найдите расписание любой группы колледжа"
+                        "Выберите группу"
                     } else {
-                        "Сегодня и завтра • дата $activeDateString"
+                        "Сегодня и завтра • $activeDateString"
                     },
                     style =
                     androidx.compose.ui.text.TextStyle(
@@ -636,7 +637,7 @@ fun GroupScheduleScreen(
                         if (!isSyncing && syncError == null && noticeForActiveDate == null && lastOutcome == null) {
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Расписание группы $selectedGroupName появится после синхронизации с сайтом guo-mpk.by",
+                                text = "Расписание появится после синхронизации.",
                                 style =
                                 androidx.compose.ui.text.TextStyle(
                                     fontSize = 13.sp,

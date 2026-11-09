@@ -262,6 +262,9 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
             WidgetUpdateHelper.applyWidgetBackground(views, context, appWidgetId, style.backgroundColor)
             views.setViewVisibility(R.id.iv_idle, android.view.View.GONE)
 
+            // Погода на виджете обратного отсчёта: статичная картинка + строка.
+            WidgetWeather.applyBackdrop(views, context, appWidgetId, colors = style)
+
             views.setViewVisibility(R.id.tv_countdown_value, android.view.View.VISIBLE)
             views.setTextColor(R.id.tv_countdown_label, style.subColor)
             views.setTextColor(R.id.tv_countdown_value, style.mainColor)
@@ -373,7 +376,7 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
 enum class CountdownMode(val title: String, val description: String) {
     GROUP_LESSONS(
         "До конца моих уроков",
-        "Отсчёт заканчивается на последнем уроке вашей группы",
+        "Отсчёт до последнего урока группы",
     ),
     ALL_BELLS(
         "До конца всех звонков",
@@ -449,13 +452,16 @@ enum class WidgetStyle(
             systemColors(night)
         }
         APP -> {
-            val p = com.politex.util.AppThemeStore.load(context).palette
+            // Эффективная палитра: пресет × режим × тон. Раньше бралась светлая палитра пресета
+            // всегда — виджет «Как в приложении» не темнел вместе с приложением.
+            val p = com.politex.util.AppThemeStore.effectivePalette(context)
+            val dark = com.politex.util.AppThemeStore.isDark(context)
             WidgetColors(
                 backgroundColor = p.brandFill.toArgb(),
-                mainColor = 0xFFFFFFFF.toInt(),
-                subColor = 0xFFD6E2F0.toInt(),
+                mainColor = p.onAccent.toArgb(),
+                subColor = p.onAccentMuted.toArgb(),
                 highlightColor = p.topBar.toArgb(),
-                pastColor = 0xFF9FB0C4.toInt(),
+                pastColor = if (dark) 0xFFB9C6D8.toInt() else 0xFF9FB0C4.toInt(),
             )
         }
     }

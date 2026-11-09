@@ -91,6 +91,7 @@ import com.politex.data.model.GroupInfo
 import com.politex.data.model.TaskType
 import com.politex.data.repository.TaskRepository
 import com.politex.ui.components.AppCard
+import com.politex.ui.effects.weatherScene
 import com.politex.ui.components.AppDivider
 import com.politex.ui.components.BrandActionButton
 import com.politex.ui.components.DialogTitleBar
@@ -164,7 +165,7 @@ fun TasksScreen(
                 course = groupInfo.course,
                 subjectName = "Подсказка",
                 taskType = TaskType.HOMEWORK.displayName,
-                title = "Свайпните влево, чтобы удалить",
+                title = "Сдвиньте влево — удалить",
             )
         }
     val visibleTasks =
@@ -209,7 +210,7 @@ fun TasksScreen(
         modifier =
         modifier
             .fillMaxSize()
-            .background(ColorBgMain),
+            .weatherScene(),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -248,7 +249,7 @@ fun TasksScreen(
                     Modifier
                         .weight(1f)
                         .horizontalScroll(chipScroll),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     TaskFilterChip(
                         label = "Все",
@@ -305,7 +306,7 @@ fun TasksScreen(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = if (filterActive) "По этому фильтру ничего нет" else "Нет активных заданий",
+                            text = if (filterActive) "По фильтру пусто" else "Заданий нет",
                             style =
                             androidx.compose.ui.text.TextStyle(
                                 fontWeight = FontWeight.Bold,
@@ -327,7 +328,7 @@ fun TasksScreen(
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
-                                        text = "СБРОСИТЬ ФИЛЬТР",
+                                        text = "СБРОСИТЬ",
                                         softWrap = false,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -344,7 +345,7 @@ fun TasksScreen(
                             }
                         } else {
                             Text(
-                                text = "Нажмите «Добавить», чтобы зафиксировать домашнее задание, лабораторную или курсовую работу.",
+                                text = "Добавьте задание — оно появится в списке.",
                                 style =
                                 androidx.compose.ui.text.TextStyle(
                                     fontSize = 13.sp,
@@ -690,7 +691,7 @@ private fun TaskFilterChip(
         color = if (isSelected) ColorTopBar else ColorBgMain,
         modifier =
         Modifier
-            .height(Tokens.ButtonHeight)
+            .height(Tokens.ChipFilter)
             .onGloballyPositioned { offsets[index] = it.positionInParent().x.toInt() to it.size.width }
             .bouncyClickable(onClick = onClick)
             .testTag(tag),
@@ -906,7 +907,7 @@ fun TaskEditDialog(
         containerColor = ColorBgMain,
         title = {
             DialogTitleBar(
-                text = if (isEdit) "Редактировать задание" else "Новое задание",
+                text = if (isEdit) "Изменить задание" else "Новое задание",
                 onClose = onDismissRequest,
             )
         },
@@ -971,7 +972,7 @@ fun TaskEditDialog(
                         value = customSubject,
                         onValueChange = { customSubject = it },
                         label = { Text("Своё название", fontSize = 12.sp) },
-                        placeholder = { Text("Например: Репетитор, Секции", fontSize = 12.sp) },
+                        placeholder = { Text("Например: Репетитор", fontSize = 12.sp) },
                         singleLine = true,
                         shape = RoundedCornerShape(2.dp),
                         modifier =
@@ -1019,7 +1020,7 @@ fun TaskEditDialog(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Что нужно сделать", fontSize = 12.sp) },
-                    placeholder = { Text("Например: Упр. 4, Отчет по лабе №2", fontSize = 12.sp) },
+                    placeholder = { Text("Например: упр. 4", fontSize = 12.sp) },
                     singleLine = true,
                     shape = RoundedCornerShape(2.dp),
                     modifier = Modifier.fillMaxWidth(),

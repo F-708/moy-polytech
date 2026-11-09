@@ -365,7 +365,7 @@ fun AnnotationToolbar(
                 ToolbarAction(Icons.AutoMirrored.Filled.Undo, "Отменить штрих", "draw_undo_btn", onClick = onUndo)
                 ToolbarAction(
                     icon = Icons.Default.Delete,
-                    description = if (clearConfirm) "Точно? Нажмите ещё раз" else "Удалить все аннотации документа",
+                    description = if (clearConfirm) "Точно? Нажмите ещё раз" else "Удалить все пометки",
                     tag = "draw_clear_btn",
                     tint = if (clearConfirm) ColorDangerFill else ColorBrandBlue,
                 ) {

@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Refresh
@@ -48,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.politex.data.model.CollegeBellSchedule
@@ -56,6 +56,7 @@ import com.politex.data.repository.Student
 import com.politex.data.repository.Teacher
 import com.politex.data.repository.TeacherInsights
 import com.politex.ui.components.AppCard
+import com.politex.ui.effects.weatherScene
 import com.politex.ui.components.AppDivider
 import com.politex.ui.components.BackButton
 import com.politex.ui.components.SearchEmptyState
@@ -68,8 +69,6 @@ import com.politex.ui.theme.ColorAccentGoldSoft
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
 import com.politex.ui.theme.ColorBrandBlue
-import com.politex.ui.theme.ColorBrandFill
-import com.politex.ui.theme.ColorDividerLight
 import com.politex.ui.theme.ColorErrorText
 import com.politex.ui.theme.ColorOnAccentGold
 import com.politex.ui.theme.ColorSurfaceVariantLight
@@ -87,7 +86,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun StudentsDatabaseScreen(
@@ -124,7 +122,7 @@ fun StudentsDatabaseScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(ColorBgMain),
+            .weatherScene(),
     ) {
         Row(
             modifier = Modifier
@@ -283,7 +281,6 @@ private fun StudentRow(student: Student, onClick: () -> Unit) {
     AppCard(
         modifier = Modifier
             .fillMaxWidth()
-
             .heightIn(min = 48.dp)
             .bouncyClickable(onClick = onClick),
     ) {
@@ -397,10 +394,10 @@ fun StudentCardScreen(
                     if (count > 0) {
                         "Загружено уроков: $count"
                     } else {
-                        "Группы ${student.group} нет в опубликованном расписании на эту дату"
+                        "Группы ${student.group} нет в расписании на эту дату"
                     }
                 },
-                onFailure = { "Не удалось загрузить (проверьте интернет)" },
+                onFailure = { "Не удалось загрузить. Проверьте интернет." },
             )
             isLoading = false
         }
@@ -436,7 +433,7 @@ fun StudentCardScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(ColorBgMain),
+            .weatherScene(),
     ) {
         SubPageHeader(
             title = student.fullName,
@@ -514,9 +511,8 @@ fun StudentCardScreen(
                         if (student.courseMismatch) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "В базе указан ${student.course} курс, но у этой специальности " +
-                                    "меньше курсов обучения. Группы ${student.group} в расписании " +
-                                    "не будет — проверьте группу и курс.",
+                                text = "В базе указан ${student.course} курс, а у специальности их меньше. " +
+                                    "Проверьте группу и курс.",
                                 style = androidx.compose.ui.text.TextStyle(
                                     fontSize = 12.sp,
                                     color = ColorErrorText,
@@ -767,7 +763,7 @@ fun StudentCardScreen(
                             color = ColorSurfaceVariantLight,
                         ) {
                             Text(
-                                text = "Архив расписания группы пуст — нажмите «Обновить» справа сверху",
+                                text = "Архив пуст. Нажмите «Обновить».",
                                 style = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = ColorTextMuted),
                                 modifier = Modifier.padding(12.dp),
                             )

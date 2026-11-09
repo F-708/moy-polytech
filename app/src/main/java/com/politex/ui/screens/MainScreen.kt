@@ -86,6 +86,7 @@ import com.politex.ui.viewmodel.tabsForMode
 import com.politex.update.UpdateInstallController
 import com.politex.util.DateFormats
 import kotlinx.coroutines.flow.collectLatest
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.util.Calendar
 
@@ -128,11 +129,65 @@ fun backAction(route: String?): BackAction = when (route?.substringBefore("?")) 
     else -> BackAction.NONE
 }
 
+/** Query-параметры маршрута строкой: `bells?scroll=CURRENT_BELL` → `{scroll=CURRENT_BELL}`. */
+fun routeQueryArgs(route: String): Map<String, String> {
+    val query = route.substringAfter("?", "")
+    if (query.isBlank()) return emptyMap()
+    return query
+        .split("&")
+        .mapNotNull { pair ->
+            if (pair.isBlank()) return@mapNotNull null
+            val key = pair.substringBefore("=")
+            val raw = pair.substringAfter("=", "")
+            key to URLDecoder.decode(raw, "UTF-8")
+        }.toMap()
+}
+
+/**
+ * Нужен ли переход на [target], если сейчас открыт [currentRoute] с аргументами [currentArgs]?
+ *
+ * Раньше `navigateToTab` на уже открытую вкладку делал `popUpTo(старт) + navigate` — запись
+ * экрана пересоздавалась, и при спаме по кнопке было видно анимацию перезагрузки, а состояние
+ * списка сбрасывалось. Здесь «переход не нужен», когда базовый маршрут совпал и остальные
+ * аргументы те же; [ARG_SCROLL] считается запросом прокрутки и переходом не является.
+ */
+fun shouldNavigateToTab(
+    currentRoute: String?,
+    currentArgs: Map<String, String?>?,
+    target: String,
+): Boolean {
+    val currentBase = currentRoute?.substringBefore("?") ?: return true
+    if (currentBase != target.substringBefore("?")) return true
+    val targetArgs = routeQueryArgs(target)
+    if (targetArgs.isEmpty()) return false
+    return targetArgs.any { (key, value) ->
+        if (key == ARG_SCROLL) return@any false
+        val have = currentArgs?.get(key) ?: return@any true
+        have != value
+    }
+}
+
 fun NavController.navigateToTab(route: String) {
+    val entry = currentBackStackEntry
+    val alreadyHere =
+        entry != null && !shouldNavigateToTab(entry.destination.route, entryArgValues(entry), route)
+    if (alreadyHere) {
+        // Повторное нажатие на открытую вкладку: экран не пересоздаём, но просьбу
+        // «прокрутить к текущему уроку/звонку» из виджета уважаем — она живёт в savedStateHandle.
+        routeQueryArgs(route)[ARG_SCROLL]?.takeIf { it.isNotBlank() }?.let { target ->
+            entry.savedStateHandle[ARG_SCROLL] = target
+        }
+        return
+    }
     navigate(route) {
         popUpTo(graph.findStartDestination().id) { inclusive = false }
         launchSingleTop = true
     }
+}
+
+private fun entryArgValues(entry: NavBackStackEntry): Map<String, String?> {
+    val bundle = entry.arguments ?: return emptyMap()
+    return bundle.keySet().associateWith { key -> bundle.get(key)?.toString() }
 }
 
 fun tabIndex(route: String?): Int {

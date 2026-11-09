@@ -12,6 +12,16 @@
         android:scaleType="fitXY"
         android:src="@drawable/widget_bg_r0" />
 
+    <!-- Статичная погодная картинка: RemoteViews не умеют анимацию, поэтому
+         капли/снежинки рисуются в Bitmap при обновлении виджета. -->
+    <ImageView
+        android:id="@+id/iv_weather_backdrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/bells_root"
         android:layout_width="match_parent"

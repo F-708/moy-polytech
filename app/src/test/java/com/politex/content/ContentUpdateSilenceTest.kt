@@ -53,7 +53,7 @@ class ContentUpdateSilenceTest {
     fun `XX - уведомления обновления APK остались на месте`() {
         assertTrue(updateWorker.contains("NotificationCompat"))
         assertTrue(updateWorker.contains("Доступно обновление"))
-        assertTrue(updateWorker.contains("Обновление отклонено"))
+        assertTrue(updateWorker.contains("notifyAvailable"))
         assertTrue(mainScreen.contains("pulseHalo(tab == AppTab.COLLEGE && updatePending != null)"))
         assertTrue(mainScreen.contains("UpdateInstallController.foundUpdate.collectAsState()"))
     }

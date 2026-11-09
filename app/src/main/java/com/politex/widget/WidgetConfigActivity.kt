@@ -130,7 +130,7 @@ class WidgetConfigActivity : ComponentActivity() {
                         if (ExactAlarmGate.hintNeeded(Build.VERSION.SDK_INT, canExactAlarms)) {
                             Spacer(modifier = Modifier.height(12.dp))
                             ExactAlarmHintCard(
-                                text = "Чтобы обновление работало корректно, нужен доступ к будильникам",
+                                text = "Для точного обновления нужен доступ к будильникам",
                                 onAllow = { ExactAlarmGate.openSettings(this@WidgetConfigActivity) },
                             )
                         }
@@ -138,7 +138,7 @@ class WidgetConfigActivity : ComponentActivity() {
                         if (miuiHintVisible) {
                             Spacer(modifier = Modifier.height(12.dp))
                             ExactAlarmHintCard(
-                                text = "На Xiaomi разрешите автозапуск в настройках батареи, иначе виджет может не обновляться",
+                                text = "На Xiaomi включите автозапуск, иначе виджет замирает",
                                 onAllow = { MiuiWidgetHint.openBatterySettings(this@WidgetConfigActivity) },
                             )
                         }
@@ -236,7 +236,7 @@ class WidgetConfigActivity : ComponentActivity() {
                                     title = option.title,
                                     description =
                                     if (teacherModeOn && option == CountdownMode.GROUP_LESSONS) {
-                                        "Отсчёт заканчивается на последнем уроке в вашем расписании"
+                                        "Отсчёт идёт до последнего урока"
                                     } else {
                                         option.description
                                     },
@@ -355,25 +355,25 @@ enum class WidgetKind(
 ) {
     COUNTDOWN(
         "Виджет «До звонка»",
-        "Сколько осталось до звонка. Тема и до чего считать отсчёт",
+        "Отсчёт до звонка, тема и точка отсчёта",
         BellCountdownWidgetProvider::class.java,
         false,
     ),
     NOW_NEXT(
         "Виджет «Сейчас и дальше»",
-        "Что идёт сейчас и что будет следующим",
+        "Сейчас и что дальше",
         NowNextWidgetProvider::class.java,
         true,
     ),
     TODAY(
         "Виджет «Расписание на сегодня»",
-        "Весь день списком: время, предмет, кабинет",
+        "День целиком списком",
         TodayScheduleWidgetProvider::class.java,
         true,
     ),
     BELLS(
         "Виджет «Звонки»",
-        "Расписание звонков с подсветкой текущего урока",
+        "Звонки с подсветкой текущего урока",
         BellsWidgetProvider::class.java,
         false,
     ),
@@ -578,7 +578,7 @@ internal fun SecondsOptionSection(
                 color = ColorTextBody,
             )
             Text(
-                text = "Отсчёт вида «4:32» — обновление каждую секунду",
+                text = "Обновление каждую секунду",
                 fontSize = 12.sp,
                 color = ColorTextMuted,
             )
@@ -588,7 +588,7 @@ internal fun SecondsOptionSection(
     if (alarmHintVisible) {
         Spacer(modifier = Modifier.height(8.dp))
         ExactAlarmHintCard(
-            text = "Секундный отсчёт требует доступа к будильникам: без него виджет обновляется реже",
+            text = "С секундами нужен доступ к будильникам",
             onAllow = onAllowAlarms,
         )
     }

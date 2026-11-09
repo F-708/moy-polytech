@@ -3,14 +3,20 @@ package com.politex.util
 import com.politex.data.local.entity.LessonEntity
 import com.politex.data.local.entity.StudentTaskEntity
 import com.politex.data.model.TaskType
-import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 object HomeworkMarkers {
-    private val isoFormat = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT)
-
     internal const val FUZZY_MATCH_THRESHOLD = 0.8
+
+    private const val WINDOW_SCAN_DAYS = 28
+
+    private const val UNKNOWN_END_OF_DAY_MINUTES = 24 * 60
+
+    private val TIME_MINUTES_REGEX = Regex("(\\d{1,2})\\D+(\\d{1,2})")
+
+    private val millisCache = ConcurrentHashMap<String, Long>()
 
     data class DayContext(
         val dayIso: String,
@@ -18,7 +24,34 @@ object HomeworkMarkers {
         val isPast: Boolean,
     )
 
-    fun dayIsoOf(cal: Calendar): String = isoFormat.format(cal.time)
+    private data class WindowKey(
+        val createdAt: Long,
+        val subjectName: String,
+        val deadline: String,
+        val isCompleted: Boolean,
+    )
+
+    fun dayIsoOf(cal: Calendar): String =
+        String.format(
+            Locale.ROOT,
+            "%04d-%02d-%02d",
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH) + 1,
+            cal.get(Calendar.DAY_OF_MONTH),
+        )
+
+    fun isPastDay(
+        dayIso: String,
+        nowMillis: Long,
+    ): Boolean {
+        if (nowMillis <= 0L) return false
+        val day = dateToMillis(dayIso)
+        if (day <= 0L) return false
+        val nowCal = Calendar.getInstance().apply { timeInMillis = nowMillis }
+        val today = dateToMillis(dayIsoOf(nowCal))
+        if (today <= 0L) return false
+        return day < today
+    }
 
     fun dedupeByLatestDate(lessons: List<LessonEntity>): List<LessonEntity> {
         val latestMillis =
@@ -28,9 +61,54 @@ object HomeworkMarkers {
         return lessons.filter { it.dateString.isBlank() || dateToMillis(it.dateString) == latestMillis }
     }
 
-    internal fun dateToMillis(date: String): Long = com.politex.data.network.MpkScheduleParser
-        .parseDotDate(date)
-        ?.timeInMillis ?: 0L
+    internal fun dateToMillis(date: String): Long {
+        val key = date.trim()
+        if (key.isEmpty()) return 0L
+        return millisCache.getOrPut(key) {
+            com.politex.data.network.MpkScheduleParser.parseDotDate(key)?.timeInMillis ?: 0L
+        }
+    }
+
+    fun firstActiveDayIso(
+        createdAt: Long,
+        subject: String,
+        weeklyLessonsByDow: Map<Int, List<LessonEntity>>,
+    ): String? {
+        if (weeklyLessonsByDow.isEmpty()) return null
+        val created = Calendar.getInstance().apply { timeInMillis = createdAt }
+        for (offset in 0 until WINDOW_SCAN_DAYS) {
+            val cal = (created.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, offset) }
+            val dayLessons = weeklyLessonsByDow[Dow.of(cal)] ?: continue
+            val active =
+                dayLessons.any { lesson ->
+                    subjectsMatch(lesson.officialSubjectName, subject) &&
+                        lessonEndMillis(cal, lesson.timeEnd) > createdAt
+                }
+            if (active) return dayIsoOf(cal)
+        }
+        return null
+    }
+
+    fun isHomeworkActiveOn(
+        task: StudentTaskEntity,
+        day: DayContext,
+        weeklyLessonsByDow: Map<Int, List<LessonEntity>>,
+        nowMillis: Long,
+    ): Boolean {
+        if (task.isCompleted) return false
+        if (day.isPast || isPastDay(day.dayIso, nowMillis)) return false
+        val dayMillis = dateToMillis(day.dayIso)
+        if (dayMillis <= 0L) return false
+        val startIso = firstActiveDayIso(task.createdAt, task.subjectName, weeklyLessonsByDow) ?: return false
+        val startMillis = dateToMillis(startIso)
+        if (startMillis > 0L && dayMillis < startMillis) return false
+        val deadline = task.deadlineDate.trim()
+        if (deadline.isEmpty()) return true
+        val deadlineMillis = dateToMillis(deadline)
+        if (deadlineMillis <= 0L) return true
+        if (dayMillis <= deadlineMillis) return true
+        return isOverdueDeadline(deadlineMillis, nowMillis)
+    }
 
     fun markerLessonTypes(
         dayLessons: List<LessonEntity>,
@@ -41,24 +119,16 @@ object HomeworkMarkers {
     ): Map<Int, List<TaskType>> {
         if (day.isPast || dayLessons.isEmpty() || pendingTasks.isEmpty()) return emptyMap()
 
+        val activeCache = HashMap<WindowKey, Boolean>()
         val result = LinkedHashMap<Int, MutableList<TaskType>>()
         for (lesson in dayLessons) {
-            if (lessonPassed(lesson, day, nowMillis)) continue
             val subject = lesson.officialSubjectName
             for (task in pendingTasks) {
-                val deadline = task.deadlineDate.trim()
-                val matches =
-                    if (!subjectsMatch(subject, task.subjectName)) {
-                        false
-                    } else if (deadline.isNotBlank()) {
-                        sameIsoDay(deadline, day.dayIso)
-                    } else {
-                        val targetIso = resolveNextOccurrenceIso(task.createdAt, subject, weeklyLessonsByDow)
-                        targetIso != null && sameIsoDay(targetIso, day.dayIso)
-                    }
-                if (matches) {
-                    result.getOrPut(lesson.lessonNumber) { mutableListOf() }.add(task.taskTypeEnum)
-                }
+                if (!subjectsMatch(subject, task.subjectName)) continue
+                val key = WindowKey(task.createdAt, task.subjectName, task.deadlineDate.trim(), task.isCompleted)
+                val active = activeCache.getOrPut(key) { isHomeworkActiveOn(task, day, weeklyLessonsByDow, nowMillis) }
+                if (!active) continue
+                result.getOrPut(lesson.lessonNumber) { mutableListOf() }.add(task.taskTypeEnum)
             }
         }
         return result.mapValues { (_, types) -> types.distinct() }
@@ -98,43 +168,18 @@ object HomeworkMarkers {
             }
     }
 
-    fun resolveNextOccurrenceIso(
-        createdAt: Long,
-        subject: String,
-        weeklyLessonsByDow: Map<Int, List<LessonEntity>>,
-    ): String? {
-        val created = (Calendar.getInstance().apply { timeInMillis = createdAt }).clone() as Calendar
-        for (offset in 0 until 28) {
-            val cal = (created.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, offset) }
-            val dow = Dow.of(cal)
-            val dayLessons = weeklyLessonsByDow[dow] ?: continue
-            val subjectLessons =
-                dayLessons
-                    .filter { subjectsMatch(it.officialSubjectName, subject) }
-            for (lesson in subjectLessons) {
-                val endMillis = endOfDayMillis(cal, lesson.timeEnd)
-                if (endMillis > createdAt) return dayIsoOf(cal)
-            }
-        }
-        return null
-    }
-
-    private fun lessonPassed(
-        lesson: LessonEntity,
-        day: DayContext,
+    private fun isOverdueDeadline(
+        deadlineMillis: Long,
         nowMillis: Long,
     ): Boolean {
-        if (!day.isToday) return false
-        val nowMinutes =
-            run {
-                val cal = Calendar.getInstance().apply { timeInMillis = nowMillis }
-                cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
-            }
-        val endMinutes = parseMinutes(lesson.timeEnd) ?: return false
-        return endMinutes <= nowMinutes
+        if (nowMillis <= 0L) return false
+        val nowCal = Calendar.getInstance().apply { timeInMillis = nowMillis }
+        val today = dateToMillis(dayIsoOf(nowCal))
+        if (today <= 0L) return false
+        return deadlineMillis < today
     }
 
-    private fun endOfDayMillis(
+    private fun lessonEndMillis(
         dayCal: Calendar,
         timeEnd: String,
     ): Long {
@@ -145,23 +190,15 @@ object HomeworkMarkers {
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
             }
-        val minutes = parseMinutes(timeEnd) ?: (24 * 60)
-        cal.add(Calendar.MINUTE, minutes)
+        cal.add(Calendar.MINUTE, parseMinutes(timeEnd) ?: UNKNOWN_END_OF_DAY_MINUTES)
         return cal.timeInMillis
     }
 
     private fun parseMinutes(time: String): Int? {
-        val digits = Regex("(\\d{1,2})\\D+(\\d{1,2})").find(time.trim()) ?: return null
+        val digits = TIME_MINUTES_REGEX.find(time.trim()) ?: return null
         val h = digits.groupValues[1].toIntOrNull() ?: return null
         val m = digits.groupValues[2].toIntOrNull() ?: return null
         if (h !in 0..23 || m !in 0..59) return null
         return h * 60 + m
     }
-
-    private fun sameIsoDay(
-        a: String,
-        b: String,
-    ): Boolean = normalizeIso(a) == normalizeIso(b) && normalizeIso(a).isNotBlank()
-
-    private fun normalizeIso(value: String): String = value.trim().replace("-", ".").replace("/", ".")
 }

@@ -127,7 +127,7 @@ fun TeacherGroupLessonsScreen(
             days.all { it.lessons.isEmpty() } ->
                 Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
                     Text(
-                        "У этой группы ваших пар в ближайшие дни нет.",
+                        "Ваших пар у этой группы нет.",
                         style = TextStyle(fontSize = metrics.body, color = ColorTextMuted),
                     )
                 }

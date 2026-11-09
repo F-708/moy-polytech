@@ -67,6 +67,7 @@ import com.politex.data.local.entity.GradeConfigEntity
 import com.politex.data.local.entity.GradeEntryEntity
 import com.politex.data.model.GroupInfo
 import com.politex.ui.components.AppCard
+import com.politex.ui.effects.weatherScene
 import com.politex.ui.theme.ColorActiveBlue
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.ColorBorderLight
@@ -142,7 +143,7 @@ fun GradesScreen(
         modifier =
         modifier
             .fillMaxSize()
-            .background(ColorBgMain),
+            .weatherScene(),
     ) {
         when {
             showTutorial ->
@@ -344,7 +345,7 @@ private fun GradeTutorialScreen(onBack: () -> Unit) {
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
-                    text = "Двойное нажатие по оценке удалит её",
+                    text = "Двойное нажатие удаляет оценку",
                     style = TextStyle(fontSize = 12.sp, color = ColorTextMuted),
                     modifier = Modifier.fillMaxWidth().testTag("grades_tutorial_hint"),
                 )
@@ -388,7 +389,7 @@ private fun GradeTutorialScreen(onBack: () -> Unit) {
                     }
                 } else {
                     Text(
-                        text = "Оценка удалена. Готово!",
+                        text = "Оценка удалена",
                         style = TextStyle(fontSize = 12.sp, color = ColorTextMuted),
                         modifier = Modifier.height(28.dp).testTag("grades_tutorial_done"),
                     )
@@ -1013,9 +1014,9 @@ private fun GradeSubjectSettingsScreen(
             text = {
                 Text(
                     text =
-                    "Удалить все оценки по предмету „" +
+                    "Удалить все оценки по предмету «" +
                         SubjectRenameStore.displayName(context, subject) +
-                        "“? Действие нельзя отменить.",
+                        "»? Это не отменить.",
                     style = TextStyle(fontSize = 13.sp, color = ColorTextBody),
                 )
             },

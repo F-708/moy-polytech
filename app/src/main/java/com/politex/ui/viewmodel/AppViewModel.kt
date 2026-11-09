@@ -24,6 +24,7 @@ import com.politex.util.GroupParser
 import com.politex.util.TeacherModeStore
 import com.politex.widget.WidgetUpdateHelper
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,6 +71,13 @@ enum class AppTab(
 }
 
 fun tabsForMode(isTeacher: Boolean): List<AppTab> = if (isTeacher) AppTab.entries.filter { it != AppTab.TASKS } else AppTab.entries
+
+/** Как часто проверяем смену суток/часового пояса, пока живёт ViewModel. */
+internal const val DAY_POLL_MS = 60_000L
+
+/** Ключ суток: меняется в полночь и при смене часового пояса — триггер автосинка. */
+internal fun currentDayKey(now: Calendar = Calendar.getInstance()): Int =
+    now.get(Calendar.YEAR) * 1000 + now.get(Calendar.DAY_OF_YEAR)
 
 fun TeacherDayLesson.toLessonEntity(dateString: String): LessonEntity = LessonEntity(
     groupName = groups.joinToString(", "),
@@ -209,9 +217,25 @@ class AppViewModel(
 
         if (!uiState.value.showGroupSelection) {
 
+            // Автосинк больше не зависит от «есть ли хоть одна строка в базе»: кэш-первый проход
+            // отдаёт данные сразу, а устаревшие дни перечитываются следом (см. syncSchedule).
             viewModelScope.launch {
-                if (!scheduleRepository.hasSchedule(uiState.value.currentGroupName)) {
-                    syncSchedule(isAutoSync = true)
+                syncSchedule(isAutoSync = true)
+            }
+        }
+
+        // Смена суток (00:05, возврат из фона после полуночи) и смена часового пояса:
+        // раньше «сегодня» переключалось в UI, но данные за новую дату никто не запрашивал.
+        viewModelScope.launch {
+            var dayKey = currentDayKey()
+            while (true) {
+                delay(DAY_POLL_MS)
+                val key = currentDayKey()
+                // Фиксируем новый день только когда синк реально может стартовать: иначе
+                // «занятый» синк съедал бы переход через полночь без обновления данных.
+                if (key != dayKey && !_uiState.value.isSyncing) {
+                    dayKey = key
+                    if (!_uiState.value.isTeacherMode) syncSchedule(isAutoSync = true)
                 }
             }
         }
@@ -229,7 +253,7 @@ class AppViewModel(
             )
         }
         viewModelScope.launch {
-            _toastEvent.emit("Выбрана группа: ${parsed.canonicalName}")
+            _toastEvent.emit("Группа: ${parsed.canonicalName}")
 
             if (!scheduleRepository.hasSchedule(parsed.canonicalName)) {
                 syncSchedule(isAutoSync = false)
@@ -273,7 +297,7 @@ class AppViewModel(
                 onFailure = {
                     _uiState.update { it.copy(isSyncing = false, hasSyncError = true) }
                     if (force) {
-                        _toastEvent.emit("Не удалось загрузить расписание преподавателя (проверьте интернет)")
+                        _toastEvent.emit("Не удалось загрузить. Проверьте интернет.")
                     }
                 },
             )
@@ -295,21 +319,35 @@ class AppViewModel(
         if (targetGroup.isBlank()) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSyncing = true, hasSyncError = false) }
+            // Есть ли что показать прямо сейчас: если да, автообновление идёт молча и не мигает
+            // индикатором поверх уже отрисованного кэша.
+            val hasCache = runCatching { scheduleRepository.hasSchedule(targetGroup) }.getOrDefault(false)
+            if (!isAutoSync || !hasCache) {
+                _uiState.update { it.copy(isSyncing = true, hasSyncError = false) }
+            }
 
+            // 1) Кэш-первый проход: кэш отдаётся сразу, в сеть идём только если кэша нет.
             val result = scheduleRepository.syncScheduleDetailed(targetGroup, force = !isAutoSync, targetDate = targetDate)
+
+            // 2) Следом — тихое обновление устаревших дней (сегодня: 15 мин, будущие: 6 ч).
+            if (isAutoSync) {
+                val stale = runCatching { scheduleRepository.staleCachedDays(targetGroup) }.getOrDefault(emptyList())
+                if (stale.isNotEmpty()) {
+                    runCatching { scheduleRepository.syncScheduleDetailed(targetGroup, force = true, targetDate = targetDate) }
+                }
+            }
 
             result.fold(
                 onSuccess = { outcome ->
                     _uiState.update { it.copy(isSyncing = false, hasSyncError = false) }
 
-                    val showToast = outcome !is SyncOutcome.NotFound || !isAutoSync
+                    val showToast = (outcome !is SyncOutcome.NotFound || !isAutoSync) && (!isAutoSync || !hasCache)
                     if (showToast) _toastEvent.emit(toastFor(outcome, targetGroup))
                 },
                 onFailure = {
-                    _uiState.update { it.copy(isSyncing = false, hasSyncError = true) }
+                    _uiState.update { it.copy(isSyncing = false, hasSyncError = !isAutoSync || !hasCache) }
                     if (!isAutoSync) {
-                        _toastEvent.emit("Сбой обновления: проверьте интернет (сайт guo-mpk.by недоступен)")
+                        _toastEvent.emit("Нет связи с сайтом. Проверьте интернет.")
                     }
                 },
             )

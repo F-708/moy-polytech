@@ -177,6 +177,11 @@ class SyncCacheFirstTest {
 
     @Test
     fun `уроки даты уже в БД — Ok из кэша, сеть не тронута`() = runBlocking {
+        // ВАЖНО: кэш-первый рендер сохранён намеренно. Решение «показать кэш сразу и обновить
+        // следом» принимает AppViewModel по свежести (staleCachedDays / ScheduleFreshness):
+        // сегодня — 15 мин, будущие дни — 6 ч, прошедшие — окончательны.
+        // См. ScheduleCacheFreshnessTest. Здесь проверяется только то, что сам репозиторий при
+        // force=false в сеть не ходит — это контракт «кэш отдаётся мгновенно».
         val today = Calendar.getInstance()
 
         val candidates = (nextDayCandidates(today, false) + nextDayCandidates(today, true)).distinctBy { fmt(it) }
@@ -198,7 +203,11 @@ class SyncCacheFirstTest {
     }
 
     @Test
-    fun `день разобран по каталогу без нашей группы — FoundNoGroup из кэша, сеть не тронута`() = runBlocking {
+    fun `день разобран по каталогу без нашей группы — FoundNoGroup только при доказанной полноте`() = runBlocking {
+        // Каталог в этом тесте маленький (4 группы), документ покрывает 3 из них — это 75%,
+        // ниже порога доказанной полноты (85%). Такой день НЕ объявляется «вашей группы нет»:
+        // кэш не считается доказательством, приложение обязано спросить сеть ещё раз
+        // («день-дырка»). Полный документ без группы — см. ScheduleCacheGateTest / ScheduleHoleDayTest.
         val today = Calendar.getInstance()
 
         val sat = GroupParser.parse(group)?.hasSaturdayClasses == true
@@ -209,8 +218,8 @@ class SyncCacheFirstTest {
         val client = CountingNetworkClient()
         val result = repo(rows, client).syncScheduleDetailed(group)
 
-        assertEquals(0, client.networkCalls)
-        assertEquals(SyncOutcome.FoundNoGroup(fmt(candidates.first())), result.getOrNull())
+        assertTrue("неполный день обязан идти в сеть", client.networkCalls > 0)
+        assertTrue("исход — «не опубликовано», а не «вашей группы нет»", result.getOrNull() is SyncOutcome.NotFound)
     }
 
     @Test

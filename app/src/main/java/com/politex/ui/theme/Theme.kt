@@ -1,10 +1,12 @@
 package com.politex.ui.theme
 
 import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -13,17 +15,22 @@ import androidx.core.view.WindowCompat
 
 @Composable
 fun MyApplicationTheme(content: @Composable () -> Unit) {
+    // Режим SYSTEM следует за системной темой без перезапуска Activity:
+    // пересчитываем палитру на каждую реконфигурацию (LaunchedEffect — уже после композиции).
+    val systemDark = isSystemInDarkTheme()
+    LaunchedEffect(systemDark) { onSystemDarkChanged(systemDark) }
+
     val dark = darkThemeState.value
 
     val scheme =
         if (dark) {
             darkColorScheme(
                 primary = ColorBrandFill,
-                onPrimary = Color.White,
+                onPrimary = ColorOnAccent,
                 primaryContainer = ColorSurfaceHighlight,
                 onPrimaryContainer = ColorBrandBlue,
                 secondary = ColorActiveFill,
-                onSecondary = Color.White,
+                onSecondary = ColorOnAccent,
                 secondaryContainer = ColorSurfaceHighlight,
                 onSecondaryContainer = ColorBrandBlue,
                 tertiary = ColorTopBar,
@@ -72,8 +79,10 @@ fun MyApplicationTheme(content: @Composable () -> Unit) {
                 window.statusBarColor = ColorTopBar.toArgb()
                 window.navigationBarColor = ColorBgMain.toArgb()
                 val controller = WindowCompat.getInsetsController(window, view)
-                controller.isAppearanceLightStatusBars = false
-                controller.isAppearanceLightNavigationBars = !dark
+                // Иконки системных баров — по яркости их фона, а не «всегда светлые»:
+                // так AMOLED-тон и светлые пресеты не дают невидимых иконок.
+                controller.isAppearanceLightStatusBars = isLightColor(ColorTopBar)
+                controller.isAppearanceLightNavigationBars = isLightColor(ColorBgMain)
             }
         }
     }

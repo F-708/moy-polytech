@@ -10,6 +10,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.politex.ui.screens.LessonsSection
 import com.politex.ui.screens.materials.ExternalMaterialIntake
 import com.politex.ui.screens.targetHubSection
+import com.politex.util.MaterialFormats
 import com.politex.util.MaterialImporter
 import com.politex.util.PendingMaterial
 import kotlinx.coroutines.runBlocking
@@ -115,13 +116,13 @@ class ExternalMaterialIntakeTest {
     }
 
     @Test
-    fun `ACTION_VIEW с type star-star и data без EXTRA_STREAM даёт одиночный файл`() {
+    fun `ACTION_VIEW без расширения и без типа отклоняется с сообщением`() {
         val intent =
             Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(contentUri("конспект"), "*/*")
             }
-        val pending = ExternalMaterialIntake.fromIntent(context.contentResolver, intent)
-        assertTrue(pending is PendingMaterial.SingleFile)
+        assertNull(ExternalMaterialIntake.fromIntent(context.contentResolver, intent))
+        assertNotNull("отказ не должен быть молчаливым", ExternalMaterialIntake.consumeRejection())
     }
 
     @Test
@@ -373,6 +374,139 @@ class ExternalMaterialIntakeTest {
         assertNull(ExternalMaterialIntake.fromIntent(context.contentResolver, Intent(Intent.ACTION_SEND_MULTIPLE)))
     }
 
+    @Test
+    fun `zip mp3 doc и xlsx отклоняются с сообщением`() {
+        val cases =
+            listOf(
+                contentUri("лекции.zip") to "application/zip",
+                contentUri("запись.mp3") to "audio/mpeg",
+                contentUri("старое.doc") to "application/msword",
+                contentUri("ведомость.xlsx") to "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        cases.forEach { (uri, mime) ->
+            val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, mime) }
+            assertNull("$mime должен отклоняться", ExternalMaterialIntake.fromIntent(context.contentResolver, intent))
+            assertNotNull("у отказа должен быть текст: $mime", ExternalMaterialIntake.consumeRejection())
+        }
+    }
+
+    @Test
+    fun `поддерживаемые форматы принимаются`() {
+        val accepted =
+            listOf(
+                contentUri("лекция.pdf") to "application/pdf",
+                contentUri("лекция.docx") to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                contentUri("конспект.txt") to "text/plain",
+                contentUri("конспект.md") to "text/markdown",
+                contentUri("оценки.csv") to "text/csv",
+                contentUri("данные.json") to "application/json",
+                contentUri("схема.xml") to "application/xml",
+                contentUri("кадр.gif") to "image/gif",
+                contentUri("кадр.heic") to "image/heic",
+            )
+        accepted.forEach { (uri, mime) ->
+            val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, mime) }
+            val pending = ExternalMaterialIntake.fromIntent(context.contentResolver, intent)
+            assertNotNull("$mime должен приниматься", pending)
+            assertNull("для $mime не должно быть отказа", ExternalMaterialIntake.consumeRejection())
+        }
+    }
+
+    @Test
+    fun `octet-stream с docx в имени принимается`() {
+        val intent =
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(contentUri("лекция.docx"), "application/octet-stream")
+            }
+        val pending = ExternalMaterialIntake.fromIntent(context.contentResolver, intent)
+        assertTrue(pending is PendingMaterial.SingleFile)
+        assertNull(ExternalMaterialIntake.consumeRejection())
+    }
+
+    @Test
+    fun `после отказа следующий корректный файл принимается`() {
+        val zip =
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(contentUri("лекции.zip"), "application/zip")
+            }
+        assertNull(ExternalMaterialIntake.fromIntent(context.contentResolver, zip))
+        assertNotNull(ExternalMaterialIntake.consumeRejection())
+
+        val pdf =
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(contentUri("лекция.pdf"), "application/pdf")
+            }
+        val pending = ExternalMaterialIntake.fromIntent(context.contentResolver, pdf)
+        assertTrue(pending is PendingMaterial.SingleFile)
+
+        ExternalMaterialIntake.offer(pending!!)
+        ExternalMaterialIntake.claim()
+        assertSame(pending, ExternalMaterialIntake.active)
+
+        ExternalMaterialIntake.finish(pending)
+        assertFalse(ExternalMaterialIntake.hasWork)
+    }
+
+    @Test
+    fun `releaseActive снимает захват и следующий материал проходит`() {
+        val stuck = PendingMaterial.Text("Зависший черновик")
+        ExternalMaterialIntake.offer(stuck)
+        ExternalMaterialIntake.claim()
+        assertSame(stuck, ExternalMaterialIntake.active)
+
+        // Экран закрыли, не завершив импорт: захват должен сняться, иначе защёлка.
+        ExternalMaterialIntake.releaseActive()
+        assertNull(ExternalMaterialIntake.active)
+
+        val next = PendingMaterial.Text("Следующий файл")
+        ExternalMaterialIntake.offer(next)
+        ExternalMaterialIntake.claim()
+        assertSame(next, ExternalMaterialIntake.active)
+        ExternalMaterialIntake.finish(next)
+        assertFalse(ExternalMaterialIntake.hasWork)
+    }
+
+    @Test
+    fun `смешанный набор оставляет только изображения и предупреждает`() {
+        val intent =
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "*/*"
+                putParcelableArrayListExtra(
+                    Intent.EXTRA_STREAM,
+                    arrayListOf(contentUri("1.jpg"), contentUri("лекция.pdf"), contentUri("2.png")),
+                )
+            }
+        val pending = ExternalMaterialIntake.fromIntent(context.contentResolver, intent)
+        assertTrue(pending is PendingMaterial.Images)
+        assertEquals(2, (pending as PendingMaterial.Images).uris.size)
+        assertNotNull(ExternalMaterialIntake.consumeWarning())
+    }
+
+    @Test
+    fun `набор без поддерживаемых файлов отклоняется`() {
+        val intent =
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "*/*"
+                putParcelableArrayListExtra(
+                    Intent.EXTRA_STREAM,
+                    arrayListOf(contentUri("лекции.zip"), contentUri("запись.mp3")),
+                )
+            }
+        assertNull(ExternalMaterialIntake.fromIntent(context.contentResolver, intent))
+        assertNotNull(ExternalMaterialIntake.consumeRejection())
+    }
+
+    @Test
+    fun `закрытый провайдер даёт текст про доступ, а не тишину`() {
+        Robolectric.buildContentProvider(DeniedProvider::class.java).create("mpk.denied")
+        val intent =
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(Uri.parse("content://mpk.denied/secret"), "application/octet-stream")
+            }
+        assertNull(ExternalMaterialIntake.fromIntent(context.contentResolver, intent))
+        assertEquals(MaterialFormats.NO_ACCESS_MESSAGE, ExternalMaterialIntake.consumeRejection())
+    }
+
     class ImageTypeProvider : ContentProvider() {
         override fun onCreate(): Boolean = true
 
@@ -403,5 +537,38 @@ class ExternalMaterialIntakeTest {
             selection: String?,
             selectionArgs: Array<out String>?,
         ): Int = 0
+    }
+
+    /** Провайдер, который закрыл доступ к своим файлам: имя и тип прочитать нельзя. */
+    class DeniedProvider : ContentProvider() {
+        override fun onCreate(): Boolean = true
+
+        override fun query(
+            uri: Uri,
+            projection: Array<out String>?,
+            selection: String?,
+            selectionArgs: Array<out String>?,
+            sortOrder: String?,
+        ): Cursor? = throw SecurityException("доступ закрыт")
+
+        override fun getType(uri: Uri): String = throw SecurityException("доступ закрыт")
+
+        override fun insert(
+            uri: Uri,
+            values: ContentValues?,
+        ): Uri? = throw SecurityException("доступ закрыт")
+
+        override fun delete(
+            uri: Uri,
+            selection: String?,
+            selectionArgs: Array<out String>?,
+        ): Int = throw SecurityException("доступ закрыт")
+
+        override fun update(
+            uri: Uri,
+            values: ContentValues?,
+            selection: String?,
+            selectionArgs: Array<out String>?,
+        ): Int = throw SecurityException("доступ закрыт")
     }
 }

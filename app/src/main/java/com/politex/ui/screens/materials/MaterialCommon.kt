@@ -175,21 +175,18 @@ fun UnsupportedFormatPlaque(ext: String, fileName: String, modifier: Modifier = 
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Формат .${ext.ifBlank { "?" }} не поддерживается встроенным просмотрщиком",
+                    text = "Формат .${ext.ifBlank { "?" }} не открывается в приложении",
                     style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 14.sp, color = ColorTextTitle),
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = when (ext) {
                         "doc" ->
-                            "Конвертируйте файл в .docx (Word → «Сохранить как» → .docx) и загрузите заново: " +
-                                ".docx читается прямо в приложении, и по нему работает поиск."
+                            "Сохраните файл как .docx и загрузите снова — такой файл откроется в приложении."
                         "xls", "xlsx" ->
-                            "Таблицы Excel открываются только внешним приложением. " +
-                                "Файл сохранён в материальной базе и никуда не денется."
+                            "Таблицы открываются только внешним приложением. Файл сохранён в материалах."
                         else ->
-                            "Файл сохранён в материальной базе. Внутри приложения читаются PDF, DOCX, " +
-                                "TXT и наборы изображений."
+                            "Файл сохранён в материалах. Открыть можно PDF, DOCX, TXT и наборы фото."
                     },
                     style = TextStyle(fontSize = 12.sp, color = ColorTextMuted),
                 )

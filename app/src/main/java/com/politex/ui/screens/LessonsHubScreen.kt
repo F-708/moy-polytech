@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.politex.data.model.GroupInfo
 import com.politex.data.repository.TaskRepository
+import com.politex.ui.effects.weatherScene
 import com.politex.ui.screens.materials.ExternalMaterialIntake
 import com.politex.ui.screens.materials.ViewerMode
 import com.politex.ui.theme.ColorBgMain
@@ -81,7 +82,7 @@ fun LessonsHubScreen(
         modifier =
         modifier
             .fillMaxSize()
-            .background(ColorBgMain),
+            .weatherScene(),
     ) {
         if (!ViewerMode.active && !GradeDetailMode.active) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {

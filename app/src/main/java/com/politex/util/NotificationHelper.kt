@@ -35,7 +35,7 @@ object NotificationHelper {
                     CHANNEL_NAME,
                     importance,
                 ).apply {
-                    description = "Уведомления о публикации свежего расписания на следующий учебный день"
+                    description = "Свежее расписание на следующий учебный день"
                     enableVibration(true)
                 }
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
@@ -86,11 +86,11 @@ object NotificationHelper {
                 .Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_mpk_emblem)
                 .setContentTitle(title)
-                .setContentText("Расписание опубликовано. Нажмите, чтобы посмотреть.")
+                .setContentText("Расписание опубликовано. Откройте.")
                 .setStyle(
                     NotificationCompat
                         .BigTextStyle()
-                        .bigText("Расписание опубликовано. Нажмите, чтобы посмотреть."),
+                        .bigText("Расписание опубликовано. Откройте."),
                 ).setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
@@ -110,7 +110,7 @@ object NotificationHelper {
                     REMINDER_CHANNEL_NAME,
                     NotificationManager.IMPORTANCE_HIGH,
                 ).apply {
-                    description = "Напоминания о приближающемся сроке сдачи задания"
+                    description = "Срок задания подходит"
                     enableVibration(true)
                 }
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager

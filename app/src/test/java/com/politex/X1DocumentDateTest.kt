@@ -20,9 +20,12 @@ class X1DocumentDateTest {
     }
 
     @Test
-    fun `не-документ (HTML) не опровергается — дата совпала по умолчанию`() {
+    fun `не-документ (HTML) отклоняется — дата и день недели не извлекаются (fail-closed)`() {
+        // Раньше здесь стояло assertTrue: отсутствие даты трактовалось как «дата совпала»,
+        // из-за чего вчерашний документ/страница-заглушка принимались за расписание нужного дня.
+        // Сверка по дню недели и разбор docx-шапки — в ScheduleDocDateValidationTest.
         val html = "<!DOCTYPE html><html><body>soft 404</body></html>".toByteArray(Charsets.UTF_8)
-        assertTrue(MpkScheduleParser.documentMatchesDate(html, "06.10.2026"))
+        assertFalse(MpkScheduleParser.documentMatchesDate(html, "06.10.2026"))
     }
 
     @Test

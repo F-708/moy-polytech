@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
@@ -38,18 +38,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- «Поделиться» одним файлом -->
+            <!-- «Поделиться» одним файлом. Только форматы, которые реально открываются
+                 встроенными вьюерами: PDF, DOCX, текстовые, изображения.
+                 octet-stream остаётся, иначе из файловых менеджеров вообще ничего не
+                 пошлёшь; мусор из него отсекает runtime-гейт MaterialFormats. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/pdf" />
-                <data android:mimeType="application/msword" />
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-                <data android:mimeType="application/vnd.ms-excel" />
-                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
                 <data android:mimeType="application/octet-stream" />
                 <data android:mimeType="text/plain" />
+                <data android:mimeType="text/markdown" />
                 <data android:mimeType="text/csv" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="application/xml" />
+                <data android:mimeType="text/xml" />
                 <data android:mimeType="image/*" />
             </intent-filter>
 
@@ -61,79 +65,85 @@
             </intent-filter>
         </activity>
 
-        <!-- JJ9: «открыть с помощью» — документы и изображения из внешних приложений.
-             Чтение content:// даётся временным grant'ом отправителя (FLAG_GRANT_READ_URI_PERMISSION),
-             файлы сразу копируются во внутреннее хранилище. -->
+        <!-- «Открыть с помощью» — только форматы, которые умеет отрисовать встроенный
+             вьюер: PDF, DOCX, текстовые, изображения. Чтение content:// даётся временным
+             grant'ом отправителя (FLAG_GRANT_READ_URI_PERMISSION), файлы сразу копируются
+             во внутреннее хранилище, а формат дополнительно проверяется в runtime
+             (MaterialFormats): провайдеры часто врут про тип файла.
+
+             ВАЖНО: scheme и mimeType (или pathPattern) обязаны стоять в ОДНОМ <data>.
+             Отдельный <data android:scheme="content"/> сам по себе матчит любой content-Uri
+             и снова открывает приём всего подряд — именно так приложение и принимало APK. -->
         <activity-alias
             android:name=".FileViewAlias"
             android:targetActivity=".MainActivity"
             android:exported="true"
             android:label="Просмотреть файл">
+            <!-- Документы, которые открываются встроенными вьюерами -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" />
-                <data android:mimeType="*/*" />
+                <data android:scheme="content" android:mimeType="application/pdf" />
+                <data android:scheme="content" android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:scheme="content" android:mimeType="text/plain" />
+                <data android:scheme="content" android:mimeType="text/markdown" />
+                <data android:scheme="content" android:mimeType="text/csv" />
+                <data android:scheme="content" android:mimeType="application/json" />
+                <data android:scheme="content" android:mimeType="application/xml" />
+                <data android:scheme="content" android:mimeType="text/xml" />
             </intent-filter>
 
+            <!-- Изображения, которые отрисовывает Coil -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" />
-                <data android:mimeType="application/pdf" />
-                <data android:mimeType="application/msword" />
-                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-                <data android:mimeType="application/vnd.ms-excel" />
-                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-                <data android:mimeType="text/plain" />
-                <data android:mimeType="text/csv" />
-                <data android:mimeType="image/*" />
+                <data android:scheme="content" android:mimeType="image/jpeg" />
+                <data android:scheme="content" android:mimeType="image/png" />
+                <data android:scheme="content" android:mimeType="image/webp" />
+                <data android:scheme="content" android:mimeType="image/bmp" />
+                <data android:scheme="content" android:mimeType="image/gif" />
+                <data android:scheme="content" android:mimeType="image/heic" />
+                <data android:scheme="content" android:mimeType="image/heif" />
             </intent-filter>
 
-            <!-- octet-stream (так шлют файловые менеджеры) — только с известным расширением -->
+            <!-- octet-stream (так шлют файловые менеджеры) — только с известным расширением.
+                 Ни архивов, ни таблиц, ни .doc, ни аудио/видео здесь нет: приложение не
+                 должно появляться в «Открыть с помощью» для того, что не откроет. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" />
-                <data android:mimeType="application/octet-stream" />
-                <data android:pathPattern=".*\.pdf" />
-                <data android:pathPattern=".*\.PDF" />
-                <data android:pathPattern=".*\.doc" />
-                <data android:pathPattern=".*\.DOC" />
-                <data android:pathPattern=".*\.docx" />
-                <data android:pathPattern=".*\.DOCX" />
-                <data android:pathPattern=".*\.xls" />
-                <data android:pathPattern=".*\.XLS" />
-                <data android:pathPattern=".*\.xlsx" />
-                <data android:pathPattern=".*\.XLSX" />
-                <data android:pathPattern=".*\.txt" />
-                <data android:pathPattern=".*\.TXT" />
-                <data android:pathPattern=".*\.csv" />
-                <data android:pathPattern=".*\.CSV" />
-                <data android:pathPattern=".*\.md" />
-                <data android:pathPattern=".*\.MD" />
-                <data android:pathPattern=".*\.log" />
-                <data android:pathPattern=".*\.LOG" />
-                <data android:pathPattern=".*\.json" />
-                <data android:pathPattern=".*\.JSON" />
-                <data android:pathPattern=".*\.xml" />
-                <data android:pathPattern=".*\.XML" />
-                <data android:pathPattern=".*\.png" />
-                <data android:pathPattern=".*\.PNG" />
-                <data android:pathPattern=".*\.jpg" />
-                <data android:pathPattern=".*\.JPG" />
-                <data android:pathPattern=".*\.jpeg" />
-                <data android:pathPattern=".*\.JPEG" />
-                <data android:pathPattern=".*\.webp" />
-                <data android:pathPattern=".*\.WEBP" />
-                <data android:pathPattern=".*\.bmp" />
-                <data android:pathPattern=".*\.BMP" />
-                <data android:pathPattern=".*\.gif" />
-                <data android:pathPattern=".*\.GIF" />
-                <data android:pathPattern=".*\.heic" />
-                <data android:pathPattern=".*\.HEIC" />
-                <data android:pathPattern=".*\.heif" />
-                <data android:pathPattern=".*\.HEIF" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.pdf" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.PDF" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.docx" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.DOCX" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.txt" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.TXT" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.md" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.MD" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.csv" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.CSV" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.log" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.LOG" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.json" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.JSON" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.xml" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.XML" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.png" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.PNG" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.jpg" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.JPG" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.jpeg" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.JPEG" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.webp" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.WEBP" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.bmp" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.BMP" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.gif" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.GIF" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.heic" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.HEIC" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.heif" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" android:pathPattern=".*\.HEIF" />
             </intent-filter>
         </activity-alias>
 

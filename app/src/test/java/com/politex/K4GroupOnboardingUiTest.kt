@@ -75,7 +75,7 @@ class K4GroupOnboardingUiTest {
 
     @Test
     fun `LL4 - описание подгруппы про маршруты виджеты и возможность изменить`() {
-        assertTrue(dialogs.contains("По подгруппе строятся маршруты и работают виджеты. Можно потом изменить."))
+        assertTrue(dialogs.contains("Маршруты и виджеты зависят от подгруппы."))
         assertFalse(dialogs.contains("показывать обе подгруппы"))
         assertFalse(dialogs.contains("«Нейтрально»"))
         assertFalse(dialogs.contains("Если занятия идут по подгруппам"))

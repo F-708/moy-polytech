@@ -174,6 +174,14 @@ object UpdateInstallController {
         context: Context,
         info: UpdateInfo?,
     ) {
+        val previous = mutableFound.value
+        if (info != null &&
+            previous != null &&
+            previous.versionCode != info.versionCode &&
+            mutableState.value !is InstallButtonState.Downloading
+        ) {
+            publish(InstallEvent.Reset)
+        }
         mutableFound.value = info
         if (info == null) {
             UpdatePendingStore.clear(context.applicationContext)
@@ -183,9 +191,16 @@ object UpdateInstallController {
     }
 
     fun clearPending(context: Context) {
+        val state = mutableState.value
+        if (state is InstallButtonState.Downloading ||
+            state is InstallButtonState.Downloaded ||
+            state is InstallButtonState.InstallLaunched
+        ) {
+            return
+        }
         UpdatePendingStore.clear(context.applicationContext)
         mutableFound.value = null
-        if (mutableState.value !is InstallButtonState.Downloading) publish(InstallEvent.Reset)
+        publish(InstallEvent.Reset)
     }
 
     fun restore(context: Context) {

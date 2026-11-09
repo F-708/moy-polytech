@@ -25,7 +25,7 @@ enum class AppTheme(
         paletteWithAccents(
             topBar = Color(0xFF03291A),
             brand = Color(0xFF0B5D3B),
-            active = Color(0xFF0E8A55),
+            active = Color(0xFF0A7447),
         ),
         darkPaletteWithAccents(
             topBar = Color(0xFF26473A),
@@ -179,10 +179,15 @@ private fun darkPaletteWithAccents(
     brandFill = brandFill,
     activeFill = activeFill,
     badgeDiploma = brand,
-    navSelected = active,
+    // Выбранная вкладка навигации: цвет бренда (светлый в тёмной теме), а не active.
+    // active давал 2.7–3.8:1 на фоне навигации, brand — 5.66–7.36:1 (WCAG AA).
+    navSelected = brand,
 )
 
 private var appliedTheme: AppTheme = AppTheme.COLLEGE
+private var appliedMode: ThemeMode = ThemeMode.SYSTEM
+private var appliedTone: SurfaceTone = SurfaceTone.NATIVE
+private var lastSystemDark: Boolean = false
 
 private val darkModeState = mutableStateOf(false)
 
@@ -190,15 +195,66 @@ val isDarkThemeActive: Boolean get() = darkModeState.value
 
 val darkThemeState: State<Boolean> get() = darkModeState
 
+/** Текущий режим оформления (для UI-состояния настроек). */
+val currentThemeMode: ThemeMode get() = appliedMode
+
+/** Текущий «характер» поверхностей. */
+val currentSurfaceTone: SurfaceTone get() = appliedTone
+
+/**
+ * Применяет настройку внешнего вида целиком.
+ *
+ * [systemDark] приходит снаружи (Configuration.UI_MODE_NIGHT): функция чистая относительно
+ * системы, поэтому её можно звать из тестов и любого потока.
+ */
+fun applyAppearance(
+    theme: AppTheme,
+    mode: ThemeMode,
+    tone: SurfaceTone,
+    systemDark: Boolean,
+) {
+    appliedTheme = theme
+    appliedMode = mode
+    appliedTone = tone
+    lastSystemDark = systemDark
+    darkModeState.value = effectiveDark(mode, systemDark)
+    paletteState = resolvePalette(theme, mode, tone, systemDark)
+}
+
+/**
+ * Реакция на смену системной темы без перезапуска Activity.
+ *
+ * Вызывается из [MyApplicationTheme] при каждой реконфигурации; если режим ручной —
+ * ничего не делает (пользовательский выбор важнее системы).
+ */
+fun onSystemDarkChanged(systemDark: Boolean) {
+    if (systemDark == lastSystemDark) return
+    lastSystemDark = systemDark
+    if (appliedMode != ThemeMode.SYSTEM) return
+    darkModeState.value = systemDark
+    paletteState = resolvePalette(appliedTheme, appliedMode, appliedTone, systemDark)
+}
+
+/**
+ * Шим для старого API: `applyAppTheme(theme, dark)`.
+ *
+ * Сохраняет историческое поведение (в т.ч. для тестов), но если запрошенная тьма
+ * совпадает с уже действующей — не ломает режим SYSTEM.
+ */
 fun applyAppTheme(
     theme: AppTheme,
     dark: Boolean = darkModeState.value,
 ) {
-    appliedTheme = theme
-    darkModeState.value = dark
-    paletteState = if (dark) theme.darkPalette else theme.palette
+    applyAppearance(theme, modeFor(dark), appliedTone, lastSystemDark)
 }
 
+/** Шим для старого API `applyDarkMode(dark)`. */
 fun applyDarkMode(dark: Boolean) {
-    applyAppTheme(appliedTheme, dark)
+    applyAppearance(appliedTheme, modeFor(dark), appliedTone, lastSystemDark)
+}
+
+private fun modeFor(dark: Boolean): ThemeMode = when {
+    dark == effectiveDark(appliedMode, lastSystemDark) -> appliedMode
+    dark -> ThemeMode.DARK
+    else -> ThemeMode.LIGHT
 }

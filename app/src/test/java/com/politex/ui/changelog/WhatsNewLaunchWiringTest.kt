@@ -46,7 +46,7 @@ class WhatsNewLaunchWiringTest {
         assertTrue(texts.any { it.contains("секундомеры") && it.contains("«до звонка»") })
         assertTrue(texts.any { it.contains("«Установить»") })
         assertTrue(texts.any { it.contains("2–3 раза быстрее") })
-        assertTrue(texts.any { it.contains("автоматически и незаметно") })
+        assertTrue(texts.any { it.contains("обновляются сами") })
     }
 
     @Test

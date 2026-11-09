@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Капля: индикатор дождя в виджете (статичный, анимации RemoteViews не умеют). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,2C12,2 5.5,9.5 5.5,14c0,3.59 2.91,6.5 6.5,6.5s6.5,-2.91 6.5,-6.5C18.5,9.5 12,2 12,2z" />
+</vector>

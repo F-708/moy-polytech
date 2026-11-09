@@ -64,6 +64,9 @@ class NowNextWidgetProvider : AppWidgetProvider() {
             WidgetUpdateHelper.applyWidgetBackground(views, context, appWidgetId, style.backgroundColor)
             views.setViewVisibility(R.id.iv_idle, android.view.View.GONE)
 
+            // Погода на виджете «сейчас/дальше»: статичная картинка + строка.
+            WidgetWeather.applyBackdrop(views, context, appWidgetId, colors = style)
+
             views.setViewVisibility(R.id.tv_empty, android.view.View.GONE)
             listOf(R.id.ll_now_block, R.id.ll_next_block, R.id.v_divider).forEach {
                 views.setViewVisibility(it, android.view.View.VISIBLE)

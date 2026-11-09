@@ -20,6 +20,7 @@ import okhttp3.Response
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Collections
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -74,6 +75,7 @@ open class MpkNetworkClient {
         internal const val DIRECT_MISS_TTL_MS = 60_000L
         internal const val PREFETCH_BATCH = 6
         internal const val PROBE_BATCH = 6
+        internal const val REJECTED_LOG_LIMIT = 12
 
         private val WS_REGEX = Regex("\\s+")
 
@@ -115,6 +117,27 @@ open class MpkNetworkClient {
     private val directMiss = ConcurrentHashMap<String, DirectMissEntry>()
 
     internal open fun nowMillis(): Long = System.currentTimeMillis()
+
+    /**
+     * Отчёт о том, почему кандидат не подошёл (без персональных данных: только URL и причина).
+     * Нужен для диагностики «документ опубликован, а приложение его не видит» и для тестов.
+     */
+    internal val rejectedDocumentUrls: MutableList<String> = Collections.synchronizedList(mutableListOf())
+
+    internal fun noteRejectedUrl(
+        url: String,
+        reason: String,
+    ) {
+        if (rejectedDocumentUrls.size >= REJECTED_LOG_LIMIT) return
+        rejectedDocumentUrls += "$url — $reason"
+    }
+
+    internal fun resetRejectionLog() {
+        rejectedDocumentUrls.clear()
+    }
+
+    /** Однострочная сводка отбракованных кандидатов (для диагностики/логов/отчёта). */
+    fun rejectionSummary(): String = rejectedDocumentUrls.joinToString("; ")
 
     private fun docCacheTtl(entry: DocCacheEntry): Long = if (entry.bytes == null) DOC_CACHE_NEG_TTL_MS else DOC_CACHE_TTL_MS
 
@@ -177,13 +200,14 @@ open class MpkNetworkClient {
         val ddMmYyyy = DateFormats.dotDate(calendar)
         val dd = ddMmYyyy.substring(0, 2)
         val prevMonth = (calendar.clone() as Calendar).apply { add(Calendar.MONTH, -1) }
+        val nextMonth = (calendar.clone() as Calendar).apply { add(Calendar.MONTH, 1) }
 
-        val folders = listOf(
-            SimpleDateFormat("yyyy", Locale.ROOT).format(calendar.time) to
-                SimpleDateFormat("MM", Locale.ROOT).format(calendar.time),
-            SimpleDateFormat("yyyy", Locale.ROOT).format(prevMonth.time) to
-                SimpleDateFormat("MM", Locale.ROOT).format(prevMonth.time),
-        )
+        // WordPress кладёт файл в папку МЕСЯЦА ЗАГРУЗКИ, а не месяца занятия: смотрим текущий
+        // месяц даты, предыдущий (публикация заранее) и следующий (перенос/правка задним числом).
+        val folders = listOf(calendar, prevMonth, nextMonth).map { cal ->
+            SimpleDateFormat("yyyy", Locale.ROOT).format(cal.time) to
+                SimpleDateFormat("MM", Locale.ROOT).format(cal.time)
+        }.distinct()
 
         val result = mutableListOf<Pair<String, String>>()
         fun add(yyyy: String, mm: String, name: String, suffix: String, ext: String) {

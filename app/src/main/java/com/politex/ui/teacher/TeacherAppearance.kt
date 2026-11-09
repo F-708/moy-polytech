@@ -53,7 +53,7 @@ fun ScaleCard(modifier: Modifier = Modifier) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text("Масштаб интерфейса", style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 14.sp, color = ColorTextTitle))
             Spacer(Modifier.height(4.dp))
-            Text("Размер текста и элементов: 75% — компактнее, 125% — крупнее", style = TextStyle(fontSize = 11.sp, color = ColorTextMuted))
+            Text("75% компактнее, 125% крупнее", style = TextStyle(fontSize = 11.sp, color = ColorTextMuted))
             Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),

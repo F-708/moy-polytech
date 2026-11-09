@@ -94,6 +94,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.politex.BuildConfig
 import com.politex.content.ContentPackWorker
 import com.politex.data.model.GroupInfo
+import com.politex.ui.effects.weatherScene
+import com.politex.ui.components.AppearanceSection
 import com.politex.ui.components.SectionCaption
 import com.politex.ui.components.SettingsCard
 import com.politex.ui.components.SettingsDivider
@@ -205,12 +207,6 @@ fun SettingsScreen(
         }
     }
 
-    var currentTheme by remember { mutableStateOf(AppThemeStore.load(context)) }
-    fun onThemePicked(theme: AppTheme) {
-        AppThemeStore.save(context, theme)
-        currentTheme = theme
-    }
-
     var backupMessage by remember { mutableStateOf("") }
     var backupIsError by remember { mutableStateOf(false) }
     val backupScope = rememberCoroutineScope()
@@ -288,7 +284,7 @@ fun SettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(ColorBgMain),
+            .weatherScene(),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("settings_list"),
@@ -324,12 +320,12 @@ fun SettingsScreen(
                 SettingsCard {
                     SettingsRow(
                         icon = Icons.Default.Campaign,
-                        title = "Уведомление о новом расписании",
+                        title = "Новое расписание",
                         trailing = {
                             SettingsSwitch(
                                 checked = isNotificationEnabled,
                                 onCheckedChange = { enabled -> onScheduleNotificationToggle(enabled) },
-                                label = "Уведомление о новом расписании",
+                                label = "Новое расписание",
                                 modifier = Modifier.testTag("notifications_switch"),
                             )
                         },
@@ -340,12 +336,7 @@ fun SettingsScreen(
             }
 
             item { SectionCaption("ВНЕШНИЙ ВИД", Modifier.padding(top = 4.dp)) }
-            item {
-                AppearanceCard(
-                    currentTheme = currentTheme,
-                    onThemePicked = { theme -> onThemePicked(theme) },
-                )
-            }
+            item { AppearanceSection() }
 
             item { SectionCaption("КАРТА", Modifier.padding(top = 4.dp)) }
             item { MapSettingsCard() }
@@ -392,7 +383,7 @@ fun SettingsScreen(
                     ResetActionCard(
                         icon = Icons.Default.RestartAlt,
                         title = "Сбросить подсказки",
-                        subtitle = "Подсказки в заданиях и расписании появятся снова",
+                        subtitle = "Подсказки появятся снова",
                         tag = "reset_hints_card",
                         buttonTag = "reset_hints_btn",
                         filled = true,
@@ -406,7 +397,7 @@ fun SettingsScreen(
                     ResetActionCard(
                         icon = Icons.Default.GroupRemove,
                         title = "Сбросить группу",
-                        subtitle = "Приложение закроется и снова спросит группу и подгруппу",
+                        subtitle = "Приложение закроется и спросит группу",
                         tag = "reset_group_card",
                         buttonTag = "reset_group_btn",
                         filled = false,
@@ -588,148 +579,6 @@ private fun ScheduleSettingsCard(
     }
 }
 
-@Composable
-private fun AppearanceCard(
-    currentTheme: AppTheme,
-    onThemePicked: (AppTheme) -> Unit,
-) {
-    val context = LocalContext.current
-    var darkTheme by remember { mutableStateOf(AppThemeStore.isDark(context)) }
-
-    SettingsCard {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SettingsIcon(Icons.Default.Palette)
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Тема оформления",
-                style =
-                TextStyle(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = ColorTextTitle,
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("theme_swatches")
-                .padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            AppTheme.entries.toList().chunked(4).forEach { rowThemes ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    rowThemes.forEach { theme ->
-                        ThemeSwatch(
-                            theme = theme,
-                            isSelected = currentTheme == theme,
-                            onClick = { onThemePicked(theme) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
-                        )
-                    }
-                    repeat(4 - rowThemes.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-        SettingsDivider()
-        SettingsRow(
-            icon = Icons.Default.DarkMode,
-            title = "Тёмная тема",
-            trailing = {
-                SettingsSwitch(
-                    checked = darkTheme,
-                    onCheckedChange = { enabled ->
-                        darkTheme = enabled
-                        AppThemeStore.setDark(context, enabled)
-                    },
-                    label = "Тёмная тема",
-                    modifier = Modifier.testTag("settings_dark_theme_switch"),
-                )
-            },
-        )
-    }
-}
-
-@Composable
-private fun ThemeSwatch(
-    theme: AppTheme,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val previewBorderColor =
-        if (isDarkThemeActive) {
-            ColorTextMuted.copy(alpha = 0.55f)
-        } else {
-            ColorBorderLight
-        }
-    Surface(
-        shape = RoundedCornerShape(2.dp),
-        color = ColorBgMain,
-        border = BorderStroke(
-            if (isSelected) 2.dp else 1.dp,
-            if (isSelected) ColorBrandBlue else ColorBorderLight,
-        ),
-        modifier = modifier
-            .semantics {
-                role = Role.RadioButton
-                selected = isSelected
-            }
-            .bouncyClickable(onClick = onClick),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .background(theme.palette.topBar, RoundedCornerShape(2.dp))
-                    .border(1.dp, previewBorderColor, RoundedCornerShape(2.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 18.dp, height = 6.dp)
-                        .background(theme.palette.brandBlue, RoundedCornerShape(1.dp)),
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = theme.title,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                style =
-                TextStyle(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = 11.sp,
-                    lineHeight = 13.sp,
-                    color = ColorTextTitle,
-                    textAlign = TextAlign.Center,
-                ),
-            )
-        }
-    }
-}
 
 @Composable
 private fun MapSettingsCard() {
@@ -830,37 +679,12 @@ private fun AboutCard() {
         )
         SettingsDivider()
         SettingsRow(
-            icon = Icons.Default.CalendarMonth,
-            title = "Портал расписания",
-            subtitle = "guo-mpk.by/raspisanie/",
-            onClick = { openLink(context, "https://guo-mpk.by/raspisanie/") },
-            showChevron = true,
-        )
-        SettingsDivider()
-        SettingsRow(
             icon = Icons.Default.Send,
-            title = "Telegram",
+            title = "Обратная связь",
             subtitle = "@Betterthannothing12",
             onClick = { openLink(context, "https://t.me/Betterthannothing12") },
             showChevron = true,
             modifier = Modifier.testTag("settings_telegram_row"),
-        )
-        SettingsDivider()
-        SettingsRow(
-            icon = Icons.Default.Info,
-            title = "Версия",
-            trailing = {
-                Text(
-                    text = BuildConfig.VERSION_NAME,
-                    style =
-                    TextStyle(
-                        fontSize = 13.sp,
-                        color = ColorTextMuted,
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            },
         )
     }
 }
@@ -880,6 +704,7 @@ private fun UpdatesCard() {
     var checking by remember { mutableStateOf(false) }
     val foundInfo by UpdateInstallController.foundUpdate.collectAsState()
     val installState by UpdateInstallController.state.collectAsState()
+    LaunchedEffect(Unit) { UpdateInstallController.restore(context) }
 
     fun pickChannel(next: UpdateChannel) {
         val previous = channel
@@ -896,9 +721,13 @@ private fun UpdatesCard() {
     fun runCheck() {
         if (checking) return
         checking = true
-        UpdateInstallController.cancelAndReset(context)
         scope.launch {
             val result = withContext(Dispatchers.IO) { UpdateCheckController.checkNow(context) }
+            when (result) {
+                is ManualCheckResult.UpdateFound -> UpdateInstallController.rememberFound(context, result.info)
+                ManualCheckResult.Latest -> UpdateInstallController.clearPending(context)
+                else -> Unit
+            }
             statusText = manualResultText(result, channel, BuildConfig.VERSION_NAME)
             statusColor =
                 when {
@@ -906,8 +735,6 @@ private fun UpdatesCard() {
                     manualResultIsFound(result) -> ColorSuccess
                     else -> ColorTextMuted
                 }
-            val info = (result as? ManualCheckResult.UpdateFound)?.info
-            UpdateInstallController.rememberFound(context, info)
             checking = false
         }
     }
@@ -958,7 +785,7 @@ private fun UpdatesCard() {
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "Превью выходят раньше, но могут быть нестабильными",
+                        text = "Превью выходят раньше, бывают нестабильными",
                         style =
                         TextStyle(
                             fontSize = 12.sp,
@@ -1246,7 +1073,7 @@ private fun BellCountdownSection() {
                         title = scope.title,
                         description =
                         if (teacherModeOn && scope == BellCountdownNotifier.Scope.MY_LESSONS) {
-                            "Счётчик заканчивается с последним уроком в вашем расписании"
+                            "Счётчик идёт до последнего урока"
                         } else {
                             scope.description
                         },

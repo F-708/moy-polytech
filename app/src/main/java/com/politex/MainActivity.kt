@@ -80,6 +80,9 @@ class MainActivity : ComponentActivity() {
             if (TeacherModeStore.isTeacher(this)) {
                 MpkWorkManagerHelper.setupTeacherSync(this)
             }
+            // Прогноз погоды: один вход, без WorkManager и новых разрешений.
+            // Внутри — гейт «не чаще раза в час» и тихий кэш-фолбэк при ошибке сети.
+            com.politex.weather.WeatherHub.ensureFresh(this)
             com.politex.update.AppUpdateWorker.schedule(this)
             com.politex.update.AppUpdateWorker.checkOnStartup(this)
             whatsNewEntries = com.politex.ui.changelog.WhatsNewStore.onLaunch(this, BuildConfig.VERSION_CODE)
@@ -169,8 +172,10 @@ class MainActivity : ComponentActivity() {
             if (external != null) {
                 val key = intakeFingerprint(external)
                 if (key != handledIntakeKey) {
-                    handledIntakeKey = key
+                    // Ключ «этот файл уже обработан» ставим только когда материал реально
+                    // принят: в режиме преподавателя шаринг не должен съедаться навсегда.
                     if (acceptIntake(BuildConfig.FLAVOR, TeacherModeStore.isTeacher(this))) {
+                        handledIntakeKey = key
                         ExternalMaterialIntake.offer(external)
                         if (shouldNavigateToLessons(navController.currentDestination?.route)) {
                             navController.navigateToTab(ROUTE_LESSONS)
@@ -180,6 +185,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 return
+            }
+            // Файл пришёл, но формат не поддерживается: молчать нельзя — пользователь
+            // решит, что приложение сломалось.
+            ExternalMaterialIntake.consumeRejection()?.let { message ->
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
             }
         }
         val scrollTarget = intent?.getStringExtra("EXTRA_SCROLL_TARGET")

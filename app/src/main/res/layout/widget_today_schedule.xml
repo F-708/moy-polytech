@@ -12,6 +12,16 @@
         android:scaleType="fitXY"
         android:src="@drawable/widget_bg_r0" />
 
+    <!-- Статичная погодная картинка (Bitmap из Canvas): капли/снежинки и ночной
+         угол. Лежит поверх фона, но под текстом; без осадков и ночи — GONE. -->
+    <ImageView
+        android:id="@+id/iv_weather_backdrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/today_root"
         android:layout_width="match_parent"

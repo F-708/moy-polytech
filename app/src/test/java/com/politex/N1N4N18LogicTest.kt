@@ -125,10 +125,19 @@ class N1N4N18LogicTest {
         dateString = date,
     )
 
+    private val taskCreatedAt: Long =
+        java.util.Calendar
+            .getInstance()
+            .apply {
+                clear()
+                set(2026, java.util.Calendar.SEPTEMBER, 1, 8, 0, 0)
+            }.timeInMillis
+
     private fun task(
         subject: String,
         type: String,
         deadline: String,
+        createdAt: Long = taskCreatedAt,
     ) = StudentTaskEntity(
         groupName = "41О",
         course = 4,
@@ -136,6 +145,7 @@ class N1N4N18LogicTest {
         taskType = type,
         title = "t",
         deadlineDate = deadline,
+        createdAt = createdAt,
     )
 
     @Test
@@ -157,7 +167,7 @@ class N1N4N18LogicTest {
                 dayLessons = lessons,
                 day = day,
                 nowMillis = 0L,
-                weeklyLessonsByDow = emptyMap(),
+                weeklyLessonsByDow = mapOf(1 to lessons),
                 pendingTasks = tasks,
             )
 

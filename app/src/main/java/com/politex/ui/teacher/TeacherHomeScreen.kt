@@ -267,7 +267,7 @@ fun TeacherHomeScreen(
                         item {
                             AppCard(modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    "Не удалось точно определить (однофамильцы) — проверьте список",
+                                    "Есть однофамильцы — уточните выбор",
                                     style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = ColorTextMuted),
                                     modifier = Modifier.padding(10.dp),
                                 )
@@ -508,7 +508,7 @@ private fun TeacherEmptyState(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (hasError) "ПОВТОРИТЬ" else "СИНХРОНИЗИРОВАТЬ С САЙТОМ",
+                        text = if (hasError) "ПОВТОРИТЬ" else "ОБНОВИТЬ",
                         style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White),
                     )
                 }
@@ -530,7 +530,7 @@ private fun PickProfilePrompt(
         Text("Выберите себя", style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, color = ColorTextTitle))
         Spacer(Modifier.height(8.dp))
         Text(
-            "Чтобы увидеть свой день, найдите себя в списке преподавателей колледжа.",
+            "Найдите себя в списке преподавателей.",
             style = TextStyle(fontSize = 14.sp, color = ColorTextMuted),
             textAlign = TextAlign.Center,
         )

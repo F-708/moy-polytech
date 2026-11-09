@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ночная подложка строки погоды в виджете: только она темнеет ночью,
+     остальной виджет остаётся в выбранной пользователем палитре. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#12213A" />
+    <corners android:radius="6dp" />
+</shape>

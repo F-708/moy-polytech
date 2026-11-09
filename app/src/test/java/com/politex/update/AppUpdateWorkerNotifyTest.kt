@@ -11,7 +11,6 @@ import androidx.work.ListenableWorker
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -57,7 +56,6 @@ class AppUpdateWorkerNotifyTest {
         UpdateInstallController.downloadOverride = null
         UpdateInstallController.validateOverride = null
         UpdateInstallController.installLaunchOverride = null
-        AppUpdateWorker.downloadOverride = null
         UpdateInstallController.cancelAndReset(context)
     }
 
@@ -75,11 +73,7 @@ class AppUpdateWorkerNotifyTest {
     }
 
     @Test
-    fun `найдено обновление - уведомление постится и версия запоминается`() {
-        val file = File(context.cacheDir, "worker-ok.apk").apply { writeBytes(ByteArray(16)) }
-        AppUpdateWorker.downloadOverride = { _, _ -> file }
-        UpdateInstallController.validateOverride = { _, _ -> ApkRejection.NONE }
-
+    fun `найдено обновление - воркер уведомляет и не скачивает сам`() {
         val result = AppUpdateWorker.processFoundUpdate(context, info)
 
         assertTrue(result is ListenableWorker.Result.Success)
@@ -87,17 +81,12 @@ class AppUpdateWorkerNotifyTest {
         assertEquals(info.versionCode, prefs.getInt("notified_version_code", 0))
         assertEquals(info.versionName, prefs.getString("notified_version_name", null))
         assertEquals(info, UpdateInstallController.foundUpdate.value)
-        val state = UpdateInstallController.state.value
-        assertTrue(state is InstallButtonState.Downloaded)
-        assertEquals(file.absolutePath, (state as InstallButtonState.Downloaded).apkPath)
-        file.delete()
+        assertTrue(UpdateInstallController.state.value is InstallButtonState.IdleFound)
+        assertFalse(UpdateDownloader.targetFile(context, info.versionName).exists())
     }
 
     @Test
     fun `анти-спам - повтор для того же versionCode не уведомляет`() {
-        val file = File(context.cacheDir, "worker-antispam.apk").apply { writeBytes(ByteArray(16)) }
-        AppUpdateWorker.downloadOverride = { _, _ -> file }
-        UpdateInstallController.validateOverride = { _, _ -> ApkRejection.NONE }
         AppUpdateWorker.processFoundUpdate(context, info)
         val before = postedTitles().size
 
@@ -105,7 +94,6 @@ class AppUpdateWorkerNotifyTest {
 
         assertTrue(result is ListenableWorker.Result.Success)
         assertEquals(before, postedTitles().size)
-        file.delete()
     }
 
     @Test
@@ -120,52 +108,17 @@ class AppUpdateWorkerNotifyTest {
     }
 
     @Test
-    fun `сбой скачивания - retry без уведомления`() {
-        AppUpdateWorker.downloadOverride = { _, _ -> null }
-        val result = AppUpdateWorker.processFoundUpdate(context, info)
-        assertTrue(result is ListenableWorker.Result.Retry)
-        assertTrue(postedTitles().isEmpty())
-    }
-
-    @Test
-    fun `контрольная сумма не совпала - retry и файл удалён`() {
-        val file = File(context.cacheDir, "worker-checksum.apk").apply { writeBytes(ByteArray(16)) }
-        AppUpdateWorker.downloadOverride = { _, _ -> file }
-        val result = AppUpdateWorker.processFoundUpdate(context, info.copy(sha256 = "deadbeef"))
-        assertTrue(result is ListenableWorker.Result.Retry)
-        assertFalse(file.exists())
-        assertTrue(postedTitles().isEmpty())
-    }
-
-    @Test
-    fun `подпись не совпала - уведомление об отклонении и очистка pending`() {
-        val file = File(context.cacheDir, "worker-signature.apk").apply { writeBytes(ByteArray(16)) }
-        AppUpdateWorker.downloadOverride = { _, _ -> file }
-        UpdateInstallController.validateOverride = { _, _ -> ApkRejection.SIGNATURE }
-        val result = AppUpdateWorker.processFoundUpdate(context, info)
-        assertTrue(result is ListenableWorker.Result.Success)
-        assertTrue(postedTitles().any { it == "Обновление отклонено" })
-        assertFalse(postedTitles().any { it.contains("Доступно обновление") })
-        assertFalse(file.exists())
-        assertNull(UpdateInstallController.foundUpdate.value)
-        assertNull(com.politex.util.UpdatePendingStore.load(context))
-    }
-
-    @Test
     fun `без POST_NOTIFICATIONS уведомление не постится но версия запоминается`() {
         shadowOf(context as Application).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
-        val file = File(context.cacheDir, "worker-noperm.apk").apply { writeBytes(ByteArray(16)) }
-        AppUpdateWorker.downloadOverride = { _, _ -> file }
-        UpdateInstallController.validateOverride = { _, _ -> ApkRejection.NONE }
         val result = AppUpdateWorker.processFoundUpdate(context, info)
+
         assertTrue(result is ListenableWorker.Result.Success)
         assertTrue(postedTitles().isEmpty())
         assertEquals(info.versionCode, prefs.getInt("notified_version_code", 0))
-        file.delete()
     }
 
     @Test
-    fun `пользователь уже скачивает - воркер уступает через retry`() {
+    fun `пользователь уже скачивает - воркер не мешает и не уведомляет`() {
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
         UpdateInstallController.downloadOverride = { _, _, _, _ ->
@@ -179,22 +132,19 @@ class AppUpdateWorkerNotifyTest {
 
         val result = AppUpdateWorker.processFoundUpdate(context, info)
 
-        assertTrue(result is ListenableWorker.Result.Retry)
+        assertTrue(result is ListenableWorker.Result.Success)
         assertTrue(postedTitles().isEmpty())
         release.countDown()
     }
 
     @Test
-    fun `пользователь уже скачал - воркер не скачивает и не уведомляет`() {
+    fun `пользователь уже скачал - воркер не уведомляет`() {
         val file = File(context.cacheDir, "worker-userdone.apk").apply { writeBytes(ByteArray(16)) }
         UpdateInstallController.downloadOverride = { _, _, _, _ -> file }
         UpdateInstallController.validateOverride = { _, _ -> ApkRejection.NONE }
         UpdateInstallController.rememberFound(context, info)
         UpdateInstallController.startDownload(context, info)
         awaitState { it is InstallButtonState.Downloaded }
-        AppUpdateWorker.downloadOverride = { _, _ ->
-            throw AssertionError("воркер не должен скачивать повторно")
-        }
 
         val result = AppUpdateWorker.processFoundUpdate(context, info)
 
@@ -205,21 +155,21 @@ class AppUpdateWorkerNotifyTest {
     }
 
     @Test
-    fun `уже скачанный валидный файл переиспользуется без сети`() {
+    fun `уже скачанный валидный файл сразу готов к установке`() {
         val file =
             UpdateDownloader.targetFile(context, info.versionName).apply {
                 parentFile?.mkdirs()
                 writeBytes(ByteArray(16))
             }
-        AppUpdateWorker.downloadOverride = { _, _ ->
-            throw AssertionError("сеть не должна использоваться")
-        }
         UpdateInstallController.validateOverride = { _, _ -> ApkRejection.NONE }
 
         val result = AppUpdateWorker.processFoundUpdate(context, info)
 
         assertTrue(result is ListenableWorker.Result.Success)
         assertTrue(postedTitles().any { it.contains("Доступно обновление 2.0.1") })
+        val state = UpdateInstallController.state.value
+        assertTrue(state is InstallButtonState.Downloaded)
+        assertEquals(file.absolutePath, (state as InstallButtonState.Downloaded).apkPath)
         file.delete()
     }
 }

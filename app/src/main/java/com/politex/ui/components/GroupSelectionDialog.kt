@@ -200,7 +200,7 @@ fun FirstRunGroupDialog(
                         ) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "По подгруппе строятся маршруты и работают виджеты. Можно потом изменить.",
+                                text = "Маршруты и виджеты зависят от подгруппы.",
                                 style =
                                 androidx.compose.ui.text.TextStyle(
                                     fontSize = 13.sp,
@@ -366,7 +366,7 @@ internal fun TeacherSearchStep(
             }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Начните вводить фамилию — покажем подходящих преподавателей.",
+            text = "Начните вводить фамилию.",
             style =
             androidx.compose.ui.text.TextStyle(
                 fontSize = 13.sp,

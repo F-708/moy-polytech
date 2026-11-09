@@ -40,6 +40,7 @@ object UpdateDownloader {
         versionName: String,
     ): File = File(File(context.cacheDir, "updates"), "update-${safeFileName(versionName)}.apk")
 
+    @Synchronized
     fun download(
         context: Context,
         asset: UpdateAsset,
@@ -48,8 +49,10 @@ object UpdateDownloader {
         isCancelled: () -> Boolean = { false },
     ): File? {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
-        dir.listFiles()?.forEach { it.delete() }
         val target = targetFile(context, versionName)
+        if (target.exists() && downloadComplete(target.length(), asset.size)) return target
+        val part = File(dir, "${target.name}.part")
+        dir.listFiles()?.forEach { if (it.name.endsWith(".part")) it.delete() }
         val downloaded =
             runCatching {
                 val request =
@@ -62,16 +65,20 @@ object UpdateDownloader {
                     if (!response.isSuccessful) return@use null
                     val body = response.body ?: return@use null
                     val totalBytes = if (body.contentLength() > 0L) body.contentLength() else asset.size
-                    if (!writeBody(body, target, totalBytes, onProgress, isCancelled)) {
+                    if (!writeBody(body, part, totalBytes, onProgress, isCancelled)) {
                         return@use null
                     }
-                    if (!downloadComplete(target.length(), asset.size)) {
+                    if (!downloadComplete(part.length(), asset.size)) {
                         return@use null
+                    }
+                    target.delete()
+                    if (!part.renameTo(target)) {
+                        part.copyTo(target, overwrite = true)
                     }
                     target
                 }
             }.getOrNull()
-        if (downloaded == null) target.delete()
+        if (downloaded == null) part.delete()
         return downloaded
     }
 

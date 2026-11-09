@@ -63,6 +63,7 @@ import com.politex.data.repository.Student
 import com.politex.data.repository.Teacher
 import com.politex.data.repository.TeacherInsights
 import com.politex.ui.components.AppCard
+import com.politex.ui.effects.weatherScene
 import com.politex.ui.components.AppDivider
 import com.politex.ui.components.BackButton
 import com.politex.ui.components.GroupSelectionDialog
@@ -110,7 +111,7 @@ fun CollegeScreen(
         modifier =
         modifier
             .fillMaxSize()
-            .background(ColorBgMain),
+            .weatherScene(),
     ) {
         OtherMenu(
             groupInfo = groupInfo,
@@ -267,9 +268,9 @@ private fun OtherMenu(
             title = "Другое",
             subtitle =
             if (isTeacherMode) {
-                "Преподаватели, карта и настройки"
+                "Карта и справочники"
             } else {
-                "Специальность, преподаватели и настройки"
+                "Специальность и справочники"
             },
         )
 
@@ -306,7 +307,7 @@ private fun OtherMenu(
                     MenuCard(
                         icon = { Icon(Icons.Default.School, null, tint = Color.White, modifier = Modifier.size(20.dp)) },
                         title = "Моя специальность",
-                        subtitle = "Группа ${groupInfo.canonicalName}: код, квалификация, предметы по курсам",
+                        subtitle = "Группа ${groupInfo.canonicalName}: код и предметы",
                         onClick = onOpenSpecialty,
                     )
                 }
@@ -315,7 +316,7 @@ private fun OtherMenu(
                 MenuCard(
                     icon = { Icon(Icons.Default.DateRange, null, tint = Color.White, modifier = Modifier.size(20.dp)) },
                     title = "Расписание группы",
-                    subtitle = "Найти расписание любой группы колледжа",
+                    subtitle = "Расписание любой группы",
                     onClick = onOpenGroupSchedule,
                 )
             }
@@ -331,7 +332,7 @@ private fun OtherMenu(
                 MenuCard(
                     icon = { Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(20.dp)) },
                     title = "Преподаватели",
-                    subtitle = "Поиск по базе, избранное и фотографии",
+                    subtitle = "Поиск, избранное и фото",
                     onClick = onOpenTeachers,
                 )
             }
@@ -339,7 +340,7 @@ private fun OtherMenu(
                 MenuCard(
                     icon = { Icon(Icons.Default.Settings, null, tint = Color.White, modifier = Modifier.size(20.dp)) },
                     title = "Настройки",
-                    subtitle = "Группа, уведомления и диагностика",
+                    subtitle = "Группа и уведомления",
                     onClick = onOpenSettings,
                 )
             }
@@ -487,7 +488,7 @@ private fun SettingsPage(
     Column(modifier = Modifier.fillMaxSize()) {
         SubPageHeader(
             title = "Настройки",
-            subtitle = "Параметры и диагностика приложения",
+            subtitle = "Оформление и уведомления",
             onBack = onBack,
         )
 
@@ -554,7 +555,7 @@ private fun MySpecialtyPage(
         ) {
             if (specialty == null) {
                 item {
-                    EmptyCard(text = "Специальность для группы ${groupInfo.canonicalName} не найдена в справочнике.")
+                    EmptyCard(text = "Специальность группы ${groupInfo.canonicalName} не найдена.")
                 }
                 return@LazyColumn
             }
@@ -720,8 +721,7 @@ private fun MySpecialtyPage(
                             Text(
 
                                 text =
-                                "Список предметов для этого курса неполный — " +
-                                    "уточните в деканате.",
+                                "Список предметов для этого курса неполный.",
                                 style =
                                 androidx.compose.ui.text
                                     .TextStyle(fontSize = 13.sp, color = ColorTextBody),
@@ -850,8 +850,8 @@ private fun RenameSubjectDialog(
                     value = text,
                     onValueChange = { text = it },
                     label = { Text("Название предмета", fontSize = 12.sp) },
-                    placeholder = { Text("Пустое — исходное название", fontSize = 12.sp) },
-                    supportingText = { Text("Пустое поле вернёт исходное название", fontSize = 11.sp) },
+                    placeholder = { Text("Исходное название", fontSize = 12.sp) },
+                    supportingText = { Text("Пустое поле вернёт исходное", fontSize = 11.sp) },
                     singleLine = true,
                     shape = RoundedCornerShape(2.dp),
                     modifier =
@@ -1016,7 +1016,7 @@ private fun TeachersPage(
         SearchBar(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = "Поиск: ФИО, дисциплина...",
+            placeholder = "Поиск: ФИО или предмет",
             testTag = "teachers_search_input",
             modifier =
             Modifier
@@ -1658,8 +1658,8 @@ private fun AboutTeacherTab(
             item {
                 EmptyCard(
                     text =
-                    "По расписанию вашей группы этот преподаватель уроков не ведёт.\n\n" +
-                        "Откройте вкладку «Расписание», чтобы посмотреть его полное расписание.",
+                    "У вашей группы он уроков не ведёт.\n\n" +
+                        "Полное расписание — во вкладке «Расписание».",
                 )
             }
         } else if (showLeads) {
@@ -1901,7 +1901,7 @@ private fun TeacherScheduleTab(
                         item {
                             AppCard(modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    text = "Не удалось точно определить (однофамильцы) — проверьте список",
+                                    text = "Есть однофамильцы — уточните выбор",
                                     style =
                                     androidx.compose.ui.text.TextStyle(
                                         fontWeight = FontWeight.SemiBold,

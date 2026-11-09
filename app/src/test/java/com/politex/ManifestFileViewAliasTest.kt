@@ -9,9 +9,31 @@ import org.w3c.dom.Element
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
+/**
+ * Гейт манифеста: приложение не должно объявлять себя обработчиком файлов,
+ * которые не умеет открыть (жалоба заказчика: «принимает абсолютно все файлы, в том числе APK»).
+ */
 class ManifestFileViewAliasTest {
 
     private val android = "http://schemas.android.com/apk/res/android"
+
+    /** MIME, которые приложение не умеет открывать: объявлять их нельзя. */
+    private val bannedMimeTypes =
+        setOf(
+            "application/vnd.android.package-archive",
+            "application/zip",
+            "application/x-zip-compressed",
+            "application/msword",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/rtf",
+            "text/rtf",
+            "audio/*",
+            "video/*",
+        )
+
+    /** Расширения, которые приложение не умеет открывать: pathPattern'ов на них быть не должно. */
+    private val bannedExtensions = setOf(".apk", ".zip", ".doc", ".xls", ".xlsx", ".mp3", ".mp4", ".pptx", ".odt")
 
     private fun resolveFile(vararg paths: String): File = paths
         .map(::File)
@@ -58,6 +80,12 @@ class ManifestFileViewAliasTest {
         return alias!!
     }
 
+    private fun aliasData(): List<Element> = alias().childElements("intent-filter").flatMap { it.childElements("data") }
+
+    private fun aliasMimeTypes(): List<String> = aliasData().map { attribute(it, "mimeType") }.filter { it.isNotEmpty() }
+
+    private fun aliasPaths(): List<String> = aliasData().map { attribute(it, "pathPattern") }.filter { it.isNotEmpty() }
+
     @Test
     fun `alias Просмотреть файл нацелен на MainActivity`() {
         val alias = alias()
@@ -67,16 +95,60 @@ class ManifestFileViewAliasTest {
     }
 
     @Test
-    fun `VIEW content star-star с DEFAULT висит на alias`() {
-        val wildcard =
-            alias().childElements("intent-filter").firstOrNull { filter ->
-                "android.intent.action.VIEW" in actions(filter) &&
-                    "android.intent.category.DEFAULT" in categories(filter) &&
-                    filter.childElements("data").any { attribute(it, "scheme") == "content" } &&
-                    filter.childElements("data").any { attribute(it, "mimeType") == "*/*" } &&
-                    filter.childElements("data").none { it.hasAttributeNS(android, "pathPattern") }
+    fun `alias не объявляет wildcard mimeType`() {
+        assertTrue(
+            "wildcard */* снова открывает приём любых файлов",
+            aliasMimeTypes().none { it == "*/*" },
+        )
+    }
+
+    @Test
+    fun `в фильтрах alias нет голого data без mimeType и pathPattern`() {
+        // <data android:scheme="content"/> сам по себе матчит ЛЮБОЙ content-uri:
+        // именно из-за него в «Открыть с помощью» попадали APK и архивы.
+        val orphans =
+            aliasData().filter { data ->
+                attribute(data, "mimeType").isEmpty() && attribute(data, "pathPattern").isEmpty()
             }
-        assertNotNull("нет VIEW-фильтра content + */* без pathPattern", wildcard)
+        assertTrue(
+            "элементы <data> без mimeType/pathPattern матчат любой content-uri: ${orphans.map { attribute(it, "scheme") }}",
+            orphans.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `alias не объявляет приём архивов, таблиц, аудио, видео и apk`() {
+        val declared = aliasMimeTypes()
+        bannedMimeTypes.forEach { banned ->
+            assertFalse("фильтр alias не должен объявлять $banned", banned in declared)
+        }
+    }
+
+    @Test
+    fun `alias не объявляет расширений неподдерживаемых форматов`() {
+        val paths = aliasPaths()
+        bannedExtensions.forEach { extension ->
+            val hit = paths.filter { it.lowercase().endsWith(extension) }
+            assertTrue("pathPattern под $extension не должен объявляться: $hit", hit.isEmpty())
+        }
+    }
+
+    @Test
+    fun `все VIEW-фильтры alias требуют DEFAULT и ограничены типом или путём`() {
+        val viewFilters = alias().childElements("intent-filter").filter { "android.intent.action.VIEW" in actions(it) }
+        assertTrue("alias без VIEW-фильтров", viewFilters.isNotEmpty())
+        viewFilters.forEach { filter ->
+            assertTrue("VIEW-фильтр без DEFAULT не получит неявный интент", "android.intent.category.DEFAULT" in categories(filter))
+            val data = filter.childElements("data")
+            assertTrue("VIEW-фильтр без <data> принимает всё", data.isNotEmpty())
+            data.forEach { element ->
+                assertTrue(
+                    "в <data> должен быть scheme вместе с mimeType или pathPattern",
+                    attribute(element, "scheme") == "content" &&
+                        (attribute(element, "mimeType").isNotEmpty() || attribute(element, "pathPattern").isNotEmpty()),
+                )
+            }
+        }
     }
 
     @Test
@@ -107,6 +179,16 @@ class ManifestFileViewAliasTest {
                     "image/*" in it.childElements("data").map { data -> attribute(data, "mimeType") }
             },
         )
+    }
+
+    @Test
+    fun `SEND не объявляет таблицы и старый Word`() {
+        val sendFilter = mainActivity().childElements("intent-filter").single { "android.intent.action.SEND" in actions(it) }
+        val declared = sendFilter.childElements("data").map { attribute(it, "mimeType") }
+        assertFalse("application/msword" in declared)
+        assertFalse("application/vnd.ms-excel" in declared)
+        assertFalse("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in declared)
+        assertTrue("application/pdf" in declared)
     }
 
     @Test

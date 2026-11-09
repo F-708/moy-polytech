@@ -91,6 +91,8 @@ import com.politex.ui.components.CalendarArchiveDialog
 import com.politex.ui.components.CenteredLoader
 import com.politex.ui.components.DaySlotCell
 import com.politex.ui.components.NoLessonCard
+import com.politex.ui.effects.rememberWeatherScene
+import com.politex.ui.effects.weatherScene
 import com.politex.ui.theme.ColorActiveBlue
 import com.politex.ui.theme.ColorBadgeCourse
 import com.politex.ui.theme.ColorBadgeDiploma
@@ -164,6 +166,14 @@ fun ScheduleScreen(
     val isTeacherKnown: (String) -> Boolean = rememberIsTeacherKnown()
 
     val teacherModeRevision = TeacherModeStore.revision.intValue
+    val compactRevision = ScheduleDisplayPrefs.revision.intValue
+
+    // Плотность списка: в компактном режиме между уроками не карточный зазор 10 dp,
+    // а тонкая линия-разделитель (1 dp) с минимальным воздухом.
+    val compactList =
+        remember(context, compactRevision) {
+            ScheduleDisplayPrefs.isCompact(context)
+        }
     val isTeacherMode =
         remember(context, teacherModeRevision) {
             TeacherModeStore.isTeacher(context)
@@ -309,7 +319,7 @@ fun ScheduleScreen(
 
     val homeworkByLesson: Map<Int, List<TaskType>> =
 
-        remember(lessons, pendingTasks, activeDayOfWeek, selectedDateString, nowMinutes) {
+        remember(lessons, pendingTasks, activeDayOfWeek, selectedDateString, activeCal, realNow) {
             val now = System.currentTimeMillis()
             val dayIso =
                 com.politex.util.HomeworkMarkers
@@ -318,9 +328,8 @@ fun ScheduleScreen(
                 com.politex.util.HomeworkMarkers
                     .dayIsoOf(realNow) == dayIso
             val isPast =
-                com.politex.util.HomeworkMarkers.dayIsoOf(
-                    (realNow.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -1) },
-                ) > dayIso
+                com.politex.util.HomeworkMarkers
+                    .isPastDay(dayIso, now)
             com.politex.util.HomeworkMarkers.markerLessonTypes(
                 dayLessons = lessons,
                 day =
@@ -487,7 +496,7 @@ fun ScheduleScreen(
             containerColor = ColorBgMain,
             title = {
                 Text(
-                    text = "Откуда вести маршрут?",
+                    text = "Откуда маршрут?",
                     style =
                     androidx.compose.ui.text.TextStyle(
                         fontWeight = FontWeight.Bold,
@@ -516,11 +525,12 @@ fun ScheduleScreen(
         )
     }
 
+    val weatherScene = rememberWeatherScene()
+
     Column(
         modifier =
         modifier
-            .fillMaxSize()
-            .background(ColorBgMain),
+            .weatherScene(weatherScene),
     ) {
         Row(
             modifier =
@@ -717,10 +727,10 @@ fun ScheduleScreen(
 
                         val emptyStateSubtitle =
                             when {
-                                isSyncing -> "Проверяем расписание на сайте guo-mpk.by…"
-                                hasSyncError -> "Проверьте подключение к интернету и попробуйте ещё раз."
+                                isSyncing -> "Обновляем расписание…"
+                                hasSyncError -> "Проверьте интернет и повторите."
                                 selectedDateString.isNotBlank() ->
-                                    "Нет данных за $selectedDateString. Расписание за прошедшие дни хранится в архиве только после синхронизации."
+                                    "Нет данных за $selectedDateString. Попробуйте синхронизацию."
                                 else -> ""
                             }
                         if (emptyStateSubtitle.isNotBlank()) {
@@ -772,7 +782,7 @@ fun ScheduleScreen(
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
 
-                                        text = if (hasSyncError) "ПОВТОРИТЬ" else "СИНХРОНИЗИРОВАТЬ С САЙТОМ",
+                                        text = if (hasSyncError) "ПОВТОРИТЬ" else "ОБНОВИТЬ",
                                         style =
                                         androidx.compose.ui.text.TextStyle(
                                             fontWeight = FontWeight.Bold,
@@ -794,7 +804,12 @@ fun ScheduleScreen(
                         .fillMaxWidth()
                         .weight(1f),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement =
+                    if (compactList) {
+                        Arrangement.spacedBy(6.dp)
+                    } else {
+                        Arrangement.spacedBy(10.dp)
+                    },
                 ) {
                     items(slots, key = { it.key }) { slot ->
                         ScheduleLessonSlotCard(
@@ -1158,11 +1173,11 @@ private fun CompactMergedLessonContent(
         }
     }
 
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(5.dp))
 
     LessonSubjectText(subjectRaw = content.subjectRaw, compact = true)
 
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(5.dp))
 
     if (content.split) {
         LessonSubgroupRow(
@@ -1256,7 +1271,7 @@ private fun CompactLessonCardContent(
     )
 
     if (lesson.isSplit) {
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         LessonSubgroupRow(
             lesson = lesson,
             onTeacherClick = onTeacherClick,
@@ -1268,7 +1283,7 @@ private fun CompactLessonCardContent(
             showSubject = false,
         )
     } else if (lesson.teacherFirst.isNotBlank() || lesson.roomFirst.isNotBlank() || (teacherMode && lesson.groupName.isNotBlank())) {
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         LessonTeacherRoomRow(
             lesson = lesson,
             onTeacherClick = onTeacherClick,

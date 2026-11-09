@@ -77,21 +77,21 @@ fun MaterialImportTypeDialog(
                 DialogActionRow(
                     icon = Icons.Default.Description,
                     title = "Файл",
-                    subtitle = "PDF, DOCX, XLS и другие документы",
+                    subtitle = "Документы и картинки",
                     testTag = "import_type_file",
                     onClick = onPickFile,
                 )
                 DialogActionRow(
                     icon = Icons.Default.Image,
                     title = "Набор изображений",
-                    subtitle = "Фото страниц и доски — один материал",
+                    subtitle = "Фото страниц одной пачкой",
                     testTag = "import_type_images",
                     onClick = onPickImages,
                 )
                 DialogActionRow(
                     icon = Icons.Default.TextFields,
                     title = "Текст",
-                    subtitle = "Записать конспект или объявление вручную",
+                    subtitle = "Конспект или заметка",
                     testTag = "import_type_text",
                     onClick = onPickText,
                 )
@@ -127,7 +127,7 @@ fun MaterialTextDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Текст сохраняется в базе и участвует в поиске — в том числе с опечатками.",
+                    text = "Текст участвует в поиске, даже с опечатками.",
                     style = TextStyle(fontSize = 11.sp, color = ColorTextMuted),
                 )
             }

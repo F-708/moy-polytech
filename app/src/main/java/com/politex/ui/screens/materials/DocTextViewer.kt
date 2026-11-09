@@ -77,6 +77,7 @@ import com.politex.ui.theme.Tokens
 import com.politex.ui.util.bouncyClickable
 import com.politex.util.DocxParagraph
 import com.politex.util.DocxTextExtractor
+import com.politex.util.MaterialFormats
 import com.politex.util.MaterialImporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,7 +87,7 @@ import java.io.File
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
-private val TEXT_LIKE_EXT = setOf("txt", "md", "markdown", "csv", "log", "json", "xml")
+private val TEXT_LIKE_EXT: Set<String> = MaterialFormats.TEXT_EXT
 
 internal const val A4_RATIO = 1.414f
 internal const val DOC_SHEET_GAP_DP = 8
@@ -296,7 +297,7 @@ fun MaterialDocTextViewer(
                         modifier = Modifier.padding(24.dp),
                     ) {
                         Text(
-                            text = "Текст не найден: документ пустой или не читается встроенным просмотрщиком.",
+                            text = "Текст не читается: файл пустой или в незнакомом формате.",
                             style = TextStyle(fontSize = 13.sp),
                             textAlign = TextAlign.Center,
                         )

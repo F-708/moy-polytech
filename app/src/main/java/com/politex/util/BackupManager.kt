@@ -7,6 +7,8 @@ import com.politex.data.local.entity.LessonEntity
 import com.politex.data.local.entity.StudentTaskEntity
 import com.politex.data.local.entity.TaskReminderEntity
 import com.politex.ui.theme.AppTheme
+import com.politex.ui.theme.SurfaceTone
+import com.politex.ui.theme.ThemeMode
 import com.politex.widget.WidgetUpdateHelper
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
@@ -66,7 +68,11 @@ object BackupManager {
             settings.put("group", WidgetUpdateHelper.getSelectedGroup(context))
             settings.put("teacherMode", TeacherModeStore.teacherName(context) ?: "")
             settings.put("notificationsEnabled", WidgetUpdateHelper.isNotificationEnabled(context))
-            settings.put("appTheme", AppThemeStore.load(context).id)
+            // Чистое чтение: экспорт не должен переключать тему в открытом приложении.
+            val appearance = AppThemeStore.readPrefs(context)
+            settings.put("appTheme", appearance.theme.id)
+            settings.put("appMode", appearance.mode.id)
+            settings.put("appTone", appearance.tone.id)
             settings.put("appDark", AppThemeStore.isDark(context))
             settings.put("bellLineEnabled", BellCountdownNotifier.isEnabled(context))
             settings.put("notificationsStyle", BellCountdownNotifier.getStyle(context).id)
@@ -167,8 +173,7 @@ object BackupManager {
 
         val version = root.optInt(KEY_VERSION, 0)
         if (version > FORMAT_VERSION) {
-            warnings += "Файл сохранён более новой версией приложения. " +
-                "Что удалось — восстановлено, остальное пропущено."
+            warnings += "Файл из более новой версии приложения: восстановлено не всё."
         }
 
         val db = MpkDatabase.getInstance(context)
@@ -192,11 +197,20 @@ object BackupManager {
         }
         settings?.optString("appTheme")?.takeIf { it.isNotBlank() }?.let { themeId ->
             val theme = AppTheme.from(themeId)
-            AppThemeStore.save(context, theme)
+            AppThemeStore.saveTheme(context, theme)
             themeRestored = theme != AppTheme.COLLEGE || themeId == AppTheme.COLLEGE.id
         }
-        if (settings?.has("appDark") == true) {
-            AppThemeStore.setDark(context, settings.optBoolean("appDark"))
+        // Режим: новый ключ appMode; бэкап старой версии знает только appDark.
+        if (settings?.has("appMode") == true) {
+            AppThemeStore.saveMode(context, ThemeMode.from(settings.optString("appMode")))
+        } else if (settings?.has("appDark") == true) {
+            AppThemeStore.saveMode(
+                context,
+                if (settings.optBoolean("appDark")) ThemeMode.DARK else ThemeMode.LIGHT,
+            )
+        }
+        settings?.optString("appTone")?.takeIf { it.isNotBlank() }?.let { toneId ->
+            AppThemeStore.saveTone(context, SurfaceTone.from(toneId))
         }
         if (settings?.has("notificationsEnabled") == true) {
             WidgetUpdateHelper.setNotificationEnabled(context, settings.optBoolean("notificationsEnabled"))

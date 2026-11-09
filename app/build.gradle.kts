@@ -1,4 +1,4 @@
-﻿import java.util.Properties
+import java.util.Properties
 
 plugins {
   alias(libs.plugins.android.application)
@@ -136,6 +136,18 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+
+  // O10: CJK-карты глифов pdf.js (Uni* и Adobe-CNS1/GB1/Japan1/Korea1) занимали
+  // ~900 КБ в готовом APK. Документы колледжа — на русском; если когда-нибудь
+  // попадётся PDF с НЕвстроенным CJK-шрифтом, такой текст отрисуется запасным
+  // шрифтом, остальной документ читается. Identity-* и Adobe-Identity-UCS
+  // остаются: на них держится кириллица и латиница.
+  androidResources {
+    ignoreAssetsPatterns += listOf(
+      "UniCNS*", "UniGB*", "UniJIS*", "UniKS*",
+      "Adobe-CNS1*", "Adobe-GB1*", "Adobe-Japan1*", "Adobe-Korea1*",
+    )
+  }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true

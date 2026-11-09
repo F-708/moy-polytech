@@ -45,7 +45,6 @@ class UpdateInstallControllerTest {
         UpdateInstallController.downloadOverride = null
         UpdateInstallController.validateOverride = null
         UpdateInstallController.installLaunchOverride = null
-        AppUpdateWorker.downloadOverride = null
         UpdateInstallController.cancelAndReset(context)
     }
 
@@ -249,6 +248,27 @@ class UpdateInstallControllerTest {
         val state = awaitState { it is InstallButtonState.Downloaded }
         assertEquals(file.absolutePath, (state as InstallButtonState.Downloaded).apkPath)
         assertFalse(networkCalled)
+        file.delete()
+    }
+
+    @Test
+    fun `повторная проверка не сбрасывает готовый установщик`() {
+        val file = UpdateDownloader.targetFile(context, info.versionName).apply {
+            parentFile?.mkdirs()
+            writeBytes(ByteArray(16))
+        }
+        UpdateInstallController.validateOverride = { _, _ -> ApkRejection.NONE }
+        UpdateInstallController.rememberFound(context, info)
+        UpdateInstallController.startDownload(context, info)
+        awaitState { it is InstallButtonState.Downloaded }
+
+        UpdateInstallController.rememberFound(context, info)
+        UpdateInstallController.clearPending(context)
+
+        val state = UpdateInstallController.state.value
+        assertTrue("готовый установщик пропал после проверки", state is InstallButtonState.Downloaded)
+        assertEquals(info, UpdateInstallController.foundUpdate.value)
+        assertEquals(info, UpdatePendingStore.load(context))
         file.delete()
     }
 

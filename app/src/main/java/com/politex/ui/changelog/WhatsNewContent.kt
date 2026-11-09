@@ -25,10 +25,10 @@ val WhatsNewEntries: List<WhatsNewEntry> =
             versionName = "2.0.1",
             items =
                 listOf(
-                    WhatsNewItem(WhatsNewIcon.STOPWATCH, "Виджеты-секундомеры работают без строки «до звонка» и переживают ночь"),
-                    WhatsNewItem(WhatsNewIcon.APP_UPDATE, "Обновление приложения прямо из приложения — кнопка «Установить»"),
+                    WhatsNewItem(WhatsNewIcon.STOPWATCH, "Виджеты-секундомеры работают без строки «до звонка»"),
+                    WhatsNewItem(WhatsNewIcon.APP_UPDATE, "Обновление приложения кнопкой «Установить»"),
                     WhatsNewItem(WhatsNewIcon.SPEED, "Расписание загружается в 2–3 раза быстрее"),
-                    WhatsNewItem(WhatsNewIcon.SILENT_DATA, "Данные колледжа обновляются автоматически и незаметно"),
+                    WhatsNewItem(WhatsNewIcon.SILENT_DATA, "Данные колледжа обновляются сами"),
                 ),
         ),
     )

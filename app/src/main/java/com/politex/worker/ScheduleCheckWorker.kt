@@ -38,6 +38,17 @@ internal fun teacherMarkKey(
     date: String,
 ): String = "${kind}_T_${surnameKey}_$date"
 
+/**
+ * Можно ли помечать день «проверено» (после этого воркер в этот день больше не пойдёт).
+ *
+ * Пустой ответ бывает двух разных природы: «документ опубликован, нашей группы в нём нет» и
+ * «сети не было вовсе». Раньше обе помечались — и день оставался непроверенным до следующих суток.
+ */
+internal fun scheduleDayCheckedAllowed(
+    lessonsFound: Int,
+    documentPresent: Boolean,
+): Boolean = lessonsFound > 0 || documentPresent
+
 internal fun scheduleDayTitle(dow: Int): String = when (dow) {
     1 -> "понедельник"
     2 -> "вторник"
@@ -114,6 +125,13 @@ class ScheduleCheckWorker(
 
         result.fold(
             onSuccess = { allLessons ->
+                // Пустой список — это ещё не доказательство, что документ существует:
+                // syncScheduleForDate отдаёт его и при отсутствии сети. Спрашиваем пробу отдельно,
+                // иначе «checked» навсегда подавит повторные проверки этого дня.
+                val documentPresent =
+                    allLessons.isNotEmpty() || repository.probeDate(targetCalendar) is ProbeResult.Found
+                val mayMarkChecked = scheduleDayCheckedAllowed(allLessons.size, documentPresent)
+
                 if (allLessons.isNotEmpty()) {
                     WidgetUpdateHelper.updateAllWidgets(applicationContext)
 
@@ -142,10 +160,10 @@ class ScheduleCheckWorker(
                         )
 
                         mark(prefKey)
-                    } else {
+                    } else if (mayMarkChecked) {
                         mark(checkedKey)
                     }
-                } else {
+                } else if (mayMarkChecked) {
                     mark(checkedKey)
                 }
                 Result.success()

@@ -257,7 +257,7 @@ fun CalendarArchiveDialog(
                     onValueChange = { searchQuery = it },
                     placeholder = {
                         Text(
-                            text = "Поиск: предмет, преподаватель, кабинет...",
+                            text = "Поиск по архиву",
                             style =
                             androidx.compose.ui.text
                                 .TextStyle(fontSize = 13.sp, color = ColorTextMuted),
@@ -305,7 +305,7 @@ fun CalendarArchiveDialog(
 
                 if (searchQuery.isNotBlank()) {
                     Text(
-                        text = "НАЙДЕНО ЗАНЯТИЙ: ${searchResults.size}",
+                        text = "НАЙДЕНО УРОКОВ: ${searchResults.size}",
                         style = TextStyleCalendarWeekdays.copy(color = ColorBrandBlue),
                         modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),
                     )
@@ -557,7 +557,7 @@ fun CalendarArchiveDialog(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "На этот день в архиве нет уроков",
+                                        text = "В этот день уроков нет",
                                         style =
                                         androidx.compose.ui.text.TextStyle(
                                             color = ColorTextMuted,
@@ -594,7 +594,7 @@ fun CalendarArchiveDialog(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "Выберите день в календаре для просмотра архива",
+                                text = "Выберите день в календаре",
                                 style =
                                 androidx.compose.ui.text.TextStyle(
                                     color = ColorTextMuted,

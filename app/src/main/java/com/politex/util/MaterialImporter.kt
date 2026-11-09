@@ -47,6 +47,9 @@ object MaterialImporter {
 
     private const val MAX_FILE_NAME_LENGTH = 120
 
+    /** Сколько байт читаем для определения формата по сигнатуре. */
+    private const val HEAD_BYTES = 8 * 1024
+
     private val INVISIBLE_CHARS =
         setOf(
             '\u200B',
@@ -67,9 +70,9 @@ object MaterialImporter {
             '\uFEFF',
         )
 
-    private val PLAIN_TEXT_EXT = setOf("txt", "md", "markdown", "csv", "log", "json", "xml", "rtf")
+    private val PLAIN_TEXT_EXT: Set<String> = MaterialFormats.TEXT_EXT
 
-    private val IMAGE_EXT = setOf("jpg", "jpeg", "png", "webp", "bmp", "gif", "heic", "heif")
+    private val IMAGE_EXT: Set<String> = MaterialFormats.IMAGE_EXT
 
     fun storageDir(context: Context): File = File(context.filesDir, STORAGE_DIR_NAME).apply { if (!exists()) mkdirs() }
 
@@ -130,24 +133,14 @@ object MaterialImporter {
         }
     }
 
-    fun extOf(fileName: String): String = fileName.substringAfterLast('.', "").lowercase().take(6)
+    fun extOf(fileName: String): String = MaterialFormats.extOf(fileName)
 
     fun titleOf(fileName: String): String = fileName.substringBeforeLast('.', fileName).ifBlank { fileName }
 
     fun extFromMime(
         context: Context,
         uri: Uri,
-    ): String = when (context.contentResolver.getType(uri)) {
-        "application/pdf" -> "pdf"
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "docx"
-        "application/msword" -> "doc"
-        "text/plain" -> "txt"
-        "text/csv" -> "csv"
-        "image/jpeg" -> "jpg"
-        "image/png" -> "png"
-        "image/webp" -> "webp"
-        else -> ""
-    }
+    ): String = MaterialFormats.extForMime(runCatching { context.contentResolver.getType(uri) }.getOrNull()).orEmpty()
 
     suspend fun copyToStorage(
         context: Context,
@@ -350,7 +343,11 @@ object MaterialImporter {
 
             is PendingMaterial.SingleFile -> {
                 val name = queryDisplayName(context, pending.uri)
-                val ext = extOf(name).ifBlank { extFromMime(context, pending.uri) }
+                // Defense in depth: гейт стоит и на входе в приложение, но сюда можно
+                // прийти и другим путём. Ничего неподдерживаемого в БД попасть не должно.
+                val decision = decideMaterial(context, pending.uri, name)
+                if (decision is IntakeDecision.Reject) throw IOException(decision.message)
+                val ext = (decision as IntakeDecision.Accept).ext
                 val id =
                     dao.insertItem(
                         MaterialItemEntity(
@@ -369,6 +366,7 @@ object MaterialImporter {
             is PendingMaterial.Images -> {
                 require(pending.uris.isNotEmpty()) { "Не выбрано ни одного изображения" }
                 require(subjectName.isNotBlank()) { "Не выбран предмет" }
+                ensureImagesSupported(context, pending.uris)
                 val firstName = queryDisplayName(context, pending.uris.first())
                 val ext = extOf(firstName).ifBlank { "jpg" }.let { if (it in IMAGE_EXT) it else "jpg" }
                 val title =
@@ -412,6 +410,59 @@ object MaterialImporter {
                     throw t
                 }
                 id
+            }
+        }
+    }
+
+    /**
+     * Гейт формата с чтением сигнатуры: ловит и переименованные APK/архивы, и файлы
+     * без расширения, у которых провайдер не отдал тип.
+     */
+    private suspend fun decideMaterial(
+        context: Context,
+        uri: Uri,
+        displayName: String,
+    ): IntakeDecision = withContext(Dispatchers.IO) {
+        val mime = runCatching { context.contentResolver.getType(uri) }.getOrNull()
+        MaterialFormats.decide(displayName, mime, head = readHead(context, uri))
+    }
+
+    private fun readHead(
+        context: Context,
+        uri: Uri,
+        limit: Int = HEAD_BYTES,
+    ): ByteArray? = runCatching {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            val buffer = ByteArray(limit)
+            var filled = 0
+            while (filled < limit) {
+                val read = input.read(buffer, filled, limit - filled)
+                if (read < 0) break
+                filled += read
+            }
+            buffer.copyOf(filled)
+        }
+    }.getOrNull()
+
+    /**
+     * Набор изображений: жёстко отклоняем только при явных доказательствах чужого формата
+     * (имя/MIME). Если провайдер метаданных не дал — не ломаем галерейный сценарий:
+     * содержимое всё равно проверит декодер.
+     */
+    private suspend fun ensureImagesSupported(
+        context: Context,
+        uris: List<Uri>,
+    ) = withContext(Dispatchers.IO) {
+        uris.forEach { uri ->
+            val name = queryDisplayName(context, uri)
+            val mime = runCatching { context.contentResolver.getType(uri) }.getOrNull()
+            when (val decision = MaterialFormats.decide(name, mime)) {
+                is IntakeDecision.Reject -> if (decision.hard) throw IOException(decision.message)
+
+                is IntakeDecision.Accept ->
+                    if (decision.kind != MaterialFormatKind.IMAGE) {
+                        throw IOException(MaterialFormats.UNSUPPORTED_MESSAGE)
+                    }
             }
         }
     }

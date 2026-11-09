@@ -90,6 +90,12 @@ object MpkScheduleParser {
         Regex("(?i)https?://[a-zA-Z0-9.-]+/wp-content/uploads/[a-zA-Z0-9/_.-]+\\.(?:doc|docx)")
     private val HEADER_ZIP_REGEX = Regex("РАСПИСАНИЕ[^<]*", RegexOption.IGNORE_CASE)
     private val HEADER_LINE_REGEX = Regex("РАСПИСАНИЕ[^\\n]*", RegexOption.IGNORE_CASE)
+    private val HEADER_WORD_REGEX = Regex("РАСПИСАНИЕ", RegexOption.IGNORE_CASE)
+    private const val HEADER_CONTEXT_CHARS = 400
+    private const val HEADER_CONTEXT_LINES = 3
+
+    /** Сколько первых строк считаем шапкой при определении дня недели (до общего скана). */
+    private const val DAY_HEADER_SCAN_LINES = 5
     private val LEADING_LESSON_REGEX = Regex("^(10|[1-9])(\\s|$)")
     private val CELL_LESSON_HEAD_REGEX = Regex("^(10|[1-9])\\s*(.*)$")
     private val DOUBLE_ROOMS_TAIL_REGEX =
@@ -528,10 +534,11 @@ object MpkScheduleParser {
         if (lessons.isEmpty()) return lessons
 
         val headerText = extractHeaderText(bytes)
-        val headerDate = extractHeaderDate(headerText)
+        val headerContext = if (extractHeaderDate(headerText) == null) extractHeaderContext(bytes) else headerText
+        val headerDate = extractHeaderDate(headerText) ?: extractHeaderDate(headerContext)
         val anchor = parseDotDate(headerDate ?: targetDate) ?: return lessons
         val anchorDow = if (headerDate != null) {
-            Dow.ofWord(headerText) ?: dowOfCalendar(anchor)
+            Dow.ofWord(headerText) ?: Dow.ofWord(headerContext) ?: dowOfCalendar(anchor)
         } else {
             dowOfCalendar(anchor)
         }
@@ -559,18 +566,60 @@ object MpkScheduleParser {
         return HEADER_LINE_REGEX.find(cp1251Text)?.value ?: ""
     }
 
+    /**
+     * Широкий контекст шапки: дата и день недели в реальных .doc/.docx часто лежат в СОСЕДНЕМ
+     * text-run'е (`<w:t>РАСПИСАНИЕ</w:t><w:t>на 05.10.2026</w:t>`), поэтому узкий «РАСПИСАНИЕ[^<]*»
+     * их не видит, а валидация даты документа без них работать не может.
+     */
+    internal fun extractHeaderContext(bytes: ByteArray): String {
+        if (Docx.isZip(bytes)) {
+            val xml = runCatching { Docx.readDocumentXml(bytes) }.getOrNull()
+            if (!xml.isNullOrBlank()) {
+                val flat = TAG_STRIP_REGEX.replace(xml, " ").replace(WS_REGEX, " ").trim()
+                val at = flat.indexOf("РАСПИСАНИЕ", ignoreCase = true)
+                val from = if (at >= 0) at else 0
+                return flat.substring(from, minOf(flat.length, from + HEADER_CONTEXT_CHARS))
+            }
+        }
+        val utf16Text = runCatching { extractUtf16LeRuns(bytes).joinToString("\n") }.getOrDefault("")
+        headerSlice(utf16Text)?.let { return it }
+        val cp1251Text = runCatching { String(bytes, CP1251) }.getOrDefault("")
+        return headerSlice(cp1251Text) ?: ""
+    }
+
+    private fun headerSlice(text: String): String? {
+        if (text.isBlank()) return null
+        val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        if (lines.isEmpty()) return null
+        val start = lines.indexOfFirst { HEADER_WORD_REGEX.containsMatchIn(it) }
+        val from = if (start >= 0) start else 0
+        return lines.drop(from).take(HEADER_CONTEXT_LINES).joinToString(" ")
+    }
+
     private fun extractHeaderDate(headerText: String): String? {
         val m = DATE_IN_TEXT_REGEX.find(headerText) ?: return null
         return "${m.groupValues[1].padStart(2, '0')}.${m.groupValues[2].padStart(2, '0')}.${m.groupValues[3]}"
     }
 
-    fun documentMatchesDate(bytes: ByteArray, dateDot: String): Boolean {
-        val headerDate = extractHeaderDate(extractHeaderText(bytes)) ?: return true
-        val doc = parseDotDate(headerDate) ?: return true
-        val req = parseDotDate(dateDot) ?: return true
-        return doc.get(java.util.Calendar.YEAR) == req.get(java.util.Calendar.YEAR) &&
-            doc.get(java.util.Calendar.MONTH) == req.get(java.util.Calendar.MONTH) &&
-            doc.get(java.util.Calendar.DAY_OF_MONTH) == req.get(java.util.Calendar.DAY_OF_MONTH)
+    /**
+     * Совпадает ли документ с запрошенной датой. Fail-closed: если ни дата, ни день недели из
+     * документа не извлекаются, документ НЕ принимается (раньше возвращался `true`, и вчерашний
+     * документ штамповался запрошенной датой).
+     */
+    fun documentMatchesDate(
+        bytes: ByteArray,
+        dateDot: String,
+    ): Boolean {
+        val requested = parseDotDate(dateDot) ?: return true
+        val headerText = extractHeaderContext(bytes)
+        val headerDate = extractHeaderDate(headerText)
+        if (headerDate != null) {
+            val doc = parseDotDate(headerDate) ?: return false
+            return doc.get(java.util.Calendar.YEAR) == requested.get(java.util.Calendar.YEAR) &&
+                doc.get(java.util.Calendar.DAY_OF_YEAR) == requested.get(java.util.Calendar.DAY_OF_YEAR)
+        }
+        val docDow = Dow.ofWord(headerText) ?: return false
+        return docDow == dowOfCalendar(requested)
     }
 
     fun parseDocBinary(
@@ -814,25 +863,42 @@ object MpkScheduleParser {
         val cleanTargetGroup = GroupParser.cleanRawGroupName(targetGroup).uppercase(Locale.ROOT)
         val lines = text.lines().map { it.trimEnd() }
 
-        var detectedDay = 1
+        var detectedDay = 0
         var detectedDate = targetDate
 
-        val searchScopeText = lines.take(100).joinToString(" ").lowercase(Locale.ROOT)
+        // 1) День недели ищем сначала в шапке: любое упоминание чужого дня в теле документа
+        // («перенос с пятницы») раньше перештамповывало ВСЕ уроки на чужую дату и они молча
+        // выбрасывались при записи.
+        val headerScopeText = lines.take(DAY_HEADER_SCAN_LINES).joinToString(" ").lowercase(Locale.ROOT)
         for ((dayName, dayNum) in DAY_KEYWORDS) {
-            if (searchScopeText.contains(dayName)) {
+            if (headerScopeText.contains(dayName)) {
                 detectedDay = dayNum
                 break
             }
         }
+        if (detectedDay == 0) {
+            val searchScopeText = lines.take(100).joinToString(" ").lowercase(Locale.ROOT)
+            for ((dayName, dayNum) in DAY_KEYWORDS) {
+                if (searchScopeText.contains(dayName)) {
+                    detectedDay = dayNum
+                    break
+                }
+            }
+        }
 
         if (detectedDate.isBlank()) {
-            val dateMatch = DATE_IN_TEXT_REGEX.find(searchScopeText)
+            val dateMatch = DATE_IN_TEXT_REGEX.find(lines.take(100).joinToString(" ").lowercase(Locale.ROOT))
             if (dateMatch != null) {
                 val d = dateMatch.groupValues[1].padStart(2, '0')
                 val m = dateMatch.groupValues[2].padStart(2, '0')
                 val y = dateMatch.groupValues[3]
                 detectedDate = "$d.$m.$y"
             }
+        }
+
+        // 3) Фолбэк: день недели запрошенной даты — документ разбирается для неё.
+        if (detectedDay == 0) {
+            detectedDay = parseDotDate(detectedDate)?.let { dowOfCalendar(it) } ?: 1
         }
 
         mutateStats {

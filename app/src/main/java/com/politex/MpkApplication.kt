@@ -3,6 +3,7 @@ package com.politex
 import android.app.Application
 import com.politex.content.ContentPackStore
 import com.politex.data.local.MpkDatabase
+import com.politex.data.repository.PrefsFetchStamps
 import com.politex.data.repository.ScheduleRepository
 import com.politex.data.repository.StudentsRepository
 import com.politex.data.repository.TeachersRepository
@@ -26,6 +27,7 @@ object AppGraph {
                 lessonDao = db.lessonDao(),
                 catalogProvider = { GroupCatalog.load(app).all() },
                 teacherLessonDao = db.teacherLessonDao(),
+                fetchStamps = PrefsFetchStamps.forContext(app),
             )
         teachersRepository = TeachersRepository(app)
         studentsRepository = StudentsRepository(app)

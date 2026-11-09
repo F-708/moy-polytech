@@ -36,6 +36,19 @@ internal fun isFullDayDocument(
     catalogSize: Int,
 ): Boolean = catalogSize > 0 && groupCount >= (catalogSize + 1) / 2
 
+/**
+ * Доказана ли полнота документа.
+ *
+ * `isFullDayDocument` (половина каталога) отвечает на вопрос «можно ли писать эти строки» —
+ * частичный документ тоже полезен. А вердикт «вашей группы в документе нет» требует более
+ * сильного доказательства: документ должен покрывать почти весь каталог. Иначе отсутствие группы
+ * в неполном документе — не факт, а повод спросить сеть ещё раз (см. «день-дырка»).
+ */
+internal fun isCompleteDayDocument(
+    groupCount: Int,
+    catalogSize: Int,
+): Boolean = catalogSize > 0 && groupCount * 100 >= catalogSize * COMPLETE_DOCUMENT_PERCENT
+
 internal fun cachedOutcomeForDate(
     groupLessons: Int,
     parsedGroups: Int,
@@ -43,7 +56,7 @@ internal fun cachedOutcomeForDate(
     date: String,
 ): SyncOutcome? = when {
     groupLessons > 0 -> SyncOutcome.Ok(groupLessons, date)
-    isFullDayDocument(parsedGroups, catalogSize) -> SyncOutcome.FoundNoGroup(date)
+    isCompleteDayDocument(parsedGroups, catalogSize) -> SyncOutcome.FoundNoGroup(date)
     else -> null
 }
 
@@ -157,6 +170,14 @@ internal fun saturdayIsSchoolDayFor(
 
 data class NextDayTarget(val date: Calendar?, val label: String)
 
+/** Информация о свежести кэша одного дня для «кэш показываем сразу, обновляем следом». */
+data class DayFreshness(
+    val date: String,
+    val lessonCount: Int,
+    val fetchedAtMillis: Long?,
+    val stale: Boolean,
+)
+
 internal fun nextSchoolDayWithFallback(
     today: Calendar,
     saturdayIsSchoolDay: Boolean,
@@ -235,15 +256,47 @@ class ScheduleRepository(
     private val catalogProvider: () -> List<String> = { emptyList() },
 
     private val teacherLessonDao: TeacherLessonDao? = null,
+
+    private val fetchStamps: FetchStamps = MemoryFetchStamps(),
 ) {
     val diagnosticInfo = networkClient.diagnosticInfo
 
     @Volatile
     private var cachedCatalog: List<String>? = null
 
-    private val incompleteDayCache = ConcurrentHashMap<String, Boolean>()
+    private class DayMark(val incomplete: Boolean, val at: Long)
 
-    internal fun isKnownIncompleteDay(date: String): Boolean = incompleteDayCache[date] == true
+    private val dayMarks = ConcurrentHashMap<String, DayMark>()
+
+    /** Единый источник времени: тесты управляют им через [MpkNetworkClient.nowMillis]. */
+    private fun nowMillis(): Long = networkClient.nowMillis()
+
+    /** Штамп «этот день успешно получен из сети» — основа решения об устаревании кэша. */
+    internal fun stampDay(
+        groupName: String,
+        date: String,
+    ) {
+        if (groupName.isBlank() || date.isBlank()) return
+        fetchStamps.put(stampKey(date, groupName), nowMillis())
+    }
+
+    internal fun fetchedAt(
+        groupName: String,
+        date: String,
+    ): Long? = fetchStamps.get(stampKey(date, groupName))
+
+    /**
+     * Метка неполного дня живёт [INCOMPLETE_DAY_TTL_MS], а не вечно: когда колледж допишет группы,
+     * приложение обязано это заметить.
+     */
+    internal fun isKnownIncompleteDay(date: String): Boolean {
+        val mark = dayMarks[date] ?: return false
+        if (nowMillis() - mark.at >= INCOMPLETE_DAY_TTL_MS) {
+            dayMarks.remove(date)
+            return false
+        }
+        return mark.incomplete
+    }
 
     internal fun rememberDayCompleteness(
         date: String,
@@ -251,8 +304,8 @@ class ScheduleRepository(
         catalogSize: Int,
     ) {
         when (incompleteDayMark(parsedGroups, catalogSize)) {
-            true -> incompleteDayCache[date] = true
-            false -> incompleteDayCache.remove(date)
+            true -> dayMarks[date] = DayMark(incomplete = true, at = nowMillis())
+            false -> dayMarks.remove(date)
             null -> Unit
         }
     }
@@ -261,6 +314,45 @@ class ScheduleRepository(
 
     fun resetCatalog() {
         cachedCatalog = null
+    }
+
+    /**
+     * Свежесть кэша по конкретной дате. `null` — кэша нет вовсе (показывать нечего).
+     */
+    suspend fun dayFreshness(
+        groupName: String,
+        date: String,
+    ): DayFreshness? = withContext(Dispatchers.IO) {
+        val cal = parseCalendarDate(date) ?: return@withContext null
+        val catalogSize = catalog().size
+        val lessonCount = lessonDao.getLessonCountForDate(groupName, date)
+        val parsedGroups =
+            if (catalogSize == 0) 0 else lessonDao.getDistinctGroupsForDateOrDay(date, Dow.of(cal)).size
+        val hasCache = lessonCount > 0 || isCompleteDayDocument(parsedGroups, catalogSize)
+        if (!hasCache) return@withContext null
+        val stamp = fetchedAt(groupName, date)
+        DayFreshness(
+            date = date,
+            lessonCount = lessonCount,
+            fetchedAtMillis = stamp,
+            stale = isStampedCacheStale(date, stamp, nowMillis()),
+        )
+    }
+
+    /**
+     * Даты («сегодня» + следующие учебные дни), где кэш уже есть, но устарел.
+     * Пусто — обновлять нечего, сеть можно не трогать.
+     */
+    suspend fun staleCachedDays(groupName: String): List<String> = withContext(Dispatchers.IO) {
+        val today = Calendar.getInstance()
+        val saturdaySchool = saturdayIsSchoolDayFor(
+            groupName,
+            lessonDao.getAllLessonsForGroup(groupName).first().any { it.dayOfWeek == 6 },
+        )
+        val dates = (listOf(today) + nextDayCandidates(today, saturdaySchool))
+            .map { formatDate(it) }
+            .distinct()
+        dates.filter { dayFreshness(groupName, it)?.stale == true }
     }
 
     suspend fun syncDayAllGroupsCached(
@@ -323,6 +415,7 @@ class ScheduleRepository(
         targetDate: String? = null,
     ): Result<SyncOutcome> = withContext(Dispatchers.IO) {
         val today = Calendar.getInstance()
+        networkClient.resetRejectionLog()
 
         val saturdaySchool = saturdayIsSchoolDayFor(
             groupName,
@@ -382,7 +475,7 @@ class ScheduleRepository(
             .filter { it.second }
             .distinctBy { formatDate(it.first) }
 
-        if (!force && needTomorrow && days.isNotEmpty() && days.all { incompleteDayCache[formatDate(it.first)] == true }) {
+        if (!force && needTomorrow && days.isNotEmpty() && days.all { isKnownIncompleteDay(formatDate(it.first)) }) {
             val incomplete = SyncOutcome.FoundNoGroup(tomorrowStr)
             networkClient.publishStatus(statusMessage = statusMessageFor(incomplete), isSyncing = false)
             return@withContext Result.success(incomplete)
@@ -391,10 +484,12 @@ class ScheduleRepository(
         if (useCatalog) {
             for ((calendar, _) in days) {
                 val date = formatDate(calendar)
+                var documentForDate = false
 
                 runCatching {
                     fetchAllGroupsForDate(calendar, date, allGroups, probeFoundUrl[date]) { found ->
                         if (found) {
+                            documentForDate = true
                             documentFound = true
                             if (date == tomorrowStr) targetDocumentFound = true
                         }
@@ -406,19 +501,26 @@ class ScheduleRepository(
                         if (isFullDayDocument(dayGroups, allGroups.size)) fetched += dayLessons
 
                         rememberDayCompleteness(date, dayGroups, allGroups.size)
+                        if (documentForDate) stampDay(groupName, date)
                     }.onFailure { fetchFailed = true }
             }
         } else {
             if (needTomorrow) {
                 networkClient
                     .fetchScheduleForGroup(groupName, tomorrow, preferredUrl = probeFoundUrl[tomorrowStr])
-                    .onSuccess { fetched += it }
+                    .onSuccess {
+                        fetched += it
+                        if (it.isNotEmpty()) stampDay(groupName, tomorrowStr)
+                    }
                     .onFailure { fetchFailed = true }
             }
             if (needToday && todayStr != tomorrowStr) {
                 networkClient
                     .fetchScheduleForGroup(groupName, today, preferredUrl = probeFoundUrl[todayStr])
-                    .onSuccess { fetched += it }
+                    .onSuccess {
+                        fetched += it
+                        if (it.isNotEmpty()) stampDay(groupName, todayStr)
+                    }
                     .onFailure { fetchFailed = true }
             }
         }
@@ -502,10 +604,20 @@ class ScheduleRepository(
             }
         if (forGroup.isFailure) return@withContext Result.failure(forGroup.exceptionOrNull()!!)
         val all = forGroup.getOrDefault(emptyList())
+
+        val parsedGroups = all.map { it.groupName }.distinct().size
+        val complete = isCompleteDayDocument(parsedGroups, allGroups.size)
+
+        // Частичный документ не должен затирать уже собранный полный день: replaceForDate удаляет
+        // строки группы за дату, поэтому писать можно только доказанно полный документ.
+        if (all.isNotEmpty() && !complete) {
+            return@withContext Result.failure(IOException("Документ на $date неполный"))
+        }
         if (all.isNotEmpty()) {
             writeByGroup(all, setOf(date))
             pruneOldLessons()
         }
+        if (documentFound) stampDay(groupName, date)
 
         val mine = all.filter { it.groupName == groupName }
 
@@ -519,6 +631,16 @@ class ScheduleRepository(
         Result.success(mine)
     }
 
+    /**
+     * Обходит кандидатов URL и возвращает строки первого документа, у которого **подтверждена дата**
+     * и есть хотя бы одна строка на запрошенную дату.
+     *
+     * Кандидат отбраковывается (и запоминается в [MpkNetworkClient.noteRejectedUrl]), если:
+     *  - байтов нет;
+     *  - дата документа не совпадает с запрошенной (fail-closed, см. documentMatchesDate);
+     *  - после разбора/перештамповки ни одна строка не относится к запрошенной дате.
+     * В последнем случае раньше документ «тихо» принимался, а строки выбрасывались при записи.
+     */
     private suspend fun fetchAllGroupsForDate(
         calendar: Calendar,
         date: String,
@@ -529,19 +651,22 @@ class ScheduleRepository(
         var found: List<LessonEntity> = emptyList()
         networkClient.forEachDocumentUrl(calendar, preferredUrl = preferredUrl) { url ->
             val bytes = networkClient.downloadFileBytes(url)
-            if (bytes == null || bytes.isEmpty()) return@forEachDocumentUrl false
-
-            if (looksLikeDocument(bytes)) {
-                if (!MpkScheduleParser.documentMatchesDate(bytes, date)) return@forEachDocumentUrl false
-                documentFound(true)
+            if (bytes == null || bytes.isEmpty()) {
+                networkClient.noteRejectedUrl(url, "нет байтов")
+                return@forEachDocumentUrl false
+            }
+            if (!MpkScheduleParser.documentMatchesDate(bytes, date)) {
+                networkClient.noteRejectedUrl(url, "документ за другую дату, ждём $date")
+                return@forEachDocumentUrl false
             }
             val parsed = MpkScheduleParser.parseFileAllGroups(bytes, date, candidateGroups)
-            if (parsed.isNotEmpty()) {
-                found = parsed
-                true
-            } else {
-                false
+            if (parsed.none { it.dateString == date }) {
+                networkClient.noteRejectedUrl(url, "разбор не дал строк на $date")
+                return@forEachDocumentUrl false
             }
+            documentFound(true)
+            found = parsed
+            true
         }
         return found
     }
@@ -640,6 +765,7 @@ class ScheduleRepository(
         var written = 0
         for ((group, lessons) in forDate) {
             replaceSyncedLessons(group, lessons)
+            stampDay(group, date)
             written += lessons.size
         }
 
@@ -656,6 +782,9 @@ class ScheduleRepository(
     }
 
     suspend fun pruneOldLessons(keepDays: Long = ARCHIVE_KEEP_DAYS) = withContext(Dispatchers.IO) {
+        // Legacy-строки без даты (недельный шаблон старых версий) больше не пишем:
+        // они выдавались как расписание «сегодня» и только дублировались при каждой вставке.
+        runCatching { lessonDao.deleteLessonsByDates(listOf("")) }
         val cutoff = System.currentTimeMillis() - keepDays * 24L * 60L * 60L * 1000L
         val staleDates = lessonDao.getAllDistinctDatesSync().filter { isStaleDate(it, cutoff) }
         if (staleDates.isEmpty()) return@withContext
@@ -669,13 +798,12 @@ class ScheduleRepository(
         groupName: String,
         lessons: List<LessonEntity>,
     ) = withContext(Dispatchers.IO) {
-        lessons.groupBy { it.dateString }.forEach { (dateString, dayLessons) ->
-            if (dateString.isBlank()) {
-                lessonDao.insertLessons(dayLessons)
-            } else {
+        lessons
+            .filter { it.dateString.isNotBlank() }
+            .groupBy { it.dateString }
+            .forEach { (dateString, dayLessons) ->
                 lessonDao.replaceForDate(groupName, dateString, dayLessons)
             }
-        }
     }
 
     suspend fun saveLessons(lessons: List<LessonEntity>) = withContext(Dispatchers.IO) {

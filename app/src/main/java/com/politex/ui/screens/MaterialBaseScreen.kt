@@ -69,6 +69,7 @@ import com.politex.data.local.entity.MaterialItemEntity
 import com.politex.data.local.entity.MaterialKind
 import com.politex.data.model.GroupInfo
 import com.politex.ui.components.AppCard
+import com.politex.ui.effects.weatherScene
 import com.politex.ui.components.AppDivider
 import com.politex.ui.components.BrandActionButton
 import com.politex.ui.components.EmptyState
@@ -104,6 +105,9 @@ import com.politex.ui.theme.ColorTopBar
 import com.politex.ui.theme.Tokens
 import com.politex.ui.util.bouncyClickable
 import com.politex.util.FuzzySearch
+import com.politex.util.IntakeDecision
+import com.politex.util.MaterialFormatKind
+import com.politex.util.MaterialFormats
 import com.politex.util.MaterialImporter
 import com.politex.util.MpkCurriculum
 import com.politex.util.PendingMaterial
@@ -232,6 +236,13 @@ fun MaterialBaseScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val externalConsumed by rememberUpdatedState(onExternalMaterialConsumed)
 
+    // Экран — владелец «активного» материала: если его закрыли (ушли с вкладки, сменили
+    // экран), захват нужно снять, иначе ExternalMaterialIntake залипнет и следующий
+    // шаринг молча не дойдёт.
+    DisposableEffect(Unit) {
+        onDispose { ExternalMaterialIntake.releaseActive() }
+    }
+
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             snapshotFlow { ExternalMaterialIntake.active }
@@ -282,14 +293,22 @@ fun MaterialBaseScreen(
     val filePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
-            val mime = context.contentResolver.getType(uri) ?: ""
-            if (mime.startsWith("image/")) {
-                showErr("Картинки загружайте через «Набор изображений»: так лекция из 12 фото останется одним материалом")
-                return@rememberLauncherForActivityResult
+            // Провайдеры врут о типе и пропускают чужие файлы — проверяем выбранное
+            // ещё раз, уже по имени и типу от провайдера.
+            val name = MaterialImporter.queryDisplayName(context, uri)
+            val mime = runCatching { context.contentResolver.getType(uri) }.getOrNull()
+            when (val decision = MaterialFormats.decide(name, mime)) {
+                is IntakeDecision.Reject -> showErr(decision.message)
+
+                is IntakeDecision.Accept ->
+                    if (decision.kind == MaterialFormatKind.IMAGE) {
+                        showErr("Картинки добавляйте через «Набор изображений»")
+                    } else {
+                        pending = PendingMaterial.SingleFile(uri)
+                        pendingFromExternal = false
+                        showSubject = true
+                    }
             }
-            pending = PendingMaterial.SingleFile(uri)
-            pendingFromExternal = false
-            showSubject = true
         }
     val imagesPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -311,13 +330,13 @@ fun MaterialBaseScreen(
             outcome
                 .onSuccess { id ->
                     ExternalMaterialIntake.finish(material)
-                    showOk("Материал добавлен в «${SubjectRenameStore.displayName(context, subject)}»")
+                    showOk("Добавлено в «${SubjectRenameStore.displayName(context, subject)}»")
                     if (openAfter) {
                         push(MaterialRoute.SubjectScreen(subject))
                         push(MaterialRoute.Viewer(id))
                     }
                 }.onFailure {
-                    showErr("Не удалось импортировать: ${it.message ?: it.javaClass.simpleName}")
+                    showErr("Не удалось импортировать")
                     if (material === ExternalMaterialIntake.active) {
                         pending = material
                         pendingFromExternal = true
@@ -332,7 +351,7 @@ fun MaterialBaseScreen(
             runCatching {
                 MaterialImporter.deleteStoredFiles(item)
                 dao.deleteItemWithBookmarks(item.id)
-            }.onFailure { showErr("Не удалось удалить: ${it.message ?: it.javaClass.simpleName}") }
+            }.onFailure { showErr("Не удалось удалить") }
         }
     }
 
@@ -343,7 +362,7 @@ fun MaterialBaseScreen(
         scope.launch {
             if (archived) {
                 dao.setArchived(item.id, true, dao.nextArchiveSortOrder())
-                showOk("Убрано в Архив")
+                showOk("Убрано в архив")
             } else {
                 val subject = item.subjectName.ifBlank { RESTORED_SUBJECT }
                 dao.updateItem(item.copy(subjectName = subject, archived = false, sortOrder = dao.nextItemSortOrder(subject)))
@@ -373,7 +392,7 @@ fun MaterialBaseScreen(
     val currentRoute = stack.lastOrNull()
     val viewerItem = (currentRoute as? MaterialRoute.Viewer)?.let { route -> items.find { it.id == route.itemId } }
 
-    Box(modifier = modifier.fillMaxSize().background(ColorBgMain)) {
+    Box(modifier = modifier.fillMaxSize().weatherScene()) {
         Column(modifier = Modifier.fillMaxSize()) {
             val viewer = currentRoute as? MaterialRoute.Viewer
             if (viewer != null && viewerItem != null) {
@@ -539,7 +558,7 @@ fun MaterialBaseScreen(
             onDismiss = { showImportType = false },
             onPickFile = {
                 showImportType = false
-                runCatching { filePicker.launch(arrayOf("*/*")) }
+                runCatching { filePicker.launch(MaterialFormats.SUPPORTED_FILE_MIME_TYPES) }
                     .onFailure { showErr("Не удалось открыть выбор файлов") }
             },
             onPickImages = {
@@ -604,8 +623,7 @@ fun MaterialBaseScreen(
     deletingItem?.let { item ->
         MaterialDeleteDialog(
             title = "Удалить материал?",
-
-            message = "«${item.title}» уберётся из приложения. Исходный файл на устройстве останется.",
+            message = "Удалится только из приложения.",
             softActionText = if (item.archived) "ВЕРНУТЬ ИЗ АРХИВА" else "УБРАТЬ В АРХИВ",
             onSoftAction = {
                 deletingItem = null
@@ -714,11 +732,8 @@ private fun MaterialRootList(
         }
         MaterialListUi.EMPTY -> {
             EmptyState(
-                title = "Материалов пока нет",
-                hint =
-                "Нажмите «ДОБАВИТЬ» и выберите файл, набор изображений или текст. " +
-                    "Материал ляжет в предмет — потом его можно переименовать, " +
-                    "перенести в Архив и читать прямо в приложении.",
+                title = "Пока что тут пусто",
+                hint = "Добавьте файл, набор фото или текст.",
                 note = MATERIAL_STORAGE_NOTE,
                 hintTestTag = "material_empty_hint",
                 modifier = modifier,
@@ -898,12 +913,12 @@ private fun MaterialSubjectContent(
 
             MaterialListUi.EMPTY ->
                 EmptyState(
-                    title = if (isArchive) "В Архиве пусто" else "Материалов пока нет",
+                    title = if (isArchive) "Архив пуст" else "Пока что тут пусто",
                     hint =
                     if (isArchive) {
-                        "Сюда переносятся материалы кнопкой-архивом: не удаляются, а убираются с глаз."
+                        "Сюда попадают материалы, убранные из списка."
                     } else {
-                        "Нажмите «ДОБАВИТЬ» на главном экране материалов и выберите этот предмет."
+                        "Добавьте материал в этот предмет."
                     },
                     note = MATERIAL_STORAGE_NOTE,
                     hintTestTag = "material_empty_hint",
@@ -1132,14 +1147,14 @@ private fun MaterialItemRow(
                 if (isArchiveRow) {
                     RowIconButton(
                         icon = Icons.Default.Unarchive,
-                        description = "Вернуть из Архива",
+                        description = "Вернуть из архива",
                         enabled = true,
                         testTag = "material_restore_${item.id}",
                     ) { actions.onSetArchived(item, false) }
                 } else {
                     RowIconButton(
                         icon = Icons.Default.Inventory2,
-                        description = "Убрать в Архив",
+                        description = "Убрать в архив",
                         enabled = true,
                         testTag = "material_archive_${item.id}",
                     ) { actions.onSetArchived(item, true) }

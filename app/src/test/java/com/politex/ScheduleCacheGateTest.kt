@@ -4,6 +4,7 @@ import com.politex.data.local.entity.LessonEntity
 import com.politex.data.repository.SyncOutcome
 import com.politex.data.repository.cachedOutcomeForDate
 import com.politex.data.repository.combineCachedOutcomes
+import com.politex.data.repository.isCompleteDayDocument
 import com.politex.data.repository.isFullDayDocument
 import com.politex.data.repository.shouldFetchDay
 import com.politex.data.repository.syncedCountForGroup
@@ -113,10 +114,26 @@ class ScheduleCacheGateTest {
 
     @Test
     fun `кэш даты — день разобран по каталогу без нашей группы — FoundNoGroup без сети`() {
+        // Порог доказанной полноты поднят до 85% каталога («день-дырка»): 55 из 64 групп — да,
+        // 40 из 64 — нет, такой «неполный» день обязан идти в сеть, а не объявлять группу отсутствующей.
         assertEquals(
             SyncOutcome.FoundNoGroup("05.10.2026"),
+            cachedOutcomeForDate(groupLessons = 0, parsedGroups = 55, catalogSize = catalog, date = "05.10.2026"),
+        )
+        assertNull(
+            "40/64 — неполный документ, FoundNoGroup не выдумываем",
             cachedOutcomeForDate(groupLessons = 0, parsedGroups = 40, catalogSize = catalog, date = "05.10.2026"),
         )
+    }
+
+    @Test
+    fun `полнота дня — 85 процентов каталога, а не половина`() {
+        assertTrue(isCompleteDayDocument(groupCount = 55, catalogSize = catalog))
+        assertTrue(isCompleteDayDocument(groupCount = 64, catalogSize = catalog))
+        assertFalse(isCompleteDayDocument(groupCount = 54, catalogSize = catalog))
+        assertFalse(isCompleteDayDocument(groupCount = 32, catalogSize = catalog))
+        assertFalse(isCompleteDayDocument(groupCount = 0, catalogSize = catalog))
+        assertFalse(isCompleteDayDocument(groupCount = 55, catalogSize = 0))
     }
 
     @Test

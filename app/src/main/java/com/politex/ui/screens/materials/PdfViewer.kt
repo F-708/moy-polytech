@@ -112,9 +112,11 @@ import com.politex.ui.util.bouncyClickable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -153,8 +155,7 @@ private fun CorruptedPdfPlaque(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text =
-                    "Документ повреждён или защищён паролем. Встроенный просмотрщик читает PDF — " +
-                        "попробуйте скачать файл заново или открыть его в другом приложении.",
+                    "Файл повреждён или защищён паролем. Скачайте заново или откройте в другом приложении.",
                     style = TextStyle(fontSize = 12.sp, color = ColorTextMuted),
                 )
                 Spacer(modifier = Modifier.height(10.dp))
@@ -192,6 +193,31 @@ private fun CorruptedPdfPlaque(
     }
 }
 
+/**
+ * Открывает PDF и создаёт [PdfRenderer]. Вызывать только с IO-диспетчера:
+ * `ParcelFileDescriptor.open` читает файл, `PdfRenderer(pfd)` разбирает xref/trailer.
+ * Если `PdfRenderer` упал (битый файл), дескриптор закрывается здесь же — иначе fd утекает
+ * на ветке `CorruptedPdfPlaque`.
+ */
+internal fun openPdfHandle(file: File): Result<Pair<ParcelFileDescriptor, PdfRenderer>> {
+    var pfd: ParcelFileDescriptor? = null
+    return try {
+        pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+        Result.success(pfd to PdfRenderer(pfd))
+    } catch (e: Throwable) {
+        runCatching { pfd?.close() }
+        Result.failure(e)
+    }
+}
+
+/** Закрывает пару (renderer, fd). Идемпотентен и безопасен на null/ошибке. */
+internal fun closePdfHandle(handle: Result<Pair<ParcelFileDescriptor, PdfRenderer>>?) {
+    handle?.getOrNull()?.let { (pfd, renderer) ->
+        runCatching { renderer.close() }
+        runCatching { pfd.close() }
+    }
+}
+
 @Composable
 fun MaterialPdfViewer(
     item: MaterialItemEntity,
@@ -206,20 +232,19 @@ fun MaterialPdfViewer(
         initialValue = null,
         key1 = file,
     ) {
-        value = runCatching {
-            val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-            pfd to PdfRenderer(pfd)
+        // Открытие — IO. NonCancellable: если экран уходит в момент открытия, withContext
+        // не выбросит результат, и мы успеем закрыть дескриптор ниже вместо утечки fd.
+        val opened = withContext(Dispatchers.IO + NonCancellable) { openPdfHandle(file) }
+        if (!isActive) {
+            closePdfHandle(opened)
+            return@produceState
         }
+        value = opened
     }
     val handle = handleState
 
     DisposableEffect(handle) {
-        onDispose {
-            handle?.getOrNull()?.let { (pfd, renderer) ->
-                runCatching { renderer.close() }
-                runCatching { pfd.close() }
-            }
-        }
+        onDispose { closePdfHandle(handle) }
     }
 
     if (handle == null) {
@@ -309,7 +334,13 @@ fun MaterialPdfViewer(
     val undoSession = remember(item.id) { AnnotationUndoSession() }
 
     LaunchedEffect(annotations) {
-        annotations.forEach { if (it.pageIndex !in dirtyPages) pageStrokes[it.pageIndex] = Stroke.parse(it.strokesJson) }
+        // JSON разметки по страницам — не на главном потоке: у размеченного PDF это десятки страниц.
+        val fresh = annotations.filter { it.pageIndex !in dirtyPages }
+        val parsed =
+            withContext(Dispatchers.Default) {
+                fresh.map { it.pageIndex to Stroke.parse(it.strokesJson) }
+            }
+        parsed.forEach { (page, strokes) -> if (page !in dirtyPages) pageStrokes[page] = strokes }
     }
 
     suspend fun persistPages(pages: List<Int>) {
@@ -1059,7 +1090,7 @@ internal fun BookmarkPanel(
     ) {
         if (bookmarks.isEmpty()) {
             Text(
-                text = "Закладок нет. Нажмите значок закладки на нужной странице.",
+                text = "Закладок нет. Отметьте страницу значком закладки.",
                 style = TextStyle(fontSize = 12.sp, color = ColorTextMuted),
                 modifier = Modifier.padding(12.dp),
             )

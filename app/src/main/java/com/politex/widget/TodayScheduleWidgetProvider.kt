@@ -61,6 +61,9 @@ class TodayScheduleWidgetProvider : AppWidgetProvider() {
             views.setTextColor(R.id.tv_today_header, style.subColor)
             views.setTextColor(R.id.tv_today_empty, style.subColor)
 
+            // Статичная погода: Bitmap-подложка (капли/снег/ночь) + значок и температура.
+            WidgetWeather.applyBackdrop(views, context, appWidgetId, colors = style)
+
             val teacherSnap = TeacherWidgetData.teacherModeSnapshot(context)
             val teacherMode = teacherSnap != null
             val now = WidgetData.minuteOfDay(context)

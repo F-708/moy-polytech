@@ -50,14 +50,11 @@ class AppUpdateWorker(
         const val STARTUP_WORK_NAME = "app_update_check_startup"
         const val CHANNEL_ID = "mpk_app_updates"
         const val NOTIFICATION_ID = 2027
-        const val NOTIFICATION_REJECTED_ID = 2028
         private const val PREFS = "mpk_update_prefs"
         private const val KEY_NOTIFIED_VERSION = "notified_version_name"
         private const val KEY_NOTIFIED_CODE = "notified_version_code"
         private const val KEY_SCHEDULED_CHANNEL = "scheduled_channel"
         private const val KEY_LAST_STARTUP_CHECK_AT = "last_startup_check_at"
-
-        internal var downloadOverride: ((Context, UpdateInfo) -> File?)? = null
 
         internal fun processFoundUpdate(
             context: Context,
@@ -70,7 +67,7 @@ class AppUpdateWorker(
             val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             if (alreadyNotified(prefs, info)) return Result.success()
             when (UpdateInstallController.state.value) {
-                is InstallButtonState.Downloading -> return Result.retry()
+                is InstallButtonState.Downloading -> return Result.success()
                 is InstallButtonState.Downloaded,
                 is InstallButtonState.InstallLaunched,
                 -> {
@@ -79,50 +76,15 @@ class AppUpdateWorker(
                 }
                 else -> Unit
             }
-            val file =
-                UpdateInstallController.cachedValidFile(appContext, info)
-                    ?: freshDownload(appContext, info)
-                    ?: return Result.retry()
-            return when (val rejection = UpdateInstallController.validateFile(appContext, file)) {
-                ApkRejection.NONE -> {
-                    UpdateInstallController.adoptWorkerResult(appContext, info, file)
-                    notifyReady(appContext, info, file)
-                    remember(prefs, info)
-                    Result.success()
-                }
-                ApkRejection.UNREADABLE -> {
-                    file.delete()
-                    Result.retry()
-                }
-                ApkRejection.VERSION -> {
-                    file.delete()
-                    UpdateInstallController.clearPending(appContext)
-                    remember(prefs, info)
-                    Result.success()
-                }
-                ApkRejection.PACKAGE, ApkRejection.SIGNATURE -> {
-                    file.delete()
-                    UpdateInstallController.clearPending(appContext)
-                    notifyRejected(appContext, rejection)
-                    remember(prefs, info)
-                    Result.success()
-                }
+            val cached = UpdateInstallController.cachedValidFile(appContext, info)
+            if (cached != null) {
+                UpdateInstallController.adoptWorkerResult(appContext, info, cached)
+                notifyReady(appContext, info, cached)
+            } else {
+                notifyAvailable(appContext, info)
             }
-        }
-
-        private fun freshDownload(
-            context: Context,
-            info: UpdateInfo,
-        ): File? {
-            val file =
-                downloadOverride?.invoke(context, info)
-                    ?: UpdateDownloader.download(context, info.asset, info.versionName)
-                    ?: return null
-            if (!UpdateDownloader.matchesChecksum(file, info.sha256)) {
-                file.delete()
-                return null
-            }
-            return file
+            remember(prefs, info)
+            return Result.success()
         }
 
         internal fun alreadyNotified(
@@ -266,21 +228,35 @@ class AppUpdateWorker(
             post(context, NOTIFICATION_ID, notification)
         }
 
-        internal fun notifyRejected(
+        internal fun notifyAvailable(
             context: Context,
-            rejection: ApkRejection,
+            info: UpdateInfo,
         ) {
             if (!ensureChannel(context)) return
-            val notification =
+            val launch =
+                context.packageManager
+                    .getLaunchIntentForPackage(context.packageName)
+                    ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val pending =
+                launch?.let {
+                    PendingIntent.getActivity(
+                        context,
+                        NOTIFICATION_ID,
+                        it,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+                }
+            val body = "Откройте «Мой Политех», чтобы скачать обновление."
+            val builder =
                 NotificationCompat
                     .Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_mpk_emblem)
-                    .setContentTitle("Обновление отклонено")
-                    .setContentText(UpdateDownloader.rejectionMessage(rejection))
-                    .setStyle(NotificationCompat.BigTextStyle().bigText(UpdateDownloader.rejectionMessage(rejection)))
+                    .setContentTitle("Доступно обновление ${info.versionName}")
+                    .setContentText(body)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                     .setAutoCancel(true)
-                    .build()
-            post(context, NOTIFICATION_REJECTED_ID, notification)
+            if (pending != null) builder.setContentIntent(pending)
+            post(context, NOTIFICATION_ID, builder.build())
         }
 
         private fun ensureChannel(context: Context): Boolean {
