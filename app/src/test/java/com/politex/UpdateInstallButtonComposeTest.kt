@@ -60,6 +60,7 @@ class UpdateInstallButtonComposeTest {
 
     @Before
     fun setUp() {
+        com.politex.assumeUpdatesFlavor()
         TeacherModeStore.clear(context)
         UpdateChannelStore.set(context, UpdateChannel.STABLE)
         UpdateCheckController.checkOverride = null

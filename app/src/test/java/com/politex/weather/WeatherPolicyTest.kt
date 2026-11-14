@@ -12,6 +12,12 @@ import org.junit.Test
  */
 class WeatherPolicyTest {
 
+    /** 2026-11-12 22:00 Минска — заведомо ночь по восходу/заходу. */
+    private val nightNow = 1_794_510_000_000L
+
+    /** 2026-11-12 12:00 Минска — заведомо день. */
+    private val dayNow = 1_794_474_000_000L
+
     private val dayRain = WeatherSnapshot(
         precipitation = Precipitation.RAIN,
         isDay = true,
@@ -30,7 +36,8 @@ class WeatherPolicyTest {
         snapshot: WeatherSnapshot? = dayRain,
         dark: Boolean = false,
         animations: Boolean = true,
-    ): WeatherScene = resolveWeatherScene(effects, sky, snapshot, dark, animations)
+        now: Long = nightNow,
+    ): WeatherScene = resolveWeatherScene(effects, sky, snapshot, dark, animations, nowMillis = now)
 
     @Test
     fun `авто берёт дождь из прогноза`() {
@@ -66,11 +73,17 @@ class WeatherPolicyTest {
     }
 
     @Test
-    fun `ночь в светлой теме — звёзды есть, но фон не темнеет`() {
+    fun `ночь в светлой теме - звёзд нет, тема гейтит слой`() {
+        // Заказчик (2026-11-13): при светлой теме звёзды не показываются вовсе.
         val night = scene(snapshot = nightClear, dark = false, sky = SkyMode.NIGHT)
         assertTrue(night.night)
-        // Цвет звёзд выбирает слой отрисовки: на светлом фоне они тёмно-синие.
-        assertTrue(night.stars)
+        assertFalse(night.stars)
+    }
+
+    @Test
+    fun `глубокая ночь в светлой теме — звёзд нет, в тёмной — есть`() {
+        assertFalse(scene(snapshot = nightClear, dark = false, now = nightNow).stars)
+        assertTrue(scene(snapshot = nightClear, dark = true, now = nightNow).stars)
     }
 
     @Test
@@ -111,6 +124,45 @@ class WeatherPolicyTest {
     }
 
     @Test
+    fun `авто-ночь идёт по восходу и заходу колледжа, а не по прогнозу`() {
+        assertTrue(scene(snapshot = nightClear, dark = true, now = nightNow).night)
+        val day = scene(snapshot = nightClear, dark = true, now = dayNow)
+        assertFalse(day.night)
+        assertFalse(day.stars)
+    }
+
+    @Test
+    fun `авто-звёзды только глубокой ночью, а не с первой минуты сумерек`() {
+        // 2026-11-12 18:00 Минска: заход был в 17:18, отступ 2 ч ещё не прошёл.
+        val dusk = scene(snapshot = nightClear, dark = true, now = 1_794_495_600_000L)
+        assertTrue(dusk.night)
+        assertFalse(dusk.stars)
+        // 22:00 — середина ночи: звёзды есть.
+        assertTrue(scene(snapshot = nightClear, dark = true, now = nightNow).stars)
+    }
+
+    @Test
+    fun `ручное небо Ночь не гейтится глубокой ночью`() {
+        val forced = scene(sky = SkyMode.NIGHT, snapshot = nightClear, dark = true, now = dayNow)
+        assertTrue(forced.night)
+        assertTrue(forced.stars)
+    }
+
+    @Test
+    fun `глубокая ночь начинается через отступ после захода и кончается до восхода`() {
+        assertFalse(SolarNight.isDeepNight(1_794_495_600_000L)) // 18:00 — сумерки
+        assertTrue(SolarNight.isDeepNight(nightNow)) // 22:00 — середина ночи
+        assertFalse(SolarNight.isDeepNight(dayNow)) // полдень
+        assertFalse(SolarNight.isDeepNight(1_794_456_000_000L)) // 07:00 — близко к восходу
+    }
+
+    @Test
+    fun `ночь считается даже без прогноза`() {
+        assertTrue(scene(snapshot = null, dark = true, now = nightNow).night)
+        assertFalse(scene(snapshot = null, dark = true, now = dayNow).night)
+    }
+
+    @Test
     fun `анимация выключается системным флагом и энергосбережением`() {
         assertTrue(effectsAnimationAllowed(animatorScaleZero = false, powerSaveMode = false))
         assertFalse(effectsAnimationAllowed(animatorScaleZero = true, powerSaveMode = false))
@@ -120,7 +172,7 @@ class WeatherPolicyTest {
 
     @Test
     fun `ясный день без эффектов ничего не рисует`() {
-        assertFalse(scene(snapshot = null).hasEffects)
-        assertTrue(scene().hasEffects)
+        assertFalse(scene(snapshot = null, now = dayNow).hasEffects)
+        assertTrue(scene(now = nightNow).hasEffects)
     }
 }

@@ -58,6 +58,7 @@ class UpdateMoreButtonComposeTest {
 
     @Before
     fun setUp() {
+        com.politex.assumeUpdatesFlavor()
         UpdateChannelStore.set(context, UpdateChannel.STABLE)
         resetController()
     }

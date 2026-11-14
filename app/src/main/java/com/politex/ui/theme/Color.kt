@@ -47,6 +47,8 @@ data class MpkPalette(
     val mapDeadBg: Color,
     val mapDeadText: Color,
     val mapRouteCore: Color,
+    val mapWall: Color,
+    val mapStair: Color,
     val accentGold: Color,
     val onAccentGold: Color,
     val accentGoldBg: Color,
@@ -110,6 +112,8 @@ val LightPalette =
         mapDeadBg = Color(0xFFFDECEC),
         mapDeadText = Color(0xFFC0392B),
         mapRouteCore = Color(0xFFFFFFFF),
+        mapWall = Color(0xFF22303F),
+        mapStair = Color(0xFF9AA7B6),
         accentGold = Color(0xFF7A5C00),
         onAccentGold = Color(0xFFFFFFFF),
         accentGoldBg = Color(0xFF2A2313),
@@ -163,6 +167,8 @@ val DarkPalette =
         mapDeadBg = Color(0xFF3D1B17),
         mapDeadText = Color(0xFFF28B82),
         mapRouteCore = Color(0xFF0F1419),
+        mapWall = Color(0xFF93A9C4),
+        mapStair = Color(0xFF63758C),
         accentGold = Color(0xFFC9A24B),
         onAccentGold = Color(0xFF2A2313),
         accentGoldBg = Color(0xFF2A2313),
@@ -230,6 +236,8 @@ val ColorMapDead: Color get() = paletteState.mapDead
 val ColorMapDeadBg: Color get() = paletteState.mapDeadBg
 val ColorMapDeadText: Color get() = paletteState.mapDeadText
 val ColorMapRouteCore: Color get() = paletteState.mapRouteCore
+val ColorMapWall: Color get() = paletteState.mapWall
+val ColorMapStair: Color get() = paletteState.mapStair
 
 val ColorAccentGold: Color get() = paletteState.accentGold
 val ColorOnAccentGold: Color get() = paletteState.onAccentGold

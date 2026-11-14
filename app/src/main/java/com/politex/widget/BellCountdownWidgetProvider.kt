@@ -263,7 +263,6 @@ class BellCountdownWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.iv_idle, android.view.View.GONE)
 
             // Погода на виджете обратного отсчёта: статичная картинка + строка.
-            WidgetWeather.applyBackdrop(views, context, appWidgetId, colors = style)
 
             views.setViewVisibility(R.id.tv_countdown_value, android.view.View.VISIBLE)
             views.setTextColor(R.id.tv_countdown_label, style.subColor)
@@ -404,34 +403,20 @@ enum class CountdownMode(val title: String, val description: String) {
 enum class WidgetStyle(
     val title: String,
 ) {
-    SYSTEM("Системная"),
-    APP("Как в приложении"),
+    COLLEGE("Фирменная"),
+    EMERALD("Изумрудная"),
+    BORDEAUX("Бордовая"),
+    GRAPHITE("Графитовая"),
+    INDIGO("Индиго"),
+    AMBER("Янтарная"),
+    STEEL("Стальная"),
+    PLUM("Сливовая"),
     ;
 
     companion object {
         private const val PREF_PREFIX = "widget_style_"
 
-        val SYSTEM_LIGHT =
-            WidgetColors(
-                backgroundColor = 0xFFFFFFFF.toInt(),
-                mainColor = 0xFF111827.toInt(),
-                subColor = 0xFF6B7280.toInt(),
-                highlightColor = 0xFFE8F0FA.toInt(),
-                pastColor = 0xFF6B7280.toInt(),
-            )
-
-        val SYSTEM_DARK =
-            WidgetColors(
-                backgroundColor = 0xFF001737.toInt(),
-                mainColor = 0xFFFFFFFF.toInt(),
-                subColor = 0xFFB9C6D8.toInt(),
-                highlightColor = 0xFF0B3564.toInt(),
-                pastColor = 0xFF5A6B85.toInt(),
-            )
-
-        fun systemColors(night: Boolean): WidgetColors = if (night) SYSTEM_DARK else SYSTEM_LIGHT
-
-        fun fromName(name: String?): WidgetStyle = entries.firstOrNull { it.name == name } ?: SYSTEM
+        fun fromName(name: String?): WidgetStyle = entries.firstOrNull { it.name == name } ?: COLLEGE
 
         fun load(context: Context, appWidgetId: Int): WidgetStyle = fromName(WidgetUpdateHelper.getPrefs(context).getString(PREF_PREFIX + appWidgetId, null))
 
@@ -443,28 +428,35 @@ enum class WidgetStyle(
         }
     }
 
-    fun colors(context: Context): WidgetColors = when (this) {
-        SYSTEM -> {
-            val night =
-                context.resources.configuration.uiMode and
-                    android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
-                    android.content.res.Configuration.UI_MODE_NIGHT_YES
-            systemColors(night)
-        }
-        APP -> {
-            // Эффективная палитра: пресет × режим × тон. Раньше бралась светлая палитра пресета
-            // всегда — виджет «Как в приложении» не темнел вместе с приложением.
-            val p = com.politex.util.AppThemeStore.effectivePalette(context)
-            val dark = com.politex.util.AppThemeStore.isDark(context)
-            WidgetColors(
-                backgroundColor = p.brandFill.toArgb(),
-                mainColor = p.onAccent.toArgb(),
-                subColor = p.onAccentMuted.toArgb(),
-                highlightColor = p.topBar.toArgb(),
-                pastColor = if (dark) 0xFFB9C6D8.toInt() else 0xFF9FB0C4.toInt(),
-            )
-        }
+    /**
+     * Палитра виджета = палитра выбранной темы приложения.
+     *
+     * Заказчик (2026-11-13): ровно 8 слотов, как в настройках приложения, без
+     * «системной» и «как в приложении». Светлая/тёмная палитра темы — по
+     * ночному режиму системы.
+     */
+    fun colors(context: Context): WidgetColors {
+        val theme = com.politex.ui.theme.AppTheme.entries.first { it.name == name }
+        val night = systemNight(context)
+        return paletteColors(if (night) theme.darkPalette else theme.palette, night)
     }
+
+    private fun systemNight(context: Context): Boolean =
+        context.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+
+    private fun paletteColors(
+        p: com.politex.ui.theme.MpkPalette,
+        dark: Boolean,
+    ): WidgetColors =
+        WidgetColors(
+            backgroundColor = p.brandFill.toArgb(),
+            mainColor = p.onAccent.toArgb(),
+            subColor = p.onAccentMuted.toArgb(),
+            highlightColor = p.topBar.toArgb(),
+            pastColor = if (dark) 0xFFB9C6D8.toInt() else 0xFF9FB0C4.toInt(),
+        )
 }
 
 data class WidgetColors(

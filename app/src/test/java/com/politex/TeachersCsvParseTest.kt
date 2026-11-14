@@ -1,5 +1,6 @@
 package com.politex
 
+import com.politex.content.ContentAssets
 import com.politex.data.repository.Teacher
 import com.politex.data.repository.TeachersRepository
 import org.junit.Assert.assertEquals
@@ -155,12 +156,17 @@ class TeachersCsvParseTest {
     fun `каждая запись имеет фото, файлы в ассетах совпадают с CSV`() {
         val assets = RuntimeEnvironment.getApplication().assets
         val photos = assets.list("teachers_photos")!!.toSet()
-        assertEquals(106, photos.size)
+        // 106 было до 2026-11-13: семь старых сгенерированных «аватарок» удалены —
+        // вместо них показывается заглушка «нет фото» (ContentAssets.isGeneratedAvatar).
+        assertEquals(99, photos.size)
         for (t in teachers) {
             assertTrue("пустая ссылка на фото у ${t.name}", t.photo.isNotBlank())
-            assertTrue("нет фото ${t.photo} у ${t.name}", t.photo in photos)
+            assertTrue(
+                "нет фото ${t.photo} у ${t.name} и это не старая аватарка",
+                t.photo in photos || ContentAssets.isGeneratedAvatar(t.photo),
+            )
         }
-        assertEquals(photos, teachers.map { it.photo }.toSet())
+        assertEquals(photos, teachers.map { it.photo }.toSet() - teachers.filter { ContentAssets.isGeneratedAvatar(it.photo) }.map { it.photo }.toSet())
     }
 
     @Test

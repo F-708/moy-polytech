@@ -302,7 +302,7 @@ fun ScheduleScreen(
                 .getInstance(context)
                 .let { db ->
                     com.politex.data.repository
-                        .TaskRepository(db.taskDao(), db.taskReminderDao())
+                        .TaskRepository(db.taskDao(), db.taskReminderDao(), db)
                 }.getPendingTasksForGroup(groupInfo.canonicalName)
         }.collectAsState(initial = emptyList()).value
 
@@ -824,7 +824,7 @@ fun ScheduleScreen(
                             showPulseHint = !scheduleHintDone,
                             onRoomClick = lessonRoomClick,
                             focusLessonNumber = highlightLesson,
-                            focusAlpha = highlightAlpha.value,
+                            focusAlpha = { highlightAlpha.value },
                         )
                     }
                 }
@@ -879,7 +879,7 @@ fun LessonCard(
     pulse: Boolean = false,
     teacherMode: Boolean = false,
 
-    focusAlpha: Float = 0f,
+    focusAlpha: () -> Float = { 0f },
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -903,8 +903,8 @@ fun LessonCard(
             modifier =
             Modifier
                 .drawBehind {
-                    if (focusAlpha > 0f) {
-                        drawRect(ColorBrandBlue.copy(alpha = focusAlpha * 0.18f))
+                    if (focusAlpha() > 0f) {
+                        drawRect(ColorBrandBlue.copy(alpha = focusAlpha() * 0.18f))
                     }
                 }.padding(
                     if (compact) {
@@ -954,7 +954,7 @@ internal fun MergedLessonCard(
     onRoomClick: (String) -> Unit,
     pulse: Boolean,
     teacherMode: Boolean = false,
-    focusAlpha: Float = 0f,
+    focusAlpha: () -> Float = { 0f },
     modifier: Modifier = Modifier,
 ) {
     val content = remember(lessons) { mergedCardContent(lessons) } ?: return
@@ -978,8 +978,8 @@ internal fun MergedLessonCard(
             modifier =
             Modifier
                 .drawBehind {
-                    if (focusAlpha > 0f) {
-                        drawRect(ColorBrandBlue.copy(alpha = focusAlpha * 0.18f))
+                    if (focusAlpha() > 0f) {
+                        drawRect(ColorBrandBlue.copy(alpha = focusAlpha() * 0.18f))
                     }
                 }.padding(
                     if (compact) {
@@ -1031,7 +1031,7 @@ internal fun ScheduleLessonSlotCard(
     showPulseHint: Boolean = false,
     onRoomClick: (room: String, fromLesson: LessonEntity) -> Unit = { _, _ -> },
     focusLessonNumber: Int? = null,
-    focusAlpha: Float = 0f,
+    focusAlpha: () -> Float = { 0f },
     modifier: Modifier = Modifier,
 ) {
     when (slot) {
@@ -1053,7 +1053,7 @@ internal fun ScheduleLessonSlotCard(
                     isTargetLesson = lesson.lessonNumber == pulseLessonNumber,
                 ),
                 onRoomClick = { room -> onRoomClick(room, lesson) },
-                focusAlpha = if (focusLessonNumber == lesson.lessonNumber) focusAlpha else 0f,
+                focusAlpha = if (focusLessonNumber == lesson.lessonNumber) focusAlpha else ({ 0f }),
                 modifier = modifier,
             )
         }
@@ -1078,7 +1078,7 @@ internal fun ScheduleLessonSlotCard(
                 if (focusLessonNumber != null && lessons.any { it.lessonNumber == focusLessonNumber }) {
                     focusAlpha
                 } else {
-                    0f
+                    { 0f }
                 },
                 modifier = modifier,
             )

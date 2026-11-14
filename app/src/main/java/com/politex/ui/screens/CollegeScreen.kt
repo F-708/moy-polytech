@@ -40,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -54,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.politex.R
 import com.politex.content.ContentAssets
 import com.politex.content.ContentPackStore
 import com.politex.content.OwnerOverridesStore
@@ -1197,28 +1199,35 @@ private fun TeacherAvatar(
                 .background(ColorSurfaceHighlight, RoundedCornerShape(2.dp)),
         )
     } else {
-        Box(
-            modifier =
-            modifier
-                .size(size)
-                .background(ColorBrandFill, RoundedCornerShape(2.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = teacherInitial(teacher.name),
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = (size.value * 0.4f).sp,
-            )
-        }
+        TeacherAvatarPlaceholder(name = teacher.name, size = size, border = border, modifier = modifier)
     }
 }
 
-internal fun teacherInitial(name: String): String = name
-    .trim()
-    .split(" ")
-    .firstOrNull { it.isNotBlank() }
-    ?.take(1) ?: "?"
+/**
+ * Заглушка фото преподавателя: готовая картинка «нет фото» из drawable.
+ *
+ * Раньше был силуэт с инициалами — заказчик счёл буквы некрасивыми.
+ * Та же картинка показывается в редакторе AdminPlus при убранном фото.
+ */
+@Composable
+private fun TeacherAvatarPlaceholder(
+    name: String,
+    size: androidx.compose.ui.unit.Dp,
+    border: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(id = R.drawable.teacher_no_photo),
+        contentDescription = name,
+        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+        modifier =
+        modifier
+            .size(size)
+            .border(1.dp, border, RoundedCornerShape(2.dp))
+            .background(ColorSurfaceHighlight, RoundedCornerShape(2.dp))
+            .testTag("teacher_avatar_placeholder"),
+    )
+}
 
 @Composable
 private fun TeacherCardPageWrapper(
@@ -1557,21 +1566,17 @@ private fun AboutTeacherTab(
                                 .background(ColorSurfaceHighlight, RoundedCornerShape(2.dp)),
                         )
                     } else {
-                        Box(
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.res.painterResource(id = R.drawable.teacher_no_photo),
+                            contentDescription = teacher.name,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                             modifier =
                             Modifier
                                 .width(180.dp)
                                 .height(230.dp)
-                                .background(ColorBrandFill, RoundedCornerShape(2.dp)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = teacherInitial(teacher.name),
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 60.sp,
-                            )
-                        }
+                                .border(1.dp, ColorBorderLight, RoundedCornerShape(2.dp))
+                                .background(ColorSurfaceHighlight, RoundedCornerShape(2.dp)),
+                        )
                     }
                 }
             }

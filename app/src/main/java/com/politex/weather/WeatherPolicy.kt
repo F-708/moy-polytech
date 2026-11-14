@@ -48,10 +48,11 @@ data class WeatherScene(
     val night: Boolean,
     val stars: Boolean,
     val animated: Boolean,
+    val season: Season = Season.NONE,
 ) {
     /** Нужно ли вообще что-то рисовать поверх фона. */
     val hasEffects: Boolean
-        get() = precipitation != Precipitation.NONE || stars || night
+        get() = precipitation != Precipitation.NONE || stars || night || season != Season.NONE
 }
 
 /**
@@ -70,32 +71,36 @@ fun resolvePrecipitation(
     EffectsMode.AUTO -> snapshot?.precipitation ?: Precipitation.NONE
 }
 
-/** Ночь ли сейчас: ручной выбор «Небо» сильнее `is_day` из прогноза. */
+/**
+ * Ночь ли сейчас: ручной выбор «Небо» сильнее астрономии.
+ *
+ * AUTO считает восход/заход солнца в точке колледжа ([SolarNight]): заказчик
+ * просил звёзды «когда на улице реально темно», а `is_day` прогноза может и не
+ * приехать вовсе. [nowMillis] явный — правило тестируется без подмены часов.
+ */
 fun resolveNight(
     mode: SkyMode,
     snapshot: WeatherSnapshot?,
+    nowMillis: Long = System.currentTimeMillis(),
 ): Boolean = when (mode) {
     SkyMode.DAY -> false
     SkyMode.NIGHT -> true
-    SkyMode.AUTO -> snapshot?.isNight ?: false
+    SkyMode.AUTO -> SolarNight.isNight(nowMillis)
 }
 
 /**
- * Звёзды видны только ночью и только в ясном небе.
+ * Звёзды видны только ночью, только в ясном небе и только в тёмной теме.
  *
  * Дождь и снег закрывают небо целиком — звёзды в осадки не рисуются никогда.
- * Тема на само решение больше не влияет: в светлой теме ночные звёзды рисуются
- * приглушённым тёмно-синим (иначе белые точки на белом фоне не читались бы),
- * а фон контента остаётся светлым — см. `Modifier.weatherScene`.
- *
- * [darkTheme] сохранён в сигнатуре: решение о цвете принимает слой отрисовки,
- * а не правило видимости, но старые вызовы и тесты остаются совместимыми.
+ * Заказчик (2026-11-13): при светлой теме звёзд быть не должно вовсе — раньше
+ * они рисовались приглушённо-синими на светлом фоне, теперь тема гейтит слой.
  */
 fun resolveStars(
     night: Boolean,
     darkTheme: Boolean,
     precipitation: Precipitation,
-): Boolean = night && precipitation == Precipitation.NONE
+    deepNight: Boolean = true,
+): Boolean = night && darkTheme && deepNight && precipitation == Precipitation.NONE
 
 /**
  * Можно ли анимировать слой.
@@ -115,13 +120,20 @@ fun resolveWeatherScene(
     snapshot: WeatherSnapshot?,
     darkTheme: Boolean,
     animationsAllowed: Boolean,
+    season: Season = currentSeason(),
+    nowMillis: Long = System.currentTimeMillis(),
 ): WeatherScene {
     val precipitation = resolvePrecipitation(effects, snapshot)
-    val night = resolveNight(sky, snapshot)
+    val night = resolveNight(sky, snapshot, nowMillis)
+    // Заказчик (2026-11-13): в AUTO звёзды только глубокой ночью. Ручные режимы
+    // не гейтим: включил «Ночь» — получил ночное небо сразу.
+    val deepNight = sky != SkyMode.AUTO || SolarNight.isDeepNight(nowMillis)
     return WeatherScene(
         precipitation = precipitation,
         night = night,
-        stars = resolveStars(night, darkTheme, precipitation),
+        stars = resolveStars(night, darkTheme, precipitation, deepNight),
         animated = animationsAllowed,
+        // Декор не рисуется при выключенных эффектах: OFF гасит и погоду, и сезон.
+        season = if (effects == EffectsMode.OFF) Season.NONE else season,
     )
 }

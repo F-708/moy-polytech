@@ -14,6 +14,8 @@ data class TeacherEditorForm(
     val experience: String = "",
     val category: String = "",
     val pendingPhoto: File? = null,
+    /** Фото принудительно убрано владельцем (заглушка «нет фото»). */
+    val photoRemoved: Boolean = false,
 )
 
 enum class TeacherEditorStatus { IDLE, SAVED, DELETED, ERROR }
@@ -34,6 +36,7 @@ object TeacherEditorLogic {
                 subjects = override.subjects,
                 experience = override.experience,
                 category = override.category,
+                photoRemoved = override.photoName == OwnerOverridesStore.PHOTO_REMOVED,
             )
 
         teacher != null ->
@@ -54,6 +57,7 @@ object TeacherEditorLogic {
         form: TeacherEditorForm,
         initial: TeacherEditorForm,
     ): Boolean = form.pendingPhoto != null ||
+        form.photoRemoved != initial.photoRemoved ||
         form.fio != initial.fio ||
         form.position != initial.position ||
         form.phone != initial.phone ||

@@ -1,6 +1,7 @@
 package com.politex.ui.effects
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -53,6 +54,71 @@ class AmbientParticlesTest {
         }
         assertTrue("есть звёзды ниже середины", stars.any { it.y > 0.5f })
         assertTrue("есть звёзды в верхней половине", stars.any { it.y < 0.5f })
+    }
+
+    @Test
+    fun `падающие звёзды редки и проходят окно прохода`() {
+        val shots = AmbientParticles.shootingStars()
+        assertTrue("падающих ${shots.size}", shots.size in AmbientSpec.SHOOTING_COUNT)
+        shots.forEach { shot ->
+            assertTrue(shot.periodSec in AmbientSpec.SHOOTING_PERIOD_SEC)
+            assertTrue(shot.lengthDp in AmbientSpec.SHOOTING_LENGTH_DP)
+            assertTrue(shot.angleDeg in 20f..45f)
+        }
+        val shot = shots.first()
+        // Пролёт длится flightSec: в его середине прогресс 0.5, после — небо чистое.
+        assertTrue(shot.flightSec in AmbientSpec.SHOOTING_FLIGHT_SEC)
+        val inFlight = AmbientParticles.shootingProgress(0f, shot.copy(phase = 0f, flightSec = 1f))
+        assertEquals(0f, inFlight!!, 0.0001f)
+        val mid = AmbientParticles.shootingProgress(0.5f, shot.copy(phase = 0f, flightSec = 1f))
+        assertEquals(0.5f, mid!!, 0.0001f)
+        assertNull(AmbientParticles.shootingProgress(0.5f * shot.periodSec, shot.copy(phase = 0f, flightSec = 1f)))
+        assertNull(AmbientParticles.shootingProgress(0f, shot.copy(phase = 0f, flightSec = 0f)))
+    }
+
+    @Test
+    fun `часть звёзд получает блик-крестик`() {
+        val stars = AmbientParticles.stars()
+        assertTrue("нет звёзд с бликом", stars.any { it.glint })
+        assertTrue("блик не у всех", stars.any { !it.glint })
+    }
+
+    @Test
+    fun `блик-крестик слит с ядром звезды`() {
+        // Заказчик (2026-11-12): крестик и точка читались как две разные фигуры.
+        // Луч обязан выступать за ядро меньше чем на половину радиуса и быть
+        // тоньше ядра — иначе это «плюс рядом с точкой», а не одна звезда.
+        assertTrue("луч короче ядра — блика не видно", AmbientSpec.STAR_GLINT_ARM > 1f)
+        assertTrue("луч слишком длинный: ${AmbientSpec.STAR_GLINT_ARM}", AmbientSpec.STAR_GLINT_ARM <= 1.5f)
+        assertTrue("луч толще ядра: ${AmbientSpec.STAR_GLINT_STROKE}", AmbientSpec.STAR_GLINT_STROKE < 0.6f)
+        assertTrue("окно проявления вне 0..1", AmbientSpec.SHOOTING_APPEAR in 0.05f..0.5f)
+    }
+
+    @Test
+    fun `падающая звезда проявляется плавно, а не вспыхивает`() {
+        // Заказчик (2026-11-12): «появляется слишком быстро» — звезда вспыхивала
+        // сразу на полную яркость и с готовым хвостом.
+        assertEquals(0f, AmbientParticles.shootingAppear(0f), 0.0001f)
+        assertEquals(1f, AmbientParticles.shootingAppear(AmbientSpec.SHOOTING_APPEAR), 0.0001f)
+        assertEquals(1f, AmbientParticles.shootingAppear(1f), 0.0001f)
+
+        var previous = -1f
+        for (i in 0..20) {
+            val progress = i / 20f
+            val appear = AmbientParticles.shootingAppear(progress)
+            assertTrue("проявление немонотонно на $progress", appear >= previous)
+            previous = appear
+        }
+
+        // В момент рождения ни яркости, ни хвоста нет.
+        assertEquals(0f, AmbientParticles.shootingFade(0f), 0.0001f)
+        assertEquals(0f, AmbientParticles.shootingTailFactor(0f), 0.0001f)
+        // К концу фазы разгона звезда полностью проявлена.
+        val appeared = AmbientParticles.shootingFade(AmbientSpec.SHOOTING_APPEAR)
+        assertTrue("после разгона звезда тусклая: $appeared", appeared > 0.8f)
+        assertEquals(1f, AmbientParticles.shootingTailFactor(0.5f), 0.0001f)
+        // В конце пролёта гаснет, а не обрывается на полной яркости.
+        assertTrue("звезда не гаснет к концу", AmbientParticles.shootingFade(1f) < 0.05f)
     }
 
     @Test

@@ -25,11 +25,20 @@ object ContentAssets {
         teacherName: String,
         fileName: String,
     ): String? {
+        // Фото принудительно убрано владельцем — показываем заглушку «нет фото».
+        if (OwnerOverridesStore.isPhotoRemoved(context, teacherName)) return null
         val override = OwnerOverridesStore.photoFileFor(context, teacherName)
         if (override != null) return "file://" + override.absolutePath
         if (fileName.isBlank()) return null
+        // Заказчик (2026-11-13): старые сгенерированные «аватарки» (*_avatar.jpg)
+        // принимались за настоящие фото — вместо них показываем новую заглушку.
+        if (isGeneratedAvatar(fileName)) return null
         return photoModel(context, fileName)
     }
+
+    /** Старая сгенерированная заглушка, замаскированная под фото профиля. */
+    internal fun isGeneratedAvatar(fileName: String): Boolean =
+        fileName.substringBeforeLast('.').endsWith("_avatar")
 
     fun packFile(
         context: Context,

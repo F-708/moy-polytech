@@ -75,4 +75,39 @@ class WhatsNewStoreTest {
         assertTrue(WhatsNewStore.onLaunch(context, v201).isEmpty())
         assertEquals(v201, WhatsNewStore.lastSeen(context))
     }
+
+    @Test
+    fun `превью-сборка не показывает что нового и молча записывает версию`() {
+        val preview = 20300001
+        WhatsNewStore.recordSeen(context, v220)
+        assertTrue(WhatsNewStore.onLaunch(context, preview).isEmpty())
+        assertEquals(preview, WhatsNewStore.lastSeen(context))
+    }
+
+    @Test
+    fun `превью-сборка на свежей установке тоже молчит`() {
+        val preview = 20300001
+        assertTrue(WhatsNewStore.onLaunch(context, preview).isEmpty())
+        assertEquals(preview, WhatsNewStore.lastSeen(context))
+    }
+
+    @Test
+    fun `стабильная сборка той же линии после превью показывает только своё`() {
+        val preview = 20300001
+        val stable = 20300999
+        WhatsNewStore.recordSeen(context, v220)
+        assertTrue(WhatsNewStore.onLaunch(context, preview).isEmpty())
+        // Записей для 2.3 ещё нет — окно не должно подтягивать чужие пункты.
+        assertTrue(WhatsNewStore.onLaunch(context, stable).isEmpty())
+        // Запись версии в stable-ветке делает MainActivity после показа окна.
+        assertEquals(preview, WhatsNewStore.lastSeen(context))
+    }
+
+    @Test
+    fun `признак стабильной сборки по последним трём цифрам кода`() {
+        assertTrue(WhatsNewStore.isStableBuild(20200999))
+        assertTrue(WhatsNewStore.isStableBuild(20300999))
+        assertTrue(!WhatsNewStore.isStableBuild(20300001))
+        assertTrue(!WhatsNewStore.isStableBuild(20300998))
+    }
 }

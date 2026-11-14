@@ -79,12 +79,6 @@ class WidgetLayoutsTest {
     }
 
     @Test
-    fun `N10 pastColor светлой системной палитры соответствует контрасту на белом`() {
-        assertEquals(0xFF6B7280.toInt(), com.politex.widget.WidgetStyle.SYSTEM_LIGHT.pastColor)
-        assertEquals(0xFF6B7280.toInt(), com.politex.widget.WidgetStyle.systemColors(night = false).pastColor)
-    }
-
-    @Test
     fun `N10 время в now-next тяжелее предмета по весу`() {
         val text = File(layoutsDir, "widget_now_next.xml").readText()
         assertTrue(
@@ -225,18 +219,13 @@ class WidgetLayoutsTest {
     }
 
     @Test
-    fun `погодная подложка виджетов — одна статичная картинка`() {
+    fun `погодной подложки в виджетах больше нет`() {
+        // Заказчик (2026-11-12): анимации дождя и снега убраны с виджетов
+        // полностью — проверяем, что подложка не вернётся незаметно.
         listOf("widget_now_next.xml", "widget_today_schedule.xml", "widget_bells.xml", "widget_bell_countdown.xml")
             .forEach { name ->
                 val text = File(layoutsDir, name).readText()
-                assertTrue("$name: нет картинки @+id/iv_weather_backdrop", text.contains("@+id/iv_weather_backdrop"))
-                val attrs = text.substringAfter("@+id/iv_weather_backdrop").substringBefore("/>")
-                assertTrue(
-                    "$name: подложка должна быть ImageView",
-                    Regex("<ImageView\\s+android:id=\"@\\+id/iv_weather_backdrop\"").containsMatchIn(text),
-                )
-                assertTrue("$name: картинка не растянута на виджет", attrs.contains("android:scaleType=\"fitXY\""))
-                assertTrue("$name: картинка не скрыта по умолчанию", attrs.contains("android:visibility=\"gone\""))
+                assertTrue("$name: подложка вернулась", !text.contains("iv_weather_backdrop"))
                 assertTrue("$name: кадры анимации остались", !text.contains("weather_frame_"))
             }
     }

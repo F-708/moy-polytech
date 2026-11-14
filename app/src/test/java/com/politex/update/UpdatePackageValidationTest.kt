@@ -15,6 +15,7 @@ class UpdatePackageValidationTest {
 
     @Test
     fun `applicationId сборки — com politex`() {
+        com.politex.assumeUpdatesFlavor()
         assertEquals("com.politex", BuildConfig.APPLICATION_ID)
     }
 

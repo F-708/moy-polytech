@@ -278,7 +278,9 @@ internal fun resolvePackUrl(
     url: String,
 ): String {
     val trimmed = url.trim()
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed
+    // http:// не доверяем: контент-пакет идёт только по TLS, иначе MitM-подмена.
+    if (trimmed.startsWith("http://")) return "https://" + trimmed.removePrefix("http://")
+    if (trimmed.startsWith("https://")) return trimmed
     val relative = trimmed.removePrefix("./").removePrefix("/")
     val base = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
     return base + relative

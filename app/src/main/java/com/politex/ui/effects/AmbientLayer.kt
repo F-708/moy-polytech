@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
 import com.politex.ui.theme.isDarkThemeActive
 import com.politex.weather.Precipitation
+import com.politex.weather.Season
 import com.politex.weather.WeatherScene
 
 /** Готовый набор частиц под текущее состояние: пересобирается только при его смене. */
@@ -21,8 +22,12 @@ data class AmbientField(
     val rain: List<RainDrop>,
     val snow: List<SnowFlake>,
     val stars: List<Star>,
+    val shooting: List<ShootingStar> = emptyList(),
+    val garland: List<GarlandLight> = emptyList(),
 ) {
-    val isEmpty: Boolean get() = rain.isEmpty() && snow.isEmpty() && stars.isEmpty()
+    val isEmpty: Boolean
+        get() = rain.isEmpty() && snow.isEmpty() && stars.isEmpty() &&
+            shooting.isEmpty() && garland.isEmpty()
 }
 
 /** Детерминированный набор частиц для [scene] (без обращения к Android). */
@@ -32,11 +37,14 @@ fun rememberAmbientField(scene: WeatherScene): AmbientField {
     val hasSnow = scene.precipitation == Precipitation.SNOW
     // В дождь и снег неба не видно: звёзды не рисуем, даже если сцена их просит.
     val hasStars = scene.stars && !hasRain && !hasSnow
-    return remember(hasRain, hasSnow, hasStars) {
+    val season = scene.season
+    return remember(hasRain, hasSnow, hasStars, season) {
         AmbientField(
             rain = if (hasRain) AmbientParticles.rain() else emptyList(),
             snow = if (hasSnow) AmbientParticles.snow() else emptyList(),
             stars = if (hasStars) AmbientParticles.stars() else emptyList(),
+            shooting = if (hasStars) AmbientParticles.shootingStars() else emptyList(),
+            garland = if (season == Season.NEW_YEAR) AmbientParticles.garland() else emptyList(),
         )
     }
 }
@@ -165,19 +173,124 @@ internal fun DrawScope.drawAmbientParticles(
     }
 
     if (field.stars.isNotEmpty()) {
-        // На светлом небе белые точки не читаются — рисуем тёмно-синие и тише.
-        val starColor = if (dark) Color(0xFFFFF6E0) else Color(0xFF44506B)
-        val themeScale = if (dark) 1f else 0.6f
+        // Звёзды рисуются только в тёмной теме (политика resolveStars), поэтому
+        // один цвет — тёплый белый; светлой ветки больше нет.
+        val starColor = Color(0xFFFFF6E0)
         field.stars.forEach { star ->
             val life = AmbientParticles.starAlpha(seconds, star.lifeSec, star.twinkleSec, star.phase)
             val y = star.y * heightPx
-            val alpha = (star.alpha * life * themeScale * alphaScale * fadeAt(y)).coerceIn(0f, 1f)
+            val alpha = (star.alpha * life * alphaScale * fadeAt(y)).coerceIn(0f, 1f)
             if (alpha <= 0.01f) return@forEach
+            val cx = star.x * widthPx
+            val r = star.radiusDp.dp.toPx()
+            drawCircle(color = starColor.copy(alpha = alpha), radius = r, center = Offset(cx, y))
+            // Блик-крестик: лучи короче ядра и тоньше его, поэтому звезда читается
+            // ОДНОЙ фигурой с мягким бликом, а не «плюс рядом с точкой».
+            // Заказчик (2026-11-12): крестик и точка выглядели как две разные формы.
+            if (star.glint) {
+                val arm = r * AmbientSpec.STAR_GLINT_ARM
+                val glintAlpha = (alpha * 0.5f).coerceIn(0f, 1f)
+                val thin = (r * AmbientSpec.STAR_GLINT_STROKE).coerceAtLeast(1f)
+                drawLine(
+                    color = starColor.copy(alpha = glintAlpha),
+                    start = Offset(cx - arm, y),
+                    end = Offset(cx + arm, y),
+                    strokeWidth = thin,
+                )
+                drawLine(
+                    color = starColor.copy(alpha = glintAlpha),
+                    start = Offset(cx, y - arm),
+                    end = Offset(cx, y + arm),
+                    strokeWidth = thin,
+                )
+            }
+        }
+    }
+
+    if (field.shooting.isNotEmpty()) {
+        val headColor = Color(0xFFFFFBEA)
+        field.shooting.forEach { shot ->
+            val progress = AmbientParticles.shootingProgress(seconds, shot) ?: return@forEach
+            // Проявление в начале пролёта и растворение хвоста в конце: звезда
+            // не вспыхивает на полную яркость и не обрывается (заказчик 2026-11-12).
+            val fade = AmbientParticles.shootingFade(progress)
+            val angle = Math.toRadians(shot.angleDeg.toDouble()).toFloat()
+            val dx = kotlin.math.cos(angle)
+            val dy = kotlin.math.sin(angle)
+            val lengthPx = shot.lengthDp.dp.toPx()
+            val headX = (shot.x * widthPx) + dx * lengthPx * progress
+            val headY = (shot.y * heightPx) + dy * lengthPx * progress
+            // Хвост вытягивается вместе со звездой, а не появляется готовым.
+            val tail = lengthPx * 0.6f * AmbientParticles.shootingTailFactor(progress)
+            val tailX = headX - dx * tail
+            val tailY = headY - dy * tail
+            drawLine(
+                color = headColor.copy(alpha = (0.45f * fade * alphaScale).coerceIn(0f, 1f)),
+                start = Offset(tailX, tailY),
+                end = Offset(headX, headY),
+                strokeWidth = 1.2f.dp.toPx(),
+            )
             drawCircle(
-                color = starColor.copy(alpha = alpha),
-                radius = star.radiusDp.dp.toPx(),
-                center = Offset(star.x * widthPx, y),
+                color = headColor.copy(alpha = (0.85f * fade * alphaScale).coerceIn(0f, 1f)),
+                radius = 1.6f.dp.toPx(),
+                center = Offset(headX, headY),
             )
         }
+    }
+
+    if (field.garland.isNotEmpty()) {
+        drawGarland(field.garland, seconds, widthPx, heightPx, dark, alphaScale)
+    }
+}
+
+/** Новогодняя гирлянда: тонкий провод и лампочки, подвешенные под ним. */
+private fun DrawScope.drawGarland(
+    garland: List<GarlandLight>,
+    seconds: Float,
+    widthPx: Float,
+    heightPx: Float,
+    dark: Boolean,
+    alphaScale: Float,
+) {
+    // Переделано с нуля (2026-11-12): вместо четырёхцветной «ёлки» — два
+    // приглушённых тона (тёплое золото и лёд), лампочки висят НА проводе,
+    // а не лежат на нём: декор не спорит с контентом экрана.
+    val palette = if (dark) {
+        listOf(Color(0xFFFFD98A), Color(0xFFBFE3FF))
+    } else {
+        listOf(Color(0xFFD9A400), Color(0xFF7FA8D9))
+    }
+    val a = alphaScale.coerceIn(0f, 1f)
+    val wire = (if (dark) Color(0xFF8A94A6) else Color(0xFF9AA5B1)).copy(alpha = 0.35f * a)
+    // Цепь-провод: тонкая полупрозрачная линия через все точки.
+    if (garland.size > 1) {
+        for (i in 1 until garland.size) {
+            drawLine(
+                color = wire,
+                start = Offset(garland[i - 1].x * widthPx, garland[i - 1].y * heightPx),
+                end = Offset(garland[i].x * widthPx, garland[i].y * heightPx),
+                strokeWidth = 1.dp.toPx() * 0.7f,
+            )
+        }
+    }
+    val drop = 3.5f.dp.toPx()
+    val bulbR = 2.4f.dp.toPx()
+    garland.forEach { g ->
+        val twinkle = AmbientParticles.twinkleFactor(seconds, g.twinkleSec, g.phase)
+        val base = palette[g.colorIndex % palette.size]
+        val alpha = (0.55f + 0.45f * twinkle) * a
+        val topX = g.x * widthPx
+        val topY = g.y * heightPx
+        val center = Offset(topX, topY + drop + bulbR)
+        // Подвес: короткий штрих от провода к лампочке.
+        drawLine(
+            color = wire,
+            start = Offset(topX, topY),
+            end = Offset(topX, topY + drop),
+            strokeWidth = 1.dp.toPx() * 0.7f,
+        )
+        // Ореол + ядро лампочки.
+        drawCircle(color = base.copy(alpha = 0.25f * alpha), radius = bulbR * 2.2f, center = center)
+        drawCircle(color = base.copy(alpha = alpha), radius = bulbR, center = center)
     }
 }

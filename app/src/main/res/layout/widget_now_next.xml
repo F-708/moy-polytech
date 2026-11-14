@@ -19,13 +19,6 @@
         android:src="@drawable/widget_bg_r0" />
 
     <!-- Статичная погодная картинка (Bitmap из Canvas), под текстом. -->
-    <ImageView
-        android:id="@+id/iv_weather_backdrop"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:importantForAccessibility="no"
-        android:scaleType="fitXY"
-        android:visibility="gone" />
 
 <LinearLayout
     android:id="@+id/now_next_root"

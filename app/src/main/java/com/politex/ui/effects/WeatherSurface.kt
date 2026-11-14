@@ -18,10 +18,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.politex.ui.theme.ColorBgMain
 import com.politex.ui.theme.isDarkThemeActive
+import com.politex.weather.DevControlsStore
 import com.politex.weather.EffectsMode
 import com.politex.weather.SkyMode
 import com.politex.weather.WeatherHub
 import com.politex.weather.WeatherScene
+import com.politex.weather.currentSeason
 import com.politex.weather.resolveWeatherScene
 
 /**
@@ -52,13 +54,20 @@ fun rememberWeatherScene(): WeatherScene {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    return remember(snapshot, dark, animations) {
+    // Ручные переключатели из панели AdminPlus; в обычной сборке всё в AUTO.
+    val devRevision = DevControlsStore.revision.intValue
+    val effects = remember(context, devRevision) { DevControlsStore.readEffects(context) }
+    val sky = remember(context, devRevision) { DevControlsStore.readSky(context) }
+    val seasonOverride = remember(context, devRevision) { DevControlsStore.readSeason(context) }
+
+    return remember(snapshot, dark, animations, effects, sky, seasonOverride) {
         resolveWeatherScene(
-            effects = EffectsMode.AUTO,
-            sky = SkyMode.AUTO,
+            effects = effects,
+            sky = sky,
             snapshot = snapshot,
             darkTheme = dark,
             animationsAllowed = animations,
+            season = if (seasonOverride != com.politex.weather.Season.NONE) seasonOverride else currentSeason(),
         )
     }
 }

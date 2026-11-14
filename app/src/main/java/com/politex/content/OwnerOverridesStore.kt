@@ -150,7 +150,52 @@ object OwnerOverridesStore {
         record: PackTeacherOverride?,
     ): File? {
         val name = record?.photo ?: return null
+        if (name == PHOTO_REMOVED) return null
         return ContentAssets.packFile(context, PACK_PHOTOS_PREFIX + name)
+    }
+
+    /**
+     * Sentinel в `photoName`: фото принудительно убрано владельцем.
+     * Отличает «правки фото нет» (показываем исходное) от «фото убрали»
+     * (показываем заглушку «нет фото»).
+     */
+    const val PHOTO_REMOVED = "@removed"
+
+    fun isPhotoRemoved(
+        context: Context,
+        nameOrKey: String,
+    ): Boolean {
+        val k = keyOf(nameOrKey)
+        if (load(context)[k]?.photoName == PHOTO_REMOVED) return true
+        // Приёмник синхронизации: sentinel пришёл из контент-пакета владельца.
+        val pack = packEntries(context)
+        if (pack.isEmpty()) return false
+        return pack[k]?.photo == PHOTO_REMOVED ||
+            pack.values.any { it.fio != null && keyOf(it.fio) == k && it.photo == PHOTO_REMOVED }
+    }
+
+    /** Убирает фото (заглушка) или возвращает исходное, не трогая остальные поля. */
+    fun setPhotoRemoved(
+        context: Context,
+        key: String,
+        removed: Boolean,
+    ): TeacherOverride? {
+        val recordKey = keyOf(key)
+        synchronized(lock) {
+            val entries = load(context).toMutableMap()
+            val previous = entries[recordKey] ?: return null
+            val record =
+                previous.copy(
+                    photoName = if (removed) PHOTO_REMOVED else null,
+                    version = previous.version + 1,
+                    updatedAt = System.currentTimeMillis(),
+                )
+            entries[recordKey] = record
+            if (!persistLocked(context, entries)) return null
+            cache = entries
+            revision.intValue++
+            return record
+        }
     }
 
     private fun photoFileOf(
@@ -158,6 +203,7 @@ object OwnerOverridesStore {
         record: TeacherOverride?,
     ): File? {
         val name = record?.photoName ?: return null
+        if (name == PHOTO_REMOVED) return null
         val file = File(photosDir(context), name)
         return if (file.isFile) file else null
     }
@@ -172,6 +218,7 @@ object OwnerOverridesStore {
         experience: String = "",
         category: String = "",
         photoSource: File? = null,
+        photoRemoved: Boolean = false,
     ): TeacherOverride? {
         val recordKey = keyOf(key)
         val trimmedFio = fio.trim()
@@ -181,7 +228,17 @@ object OwnerOverridesStore {
             val previous = entries[recordKey]
             val version = (previous?.version ?: 0) + 1
             var photoName = previous?.photoName
-            if (photoSource != null && photoSource.isFile) {
+            if (photoRemoved) {
+                // Загруженное владельцем фото больше не нужно — исходное живёт
+                // в контент-пакете и вернётся при photoRemoved = false.
+                previous?.photoName
+                    ?.takeIf { it != PHOTO_REMOVED }
+                    ?.let { runCatching { File(photosDir(context), it).delete() } }
+                photoName = PHOTO_REMOVED
+            } else if (photoName == PHOTO_REMOVED) {
+                // Возврат исходного фото: sentinel сброшен, файла-замены нет.
+                photoName = null
+            } else if (photoSource != null && photoSource.isFile) {
                 val newName = photoFileName(recordKey, version)
                 val target = File(photosDir(context), newName)
                 val copied =
@@ -193,7 +250,7 @@ object OwnerOverridesStore {
                     }.isSuccess
                 if (copied) {
                     previous?.photoName
-                        ?.takeIf { it != newName }
+                        ?.takeIf { it != newName && it != PHOTO_REMOVED }
                         ?.let { runCatching { File(photosDir(context), it).delete() } }
                     photoName = newName
                 }

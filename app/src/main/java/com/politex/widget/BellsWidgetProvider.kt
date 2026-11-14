@@ -50,7 +50,6 @@ class BellsWidgetProvider : AppWidgetProvider() {
             views.setTextColor(R.id.tv_bells_header, style.subColor)
 
             // Погода на виджете звонков: статичная картинка + строка состояния.
-            WidgetWeather.applyBackdrop(views, context, appWidgetId, colors = style)
 
             val now = WidgetData.minuteOfDay(context)
             val dow = WidgetData.dayOfWeek(context)

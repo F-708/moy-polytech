@@ -47,16 +47,21 @@ jobs:
           MINOR="${REST%%.*}"
           REST="${REST#*.}"
           PATCH="${REST%%-*}"
+          # Нулевой patch в имени не показываем — синхронно с gradle-именем версии
+          BASE="$MAJOR.$MINOR"
+          if [ "$PATCH" != "0" ]; then BASE="$BASE.$PATCH"; fi
           if [[ "$VERSION" == *-preview.* ]]; then
             N="${VERSION##*-preview.}"
             CHANNEL="preview"
             PRERELEASE="true"
-            RELEASE_NAME="$TAG (превью)"
+            VERSION="$BASE-preview.$N"
+            RELEASE_NAME="v$VERSION (превью)"
           else
             N=999
             CHANNEL="stable"
             PRERELEASE="false"
-            RELEASE_NAME="$TAG"
+            VERSION="$BASE"
+            RELEASE_NAME="v$VERSION"
           fi
           if [ "$MAJOR" -gt 213 ] || [ "$MINOR" -gt 99 ] || [ "$PATCH" -gt 99 ] || [ "$N" -lt 1 ] || [ "$N" -gt 999 ]; then
             echo "::error::Сегменты вне границ: major≤213, minor≤99, patch≤99, N=1..998 (превью) или 999 (релиз)"

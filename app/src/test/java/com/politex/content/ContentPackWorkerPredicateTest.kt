@@ -23,8 +23,12 @@ class ContentPackWorkerPredicateTest {
     fun `абсолютный url используется как есть`() {
         val absolute = "https://cdn.example.com/packs/content-pack.zip"
         assertEquals(absolute, resolvePackUrl("https://raw.githubusercontent.com/o/r/main/content/", absolute))
-        val http = "http://cdn.example.com/p.zip"
-        assertEquals(http, resolvePackUrl("https://base/", http))
+    }
+
+    @Test
+    fun `http поднимается до https`() {
+        // Контент-пакет идёт только по TLS: MitM не должен подменить пакет открытым http.
+        assertEquals("https://cdn.example.com/p.zip", resolvePackUrl("https://base/", "http://cdn.example.com/p.zip"))
     }
 
     @Test

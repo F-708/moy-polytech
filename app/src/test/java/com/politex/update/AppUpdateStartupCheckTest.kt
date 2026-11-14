@@ -21,6 +21,7 @@ class AppUpdateStartupCheckTest {
 
     @Before
     fun setUp() {
+        com.politex.assumeUpdatesFlavor()
         WorkManager
             .getInstance(context)
             .cancelUniqueWork(AppUpdateWorker.STARTUP_WORK_NAME)

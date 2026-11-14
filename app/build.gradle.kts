@@ -31,8 +31,10 @@ fun parseVersionTag(tag: String?): Pair<String, Int>? {
   val patch = patchText.toIntOrNull() ?: return null
   val preview = previewText.toIntOrNull()
   val code = computeVersionCode(major, minor, patch, preview) ?: return null
-  val name =
-    if (preview == null) "$major.$minor.$patch" else "$major.$minor.$patch-preview.$preview"
+  // Заказчик (2026-11-13): нулевой patch в имени не показываем — «2.1», а не «2.1.0».
+  // Численный versionCode при этом не меняется и продолжает расти.
+  val base = if (patch == 0) "$major.$minor" else "$major.$minor.$patch"
+  val name = if (preview == null) base else "$base-preview.$preview"
   return name to code
 }
 

@@ -108,7 +108,7 @@ class AppViewModel(
     private val database = MpkDatabase.getInstance(application)
 
     val scheduleRepository = com.politex.AppGraph.scheduleRepository
-    val taskRepository = TaskRepository(database.taskDao(), database.taskReminderDao())
+    val taskRepository = TaskRepository(database.taskDao(), database.taskReminderDao(), database)
 
     val diagnosticInfo = scheduleRepository.diagnosticInfo
 

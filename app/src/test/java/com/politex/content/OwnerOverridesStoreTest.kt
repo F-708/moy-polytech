@@ -281,4 +281,33 @@ class OwnerOverridesStoreTest {
     fun `refreshDependentCaches не падает без инициализации графа`() {
         OwnerOverridesStore.refreshDependentCaches(context)
     }
+
+    @Test
+    fun `убранное фото даёт заглушку и возвращается обратно`() {
+        val src = photoSource("removed_src.jpg", "PHOTO")
+        OwnerOverridesStore.upsertTeacher(context, "нетов нет", "Нетов Нет", photoSource = src)
+        assertNotNull(OwnerOverridesStore.photoFileFor(context, "Нетов Нет"))
+
+        OwnerOverridesStore.upsertTeacher(context, "нетов нет", "Нетов Нет", photoRemoved = true)
+        assertTrue(OwnerOverridesStore.isPhotoRemoved(context, "Нетов Нет"))
+        assertNull(OwnerOverridesStore.photoFileFor(context, "Нетов Нет"))
+
+        OwnerOverridesStore.upsertTeacher(context, "нетов нет", "Нетов Нет", photoRemoved = false)
+        assertFalse(OwnerOverridesStore.isPhotoRemoved(context, "Нетов Нет"))
+        assertNull(OwnerOverridesStore.photoFileFor(context, "Нетов Нет"))
+    }
+
+    @Test
+    fun `sentinel убранного фото доезжает через пакет синхронизации`() {
+        val key = OwnerOverridesStore.keyOf("Пакетов Пакет")
+        val json =
+            OwnerOverridesStore.serializePackJson(
+                mapOf(key to PackTeacherOverride(key = key, photo = OwnerOverridesStore.PHOTO_REMOVED)),
+                1L,
+            )
+        activatePack(7, mapOf(OwnerOverridesStore.PACK_FILE to json))
+
+        assertTrue(OwnerOverridesStore.isPhotoRemoved(context, "Пакетов Пакет"))
+        assertNull(OwnerOverridesStore.photoFileFor(context, "Пакетов Пакет"))
+    }
 }

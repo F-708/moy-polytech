@@ -352,7 +352,6 @@ open class MpkNetworkClient {
         var totalBytesReceived = 0L
         var lastException: Throwable? = null
 
-        val allLessons = mutableListOf<LessonEntity>()
         var lastResponsePreview = ""
         var lastParseFormat = ""
         var lastParseStrategy = ""
@@ -378,6 +377,9 @@ open class MpkNetworkClient {
         }
 
         for (attempt in 1..maxRetries) {
+            // Уроки копятся внутри попытки: иначе частичный разбор первой попытки
+            // продублируется во второй (distinctBy по ключу без времени это не ловит).
+            val allLessons = mutableListOf<LessonEntity>()
             try {
                 forEachDocumentUrl(targetCalendar, preferredUrl = preferredUrl) { url ->
                     lastCheckedUrl = url
@@ -402,7 +404,9 @@ open class MpkNetworkClient {
                 }
 
                 val distinctLessons = allLessons.distinctBy { "${it.groupName}_${it.dayOfWeek}_${it.lessonNumber}_${it.dateString}" }
-                val isSuccess = lastHttpCode in 200..299 || distinctLessons.isNotEmpty()
+                // Успех = реально разобранные уроки, а не «какой-то из URL отдал 200».
+                // Иначе при «группа не найдена» UI показывал зелёное «Успешно: 0».
+                val isSuccess = distinctLessons.isNotEmpty()
 
                 _diagnosticInfo.value = SyncDiagnosticInfo(
                     lastSyncTime = nowStr,
