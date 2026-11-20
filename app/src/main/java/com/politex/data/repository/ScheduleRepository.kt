@@ -4,6 +4,7 @@ import com.politex.data.local.dao.LessonDao
 import com.politex.data.local.dao.TeacherLessonDao
 import com.politex.data.local.entity.LessonEntity
 import com.politex.data.local.entity.TeacherLessonEntity
+import com.politex.data.model.CollegeMapData
 import com.politex.data.network.MpkNetworkClient
 import com.politex.data.network.MpkScheduleParser
 import com.politex.data.network.ProbeResult
@@ -12,6 +13,8 @@ import com.politex.util.DateFormats
 import com.politex.util.Dow
 import com.politex.util.GroupParser
 import com.politex.util.lessonsWord
+import com.politex.util.sanityVerdict
+import com.politex.util.sanityVerdictTeacher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -258,7 +261,34 @@ class ScheduleRepository(
     private val teacherLessonDao: TeacherLessonDao? = null,
 
     private val fetchStamps: FetchStamps = MemoryFetchStamps(),
+
+    /** Реестр кабинетов колледжа. Загрузка ленивая — Android-контекст нужен только здесь. */
+    private val knownRoomsProvider: () -> Set<String> = { emptySet() },
 ) {
+    @Volatile
+    private var cachedRooms: Set<String>? = null
+
+    private fun knownRooms(): Set<String> =
+        cachedRooms ?: knownRoomsProvider().also { cachedRooms = it }
+
+    /**
+     * Перепроверка «а ты точно обновил расписание на новое?» — только там, где у группы/дня
+     * уже есть сохранённые уроки. Если свежий документ выглядит как мусор (случайные символы,
+     * неизвестные предметы/кабинеты), новые строки НЕ пишем — пользователь продолжает видеть
+     * прежнее, корректное расписание.
+     */
+    private suspend fun canOverwriteDay(
+        lessons: List<LessonEntity>,
+        date: String,
+    ): Boolean {
+        val affected = lessons.filter { it.dateString == date }
+        if (affected.isEmpty()) return true
+        val groups = affected.map { it.groupName }.distinct()
+        val anyCached = groups.any { lessonDao.getLessonCountForDate(it, date) > 0 }
+        if (!anyCached) return true
+        val verdict = sanityVerdict(affected, knownRooms())
+        return verdict
+    }
     val diagnosticInfo = networkClient.diagnosticInfo
 
     @Volatile
@@ -498,7 +528,20 @@ class ScheduleRepository(
                     .onSuccess { dayLessons ->
 
                         val dayGroups = dayLessons.map { it.groupName }.distinct().size
-                        if (isFullDayDocument(dayGroups, allGroups.size)) fetched += dayLessons
+                        if (isFullDayDocument(dayGroups, allGroups.size)) {
+                            // Перепроверка против «коррумпированного» документа: сайт иногда
+                            // отдаёт битый .doc, парсер успевает схватить мусор. Новые строки
+                            // дня с уже существующим кэшем пишем, только если они похожи на
+                            // настоящее расписание (см. ScheduleSanityCheck).
+                            val sane = canOverwriteDay(dayLessons, date)
+                            if (sane) {
+                                fetched += dayLessons
+                            } else {
+                                fetchFailed = true
+                                documentForDate = false
+                                if (date == tomorrowStr) targetDocumentFound = false
+                            }
+                        }
 
                         rememberDayCompleteness(date, dayGroups, allGroups.size)
                         if (documentForDate) stampDay(groupName, date)
@@ -614,6 +657,12 @@ class ScheduleRepository(
             return@withContext Result.failure(IOException("Документ на $date неполный"))
         }
         if (all.isNotEmpty()) {
+            // Та же перепроверка, что в syncScheduleDetailed: при уже существующем кэше дня
+            // коррумпированный документ не должен его затирать (виджеты/фоновый воркер
+            // ходят сюда). Запись пропускаем, старое остаётся, вызывающий видит «не удалось».
+            if (!canOverwriteDay(all, date)) {
+                return@withContext Result.failure(IOException("Документ на $date похож на повреждённый — сохранено прежнее расписание"))
+            }
             writeByGroup(all, setOf(date))
             pruneOldLessons()
         }
@@ -715,6 +764,13 @@ class ScheduleRepository(
             return@withContext Result.failure(IOException("Не удалось разобрать расписание преподавателей"))
         }
 
+        // Перепроверка против «коррумпированного» документа: если на этот день уже есть
+        // сохранённые строки преподавателей, битые данные не затирают существующие.
+        val alreadyThere = dao.getPresentDates(listOf(date)).contains(date)
+        if (alreadyThere && !sanityVerdictTeacher(rows)) {
+            return@withContext Result.failure(IOException("Документ на $date похож на повреждённый — сохранено прежнее расписание преподавателей"))
+        }
+
         dao.replaceForDate(date, rows)
         Result.success(rows.size)
     }
@@ -764,6 +820,7 @@ class ScheduleRepository(
 
         var written = 0
         for ((group, lessons) in forDate) {
+            if (!canOverwriteDay(lessons, date)) continue
             replaceSyncedLessons(group, lessons)
             stampDay(group, date)
             written += lessons.size

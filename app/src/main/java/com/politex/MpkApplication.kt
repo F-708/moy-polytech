@@ -28,6 +28,13 @@ object AppGraph {
                 catalogProvider = { GroupCatalog.load(app).all() },
                 teacherLessonDao = db.teacherLessonDao(),
                 fetchStamps = PrefsFetchStamps.forContext(app),
+                knownRoomsProvider = {
+                    val map = com.politex.data.model.CollegeMapData.load(app)
+                    listOf("1", "2", "3-4")
+                        .flatMap { f -> map.floor(f).rooms.map { it.number.trim().uppercase() } }
+                        .filter { it.isNotBlank() }
+                        .toSet()
+                },
             )
         teachersRepository = TeachersRepository(app)
         studentsRepository = StudentsRepository(app)
